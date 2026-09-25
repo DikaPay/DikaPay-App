@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="theme-color" content="#0B2447" />
+  <title>DikaPay — Statistik Pengeluaran</title>
+  <!-- Jaring pengaman galat: PALING ATAS di antara semua skrip, supaya
+       galat di file mana pun (termasuk script di bawah ini) tetap tertangkap
+       dan member tidak pernah melihat layar putih tanpa penjelasan. -->
+  <script src="../scripts/galat-global.js"></script>
+  <!-- Pemeriksa integritas perangkat (aplikasi modifikasi / root).
+       PALING ATAS, sebelum auth.js: layar aplikasi tidak boleh sempat
+       tergambar di perangkat yang bermasalah. -->
+  <script src="../scripts/integritas.js"></script>
+  <script src="../scripts/auth.js"></script>
+  <!-- Popup "Akun Kamu Telah Dibanned" (dipakai bersama oleh PIN transaksi
+       & PIN auto-lock) -- wajib ada SEBELUM auto-lock.js supaya banned 3x
+       salah PIN auto-lock bisa langsung menampilkannya. -->
+  <script src="../scripts/pin-transaksi.js"></script>
+  <!-- Kunci otomatis: minta PIN lagi kalau app ditinggal >= 5 menit. -->
+  <script src="../scripts/auto-lock.js"></script>
+  <link rel="stylesheet" href="../styles/style.css" />
+  <link rel="stylesheet" href="../styles/statistik.css" />
+</head>
+<body>
+  <div class="app" id="app">
+
+    <!-- ===== Header ===== -->
+    <header class="shead">
+      <button class="shead__back" type="button" id="backBtn" aria-label="Kembali">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+      </button>
+      <h1 class="shead__title">Statistik Pengeluaran</h1>
+      <div class="shead__select">
+        <select id="monthSel" aria-label="Pilih bulan"></select>
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+      </div>
+    </header>
+
+    <main class="smain">
+
+      <!-- ===== Memuat / gagal / belum ada pengeluaran ===== -->
+      <div class="sstate" id="statState" hidden>
+        <span class="sstate__spin" id="statSpin" aria-hidden="true"></span>
+        <p class="sstate__text" id="statStateText">Memuat statistik…</p>
+        <button class="sstate__retry" type="button" id="statRetryBtn" hidden>Coba Lagi</button>
+      </div>
+
+      <!-- ===== Konten statistik (disembunyikan sekaligus lewat #statContent
+           saat belum ada data untuk ditampilkan — lihat #statState di atas) ===== -->
+      <div id="statContent">
+
+        <!-- ===== Ringkasan + perbandingan ===== -->
+        <section class="stat-card reveal">
+          <span class="stat-card__glow" aria-hidden="true"></span>
+          <!-- "Bersih" (bukan "Total") karena angkanya = uang keluar DIKURANGI
+               uang masuk — definisi yang sama dengan kartu "Bulan Ini" di
+               Riwayat, dihitung modul yang sama (tx-ringkas.js). Rincian
+               keluar/masuk ditulis di bawahnya supaya hitungannya terlihat. -->
+          <span class="stat-card__label">Pengeluaran Bersih · <span id="monthName">—</span></span>
+          <span class="stat-card__total" id="statTotal">-Rp0</span>
+          <span class="stat-card__arus" id="statArus"></span>
+          <span class="cmp" id="cmpBadge" aria-live="polite"></span>
+        </section>
+
+        <!-- ===== Bar chart 6 bulan ===== -->
+        <section class="panel reveal">
+          <h2 class="panel__title">6 Bulan Terakhir</h2>
+          <div class="barchart" id="barChart">
+            <div class="barchart__plot" id="barPlot"></div>
+            <div class="bar-tip" id="barTip" hidden></div>
+          </div>
+        </section>
+
+        <!-- ===== Donut breakdown kategori ===== -->
+        <section class="panel reveal">
+          <h2 class="panel__title">Breakdown Kategori</h2>
+          <div class="donutwrap">
+            <svg class="donut" id="donut" viewBox="0 0 180 180" role="img" aria-label="Diagram kategori pengeluaran">
+              <circle class="donut__track" cx="90" cy="90" r="62" fill="none" stroke-width="26" />
+              <g transform="rotate(-90 90 90)" id="donutSegs"></g>
+              <text class="donut__total" id="donutTotal" x="90" y="87" text-anchor="middle">Rp0</text>
+              <text class="donut__cap" x="90" y="104" text-anchor="middle">Total</text>
+            </svg>
+          </div>
+          <ul class="legend" id="legend"></ul>
+        </section>
+
+        <!-- ===== Insight otomatis ===== -->
+        <section class="insight reveal" id="insight">
+          <span class="insight__ic" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6M10 22h4M12 2a7 7 0 0 0-4 12.7c.6.5 1 1.3 1 2.3h6c0-1 .4-1.8 1-2.3A7 7 0 0 0 12 2z"/></svg>
+          </span>
+          <p class="insight__text" id="insightText"></p>
+        </section>
+
+      </div>
+
+    </main>
+
+  </div>
+
+  <!-- data.js SEKARANG memuat riwayat LIVE lewat api.js + device_token
+       (member-sync.js) -- WAJIB di-link SETELAH keduanya, karena data.js
+       langsung memulai fetch pertamanya saat dieksekusi. -->
+  <script src="../scripts/api.js"></script>
+  <script src="../scripts/member-sync.js"></script>
+  <script src="../scripts/data.js"></script>
+  <!-- Perhitungan ringkasan bulanan dipakai BERSAMA oleh kartu "Bulan Ini"
+       (riwayat) dan halaman ini — wajib sebelum statistik.js. -->
+  <script src="../scripts/tx-ringkas.js"></script>
+  <script src="../scripts/statistik.js"></script>
+    <!-- Kotak masuk notifikasi + pendengar ketukan notifikasi sistem. -->
+    <script src="../scripts/notif-store.js"></script>
+    <script src="../scripts/notif-hp.js"></script>
+  </body>
+</html>

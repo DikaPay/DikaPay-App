@@ -1,0 +1,379 @@
+/* ===========================================================================
+   DikaPay — statistik.css
+   Halaman Statistik Pengeluaran. Pakai token dari style.css.
+   Chart = SVG + CSS/JS murni (tanpa library).
+   =========================================================================== */
+
+body { overflow-x: hidden; }
+
+.app {
+  animation: pageIn 0.32s var(--ease-out);
+}
+.app.is-leaving {
+  transform: translateX(100%);
+  transition: transform 0.28s var(--ease-out);
+}
+@keyframes pageIn {
+  from { transform: translateX(100%); opacity: 0.5; }
+  to   { transform: translateX(0); opacity: 1; }
+}
+
+/* Rincian arus kas di bawah angka besar — menjelaskan bagaimana
+   "pengeluaran bersih" terbentuk (keluar dikurangi masuk). */
+.stat-card__arus {
+  display: block;
+  margin-top: 4px;
+  font-size: 11.5px;
+  color: rgba(255, 255, 255, 0.72);
+}
+
+/* Baris rekonsiliasi di legenda donat (pemasukan di luar 4 kategori). */
+.legend__item--net { opacity: 0.85; }
+.legend__dot--net {
+  background: transparent;
+  border: 1.5px dashed var(--text-muted);
+}
+
+.smain {
+  flex: 1;
+  padding: 16px 16px 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* Pembungkus 4 section statistik — flex+gap sendiri karena sekarang bukan
+   anak langsung .smain lagi (lihat #statState di bawah untuk alasannya). */
+#statContent { display: flex; flex-direction: column; gap: 14px; }
+#statContent[hidden] { display: none; }
+
+/* ===== Memuat / gagal / belum ada pengeluaran (data.js LIVE) ========= */
+
+.sstate {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 48px 24px;
+}
+.sstate[hidden] { display: none; }
+
+/* Loading DikaPay: 3 titik gold berdenyut naik-turun (gaya DANA), GANTI
+   dari cincin berputar (`sSpin`) — pola sama dengan `.rstate__spin`. */
+.sstate__spin {
+  position: relative;
+  display: block;
+  width: 8px;
+  height: 8px;
+  margin: 0 auto 12px;
+  border-radius: 50%;
+  background: var(--gold-500);
+  animation: sDot 0.9s ease-in-out infinite;
+}
+.sstate__spin::before, .sstate__spin::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--gold-500);
+  animation: sDot 0.9s ease-in-out infinite;
+}
+.sstate__spin::before { left: -14px; animation-delay: -0.3s; }
+.sstate__spin::after  { left: 14px;  animation-delay: 0.3s; }
+@keyframes sDot {
+  0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; }
+  40%           { transform: scale(1);   opacity: 1; }
+}
+
+.sstate__text { font-size: 12.5px; color: var(--text-muted); max-width: 240px; line-height: 1.5; }
+
+.sstate__retry {
+  margin-top: 14px;
+  padding: 9px 20px;
+  border-radius: 12px;
+  background: var(--gold-500);
+  color: var(--on-brand);
+  font-size: 12.5px;
+  font-weight: 700;
+  transition: transform 0.1s var(--ease-out);
+}
+.sstate__retry:active { transform: scale(0.96); }
+.sstate__retry[hidden] { display: none; }
+
+/* ===== Header ========================================================= */
+
+.shead {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 16px;
+  background: linear-gradient(160deg, var(--navy-700) -20%, var(--navy-900) 70%);
+  color: var(--white);
+}
+.shead__back {
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  margin-left: -6px;
+  border-radius: 50%;
+  color: var(--white);
+  background: rgba(255, 255, 255, 0.1);
+  transition: transform 0.12s var(--ease-out), background 0.12s ease;
+}
+.shead__back:active { transform: scale(0.9); background: rgba(255, 255, 255, 0.2); }
+.shead__title { flex: 1; font-size: 16px; font-weight: 700; }
+
+.shead__select {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.shead__select select {
+  appearance: none;
+  -webkit-appearance: none;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--fg-strong);
+  background: var(--gold-500);
+  border: none;
+  border-radius: 999px;
+  padding: 7px 26px 7px 12px;
+  outline: none;
+}
+.shead__select svg {
+  position: absolute;
+  right: 9px;
+  color: var(--fg-strong);
+  pointer-events: none;
+}
+
+/* ===== Kartu ringkasan + perbandingan =============================== */
+
+.stat-card {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 18px;
+  border-radius: var(--radius-lg);
+  background: linear-gradient(120deg, var(--navy-800), var(--navy-900));
+  color: var(--white);
+  box-shadow: var(--shadow-md);
+}
+.stat-card__glow {
+  position: absolute;
+  z-index: 0;
+  width: 180px;
+  height: 180px;
+  right: -60px;
+  top: -70px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 30% 30%, rgba(255, 201, 60, 0.32), transparent 70%);
+  animation: statGlow 7s ease-in-out infinite;
+}
+@keyframes statGlow {
+  0%, 100% { transform: scale(1); opacity: 0.7; }
+  50% { transform: scale(1.18); opacity: 1; }
+}
+
+.stat-card__label { position: relative; z-index: 1; font-size: 12px; color: rgba(255, 255, 255, 0.72); }
+.stat-card__total {
+  position: relative;
+  z-index: 1;
+  overflow: hidden;
+  padding: 2px 3px 4px;
+  font-size: 28px;
+  font-weight: 800;
+  line-height: 1.25;
+  letter-spacing: 0.3px;
+}
+.stat-card__total::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  transform: translateX(-170%);
+  background: linear-gradient(100deg, transparent 20%, rgba(255, 255, 255, 0.5) 50%, transparent 80%);
+}
+.stat-card__total.is-shimmer::after { animation: totalShimmer 0.9s ease-out forwards; }
+@keyframes totalShimmer { from { transform: translateX(-170%); } to { transform: translateX(170%); } }
+
+.cmp {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 2px;
+  padding: 5px 11px 5px 8px;
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 700;
+  opacity: 0;
+  transform: scale(0.9);
+  transition: opacity 0.35s ease, transform 0.35s var(--ease-out);
+}
+.cmp.is-in { opacity: 1; transform: scale(1); }
+.cmp svg { width: 13px; height: 13px; }
+.cmp--up   { color: #ffd7d4; background: var(--err-bg); }
+.cmp--down { color: var(--ok-fg); background: var(--ok-bg); }
+.cmp--flat { color: rgba(255, 255, 255, 0.8); background: rgba(255, 255, 255, 0.14); }
+
+/* ===== Panel umum ================================================== */
+
+.panel {
+  padding: 16px 14px;
+  background: var(--surface);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+}
+.panel__title {
+  font-size: 14px;
+  font-weight: 700;
+  margin-bottom: 12px;
+}
+
+/* ===== Bar chart ================================================== */
+
+.barchart { position: relative; }
+.barchart__plot { position: relative; }
+.barchart__plot svg { display: block; width: 100%; height: auto; overflow: visible; }
+
+.bar {
+  transform: scaleY(0);
+  transform-box: fill-box;
+  transform-origin: bottom;
+  transition: transform 0.55s var(--ease-out);
+}
+.barchart.is-in .bar { transform: scaleY(1); }
+.bar--other { fill: var(--fg-strong); opacity: 0.4; }
+.bar--active { fill: var(--gold-500); }
+
+.bar__label { fill: var(--text-muted); font-size: 10px; font-weight: 600; }
+.bar__label--active { fill: var(--fg-strong); font-weight: 800; }
+
+.bar-tip {
+  position: absolute;
+  transform: translate(-50%, -100%);
+  padding: 5px 9px;
+  border-radius: 8px;
+  background: var(--navy-900);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+  pointer-events: none;
+  box-shadow: var(--shadow-md);
+}
+.bar-tip::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: -4px;
+  width: 8px;
+  height: 8px;
+  background: var(--navy-900);
+  transform: translateX(-50%) rotate(45deg);
+}
+.bar-tip[hidden] { display: none; }
+
+/* ===== Donut ==================================================== */
+
+.donutwrap {
+  display: flex;
+  justify-content: center;
+  padding: 4px 0 6px;
+}
+.donut { width: 170px; height: 170px; }
+.donut__track { stroke: var(--surface-2); }
+.seg {
+  stroke-dasharray: 0 100;
+  transition: stroke-dasharray 0.5s var(--ease-out);
+}
+.donut__total { fill: var(--fg-strong); font-size: 17px; font-weight: 800; }
+.donut__cap { fill: var(--text-muted); font-size: 9px; font-weight: 600; letter-spacing: 0.5px; }
+
+.legend {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  margin-top: 6px;
+}
+.legend__item {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 12px;
+  opacity: 0;
+  transform: translateY(6px);
+  transition: opacity 0.35s ease, transform 0.35s var(--ease-out);
+}
+.legend.is-in .legend__item { opacity: 1; transform: none; }
+.legend__dot { flex-shrink: 0; width: 11px; height: 11px; border-radius: 4px; }
+.legend__name { flex: 1; color: var(--text); font-weight: 600; }
+.legend__pct { font-weight: 800; color: var(--fg-strong); }
+.legend__amt { color: var(--text-muted); font-size: 11px; margin-left: 8px; }
+
+/* ===== Insight ================================================= */
+
+.insight {
+  display: flex;
+  align-items: flex-start;
+  gap: 11px;
+  padding: 14px;
+  background: linear-gradient(120deg, var(--cream-bg), var(--warn-bg));
+  border-radius: var(--radius);
+}
+.insight__ic {
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: var(--gold-500);
+  color: var(--on-brand);
+}
+.insight__ic svg { width: 17px; height: 17px; }
+.insight__text {
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--cream-fg);
+  opacity: 0;
+  transform: translateY(4px);
+  transition: opacity 0.5s ease, transform 0.5s var(--ease-out);
+}
+.insight.is-in .insight__text { opacity: 1; transform: none; }
+
+/* ===== Reveal (masuk staggered, dari style.css .reveal) ========= */
+
+.smain .reveal:nth-of-type(1) { animation-delay: 0.05s; }
+.smain .reveal:nth-of-type(2) { animation-delay: 0.13s; }
+.smain .reveal:nth-of-type(3) { animation-delay: 0.21s; }
+.smain .reveal:nth-of-type(4) { animation-delay: 0.29s; }
+
+/* ===== Reduced motion ========================================= */
+
+@media (prefers-reduced-motion: reduce) {
+  .app { animation: none; }
+  .bar { transform: scaleY(1); transition: none; }
+  .seg { transition: none; }
+  .cmp, .legend__item, .insight__text { opacity: 1 !important; transform: none !important; }
+  .stat-card__total::after { display: none; }
+  .sstate__spin { animation-duration: 1.4s; }
+}
+
+/* Teks di atas gold / putih-pill — selalu navy, di semua tema */
+.shead__select select { color: var(--on-brand); }

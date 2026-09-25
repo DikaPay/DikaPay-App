@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="theme-color" content="#0B2447" />
+  <title>DikaPay — Notifikasi</title>
+  <!-- Jaring pengaman galat: PALING ATAS di antara semua skrip, supaya
+       galat di file mana pun (termasuk script di bawah ini) tetap tertangkap
+       dan member tidak pernah melihat layar putih tanpa penjelasan. -->
+  <script src="../scripts/galat-global.js"></script>
+  <!-- Pemeriksa integritas perangkat (aplikasi modifikasi / root).
+       PALING ATAS, sebelum auth.js: layar aplikasi tidak boleh sempat
+       tergambar di perangkat yang bermasalah. -->
+  <script src="../scripts/integritas.js"></script>
+  <script src="../scripts/auth.js"></script>
+  <!-- Popup "Akun Kamu Telah Dibanned" (dipakai bersama oleh PIN transaksi
+       & PIN auto-lock) -- wajib ada SEBELUM auto-lock.js supaya banned 3x
+       salah PIN auto-lock bisa langsung menampilkannya. -->
+  <script src="../scripts/pin-transaksi.js"></script>
+  <!-- Kunci otomatis: minta PIN lagi kalau app ditinggal >= 5 menit. -->
+  <script src="../scripts/auto-lock.js"></script>
+  <link rel="stylesheet" href="../styles/style.css" />
+  <link rel="stylesheet" href="../styles/notifikasi.css" />
+</head>
+<body>
+  <div class="app" id="app">
+
+    <header class="nhead">
+      <button class="nhead__back" type="button" id="backBtn" aria-label="Kembali">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+      </button>
+      <h1 class="nhead__title">Notifikasi</h1>
+      <!-- Tampil hanya kalau ada notifikasi (diatur notifikasi.js). -->
+      <button class="nhead__clear" type="button" id="clearAllBtn" hidden>Hapus Semua</button>
+    </header>
+
+    <main class="nmain">
+      <ul class="notif-list" id="notifList"><!-- dirender oleh notifikasi.js --></ul>
+    </main>
+
+  </div>
+
+  <!-- Konfirmasi "Hapus Semua". Memakai primitif .cmodal dari style.css
+       (bukan salinan baru) — pola yang sama dengan popup di index.html. -->
+  <div class="cmodal-overlay" id="clearOverlay">
+    <div class="cmodal" role="dialog" aria-modal="true" aria-labelledby="clearTitle">
+      <h2 class="cmodal__title" id="clearTitle">Hapus Semua Notifikasi?</h2>
+      <p class="cmodal__text">
+        Semua notifikasi akan dihilangkan dari daftar kamu di perangkat ini.
+        Pengumuman baru dari DikaPay tetap akan muncul seperti biasa.
+      </p>
+      <div class="cmodal__actions">
+        <button class="cmodal__btn cmodal__btn--outline press" type="button" data-close>Batal</button>
+        <button class="cmodal__btn cmodal__btn--gold press" type="button" id="clearConfirm">Ya, Hapus</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="../scripts/notif-store.js"></script>
+    <!-- Pendengar ketukan notifikasi sistem (buka halaman Notifikasi pada
+       entri yang ditekan). WAJIB sesudah notif-store.js. -->
+    <script src="../scripts/notif-hp.js"></script>
+  <script src="../scripts/api.js"></script>
+  <script src="../scripts/member-sync.js"></script>
+  <!-- Penyaring notifikasi server (baseline per-perangkat) — WAJIB sebelum
+       notifikasi.js, yang memakainya untuk menyusun daftar. -->
+  <script src="../scripts/notif-server.js"></script>
+  <script src="../scripts/notifikasi.js"></script>
+</body>
+</html>

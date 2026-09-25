@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">DikaPay</string>
+    <string name="title_activity_main">DikaPay</string>
+    <string name="package_name">com.dikapay.app</string>
+    <string name="custom_url_scheme">com.dikapay.app</string>
+</resources>

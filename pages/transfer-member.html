@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="theme-color" content="#0B2447" />
+  <title>DikaPay — Transfer Member</title>
+  <!-- Jaring pengaman galat: PALING ATAS di antara semua skrip, supaya
+       galat di file mana pun (termasuk script di bawah ini) tetap tertangkap
+       dan member tidak pernah melihat layar putih tanpa penjelasan. -->
+  <script src="../scripts/galat-global.js"></script>
+  <!-- Pemeriksa integritas perangkat (aplikasi modifikasi / root).
+       PALING ATAS, sebelum auth.js: layar aplikasi tidak boleh sempat
+       tergambar di perangkat yang bermasalah. -->
+  <script src="../scripts/integritas.js"></script>
+  <script src="../scripts/auth.js"></script>
+  <!-- Kunci otomatis: minta PIN lagi kalau app ditinggal >= 5 menit. -->
+  <script src="../scripts/auto-lock.js"></script>
+  <link rel="stylesheet" href="../styles/style.css" />
+  <link rel="stylesheet" href="../styles/transfer-member.css" />
+</head>
+<body>
+  <div class="app" id="app">
+
+    <header class="tm-head">
+      <button class="tm-head__back press" type="button" id="backBtn" aria-label="Kembali">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+      </button>
+      <h1 class="tm-head__title">Transfer Member</h1>
+    </header>
+
+    <main class="content">
+
+      <!-- ===== Header penjelasan — sebelum form apa pun ===== -->
+      <section class="card tm-intro reveal">
+        <span class="tm-intro__ic" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 9h13l-3.5-3.5M20 15H7l3.5 3.5"/>
+          </svg>
+        </span>
+        <div>
+          <h2 class="tm-intro__title">Transfer ke Member DikaPay</h2>
+          <p class="tm-intro__text">
+            Kirim saldo langsung ke sesama pengguna DikaPay — teman, keluarga, atau reseller lain —
+            cukup pakai nomor HP yang sudah mereka daftarkan. Ini <strong>bukan</strong> transfer ke
+            rekening bank, jadi pastikan nomor tujuannya memang sudah jadi member DikaPay, ya.
+          </p>
+        </div>
+      </section>
+
+      <!-- ===== Step: form (nomor -> preview member -> nominal) ===== -->
+      <section class="card reveal" id="formStep">
+
+        <label class="tm-label" for="phoneInput">Nomor HP Tujuan</label>
+        <div class="tm-field" id="phoneField">
+          <span class="tm-field__ic" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="2.5" width="12" height="19" rx="2.6"/><path d="M10.5 18.5h3"/></svg>
+          </span>
+          <input
+            class="tm-field__input"
+            id="phoneInput"
+            type="tel"
+            inputmode="numeric"
+            autocomplete="off"
+            maxlength="16"
+            placeholder="08xx-xxxx-xxxx" />
+          <button class="tm-field__clear" type="button" id="clearBtn" aria-label="Hapus nomor" hidden>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+          </button>
+        </div>
+
+        <p class="tm-checking" id="phoneChecking" hidden aria-live="polite">
+          <span class="tm-checking__spinner" aria-hidden="true"></span>
+          Memeriksa nomor member DikaPay…
+        </p>
+
+        <p class="tm-err" id="phoneErr" hidden aria-live="polite">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7.5v5M12 16h.01"/></svg>
+          <span id="phoneErrText"></span>
+        </p>
+
+        <!-- Preview member ditemukan -->
+        <div class="tm-found" id="foundBox" hidden aria-live="polite">
+          <span class="tm-found__avatar" id="foundAvatar" aria-hidden="true"></span>
+          <div class="tm-found__info">
+            <p class="tm-found__name" id="foundName"></p>
+            <p class="tm-found__phone" id="foundPhone"></p>
+          </div>
+          <span class="tm-found__badge" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5L20 7"/></svg>
+          </span>
+        </div>
+
+        <!-- Nominal + catatan — tampil setelah member ditemukan -->
+        <div class="tm-amount" id="amountBox" hidden>
+          <label class="tm-label" for="amountInput">Nominal Transfer</label>
+          <div class="tm-field tm-field--amount" id="amountField">
+            <span class="tm-field__prefix" aria-hidden="true">Rp</span>
+            <input
+              class="tm-field__input"
+              id="amountInput"
+              type="text"
+              inputmode="numeric"
+              autocomplete="off"
+              placeholder="0" />
+          </div>
+          <p class="tm-hint" id="balanceHint"></p>
+          <p class="tm-err" id="amountErr" hidden aria-live="polite">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7.5v5M12 16h.01"/></svg>
+            <span id="amountErrText"></span>
+          </p>
+
+          <label class="tm-label" for="noteInput">Catatan (opsional)</label>
+          <textarea
+            class="tm-field__area"
+            id="noteInput"
+            rows="2"
+            maxlength="80"
+            placeholder="mis. Buat jajan ya!"></textarea>
+
+          <button class="tm-btn" type="button" id="continueBtn" disabled>Lanjutkan</button>
+        </div>
+      </section>
+
+      <!-- ===== Step: sukses ===== -->
+      <section class="card tm-success" id="successStep" hidden>
+        <svg class="tm-check" viewBox="0 0 80 80" aria-hidden="true">
+          <circle cx="40" cy="40" r="36" />
+          <path d="M24 41l11 11 21-23" />
+        </svg>
+        <p class="tm-success__title">Transfer Berhasil!</p>
+        <p class="tm-success__desc" id="successDesc"></p>
+        <dl class="tm-success__box" id="successRows"></dl>
+        <button class="tm-btn" type="button" id="homeBtn">Kembali ke Beranda</button>
+        <button class="tm-again press" type="button" id="againBtn">Transfer Lagi</button>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- ===== Modal konfirmasi ===== -->
+  <div class="tm-modal-overlay" id="confirmOverlay">
+    <div class="tm-modal">
+      <h2 class="tm-modal__title">Konfirmasi Transfer</h2>
+
+      <dl class="tm-modal__rows" id="cmRows"></dl>
+
+      <div class="tm-warn">
+        <span class="tm-warn__ic" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9 1.9 18.3A2 2 0 0 0 3.6 21.3h16.8a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9.2v4.4M12 17.2h.01"/></svg>
+        </span>
+        <div class="tm-warn__body">
+          <p class="tm-warn__title">Yuk, cek sekali lagi sebelum lanjut</p>
+          <p class="tm-warn__text">
+            Saldo yang sudah terkirim ke nomor yang salah tidak bisa kami tarik kembali —
+            jadi luangkan waktu sebentar untuk memastikan nama dan nomor tujuan di atas
+            benar-benar orang yang kamu maksud, ya.
+          </p>
+        </div>
+      </div>
+
+      <div class="tm-modal__actions">
+        <button class="tm-modal__btn tm-modal__btn--outline press" type="button" id="cmCancel">Periksa Lagi</button>
+        <button class="tm-modal__btn tm-modal__btn--gold" type="button" id="cmPay">
+          <span class="tm-modal__btn-label">Transfer Sekarang</span>
+          <span class="tm-spinner" aria-hidden="true"></span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script src="../scripts/sound.js"></script>
+  <script src="../scripts/notif-store.js"></script>
+  <!-- PIN wajib tiap transaksi (transfer tidak lewat payment-flow.js). -->
+  <script src="../scripts/pin-transaksi.js"></script>
+  <!-- DATA ASLI dari backend: cek member tujuan (GET) + proses transfer
+       (POST, verifikasi PIN & banned di server) — satu-satunya pintu fetch. -->
+  <script src="../scripts/api.js"></script>
+  <script src="../scripts/member-sync.js"></script>
+  <!-- Notifikasi SISTEM HP (local notification). WAJIB sebelum
+       payment-flow.js / transfer-member.js yang memanggilnya. -->
+  <script src="../scripts/notif-hp.js"></script>
+  <script src="../scripts/transfer-member.js"></script>
+</body>
+</html>

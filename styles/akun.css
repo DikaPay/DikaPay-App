@@ -1,0 +1,1981 @@
+/* ===========================================================================
+   DikaPay — akun.css
+   Halaman Akun. Pakai token dari style.css.
+   =========================================================================== */
+
+body { overflow-x: hidden; }
+
+.amain {
+  flex: 1;
+  padding: 14px 14px calc(var(--nav-height) + 28px);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* ===== Header profil ============================================== */
+
+.ahead {
+  padding: 20px 18px 22px;
+  background: linear-gradient(160deg, var(--navy-700) -20%, var(--navy-900) 75%);
+  color: var(--white);
+  border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+}
+.ahead__row { display: flex; align-items: center; gap: 14px; }
+
+.ahead__avatar {
+  position: relative;             /* patokan .avatar-foto (position:absolute) */
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: 62px;
+  height: 62px;
+  border-radius: 50%;
+  background: var(--gold-500);
+  color: var(--fg-strong);
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  overflow: hidden;              /* mengurung foto profil di dalam lingkaran */
+  animation: avatarPop 0.5s var(--ease-out) both;
+}
+@keyframes avatarPop {
+  from { opacity: 0; transform: scale(0.4); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+/* Sedang mengunggah foto: lingkaran berdenyut halus supaya member tahu
+   ada proses yang sedang berjalan. */
+.ahead__avatar.is-unggah { animation: avatarUnggah 1.1s ease-in-out infinite; }
+@keyframes avatarUnggah {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%      { opacity: 0.62; transform: scale(0.96); }
+}
+
+.ahead__info { min-width: 0; }
+.ahead__name { font-size: 17px; font-weight: 800; }
+.ahead__id { font-size: 11.5px; color: rgba(255, 255, 255, 0.66); margin-top: 2px; }
+
+.ahead__status {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 8px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: var(--gold-500);
+  color: var(--fg-strong);
+  font-size: 10.5px;
+  font-weight: 800;
+  opacity: 0;
+  transform: translateY(4px);
+  animation: statusIn 0.4s var(--ease-out) 0.45s forwards;
+}
+@keyframes statusIn { to { opacity: 1; transform: translateY(0); } }
+
+/* ===== Card section =========================================== */
+
+.acard {
+  padding: 6px 14px;
+  background: var(--surface);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+}
+.acard__title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--fg-strong);
+  padding: 12px 2px 8px;
+}
+
+/* ===== Row (list item) ======================================= */
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  width: 100%;
+  padding: 13px 2px;
+  text-align: left;
+  border-top: 1px solid var(--border);
+  border-radius: 8px;
+  transition: background-color 0.16s ease;
+}
+.acard__title + .row { border-top: none; }
+.row:active { background-color: var(--tint); }
+
+.row__ic {
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  color: var(--fg-strong);
+  background: var(--tint);
+}
+.row__ic svg { width: 18px; height: 18px; }
+
+.row__label { flex: 1; font-size: 13px; font-weight: 600; color: var(--text); }
+
+.row__main { flex: 1; display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.row__main .row__label { flex: none; }
+.row__sub { font-size: 11px; color: var(--text-muted); line-height: 1.45; }
+
+.row__trail { flex-shrink: 0; font-size: 11.5px; font-weight: 700; color: var(--fg-strong); }
+.row__trail--muted { color: var(--text-muted); font-weight: 600; }
+.row__trail--ok { color: var(--ok-fg); }
+
+.row__chev {
+  flex-shrink: 0;
+  color: var(--text-muted);
+  transition: transform 0.16s var(--ease-out);
+}
+.row:active .row__chev { transform: translateX(3px); }
+
+.row--stack { align-items: flex-start; }
+.row--stack .switch { margin-top: 2px; }
+.row--inline .row__label { flex: 1; }
+
+/* Penanda "+" pada ikon baris PIN saat PIN transaksi belum dibuat */
+.row.is-pin-new .row__ic { position: relative; overflow: visible; }
+.row.is-pin-new .row__ic::after {
+  content: "+";
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  display: grid;
+  place-items: center;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--gold-500);
+  color: var(--fg-strong);
+  font-size: 12px;
+  font-weight: 900;
+  line-height: 1;
+  box-shadow: 0 0 0 2px var(--surface);
+}
+
+/* ===== Ringkasan Keuangan (uang masuk/keluar) ================
+   Kartu tunggal berisi tombol penuh (`#cashflowBtn`) — seluruh kartu bisa
+   diketuk untuk membuka diagram (`#cashflowFlow`, gaya di bawah, dekat
+   akhir file). Warna hijau/merah pakai token status yang SUDAH ADA
+   (--ok-solid/--err-solid), bukan warna baru. */
+.acard--cashflow { padding: 4px; }
+.cashflow {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  padding: 14px 12px 10px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  text-align: left;
+  border-radius: 16px;
+  transition: background 0.15s ease, transform 0.12s var(--ease-out);
+}
+.cashflow:active { transform: scale(0.985); background: var(--tint); }
+.cashflow__row { display: flex; align-items: center; }
+.cashflow__col {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.cashflow__ic {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  margin-bottom: 2px;
+}
+.cashflow__ic--in  { background: var(--ok-bg);  color: var(--ok-solid); }
+.cashflow__ic--out { background: var(--err-bg); color: var(--err-solid); }
+.cashflow__label { font-size: 11px; font-weight: 700; color: var(--text-muted); }
+.cashflow__amount {
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--fg-strong);
+  font-variant-numeric: tabular-nums;
+}
+.cashflow__col--in .cashflow__amount { color: var(--ok-solid); }
+.cashflow__col--out .cashflow__amount { color: var(--err-solid); }
+.cashflow__div {
+  align-self: stretch;
+  width: 1px;
+  margin: 2px 14px;
+  background: var(--surface-2);
+}
+.cashflow__hint {
+  align-self: flex-end;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  margin-top: 10px;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+/* ===== Skor Keamanan Akun =================================== */
+
+/* MOTIF LATAR — garis diagonal tipis (1px tiap 10px, navy 4,5%) di atas
+   gradient krem→putih. Keduanya cuma LAYER BACKGROUND di elemen yang sama:
+   tanpa DOM tambahan, tanpa layer compositing baru, dan STATIS (tidak
+   dianimasikan) supaya tidak menambah kerja saat scroll. Sengaja sangat
+   samar — teks & progress bar tetap kontras penuh. */
+.acard--score {
+  position: relative;
+  padding: 12px 14px 14px;
+  border-left: 4px solid var(--gold-500);
+  background:
+    repeating-linear-gradient(135deg,
+      rgba(11, 36, 71, 0.045) 0 1px,
+      rgba(11, 36, 71, 0) 1px 10px),
+    linear-gradient(180deg, var(--cream-bg) 0%, var(--surface) 46%);
+}
+.score__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+.acard--score .acard__title { padding: 4px 0 0; }
+.score__count {
+  flex-shrink: 0;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+.score__track {
+  position: relative;
+  height: 9px;
+  margin: 12px 0 2px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  overflow: hidden;
+}
+.score__fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 0;
+  border-radius: 999px;
+  overflow: hidden;                        /* mengurung sapuan shimmer */
+  background: linear-gradient(90deg, var(--gold-400), var(--gold-500));
+  transition: width 0.4s var(--ease-out);
+}
+/* SHIMMER — sapuan cahaya melintasi bagian yang SUDAH terisi: menyapu
+   ±1,25 dtk lalu diam di luar frame sampai siklus 2,8 dtk berikutnya.
+   Hanya `transform`, jadi dijalankan compositor (tanpa layout/paint ulang). */
+.score__fill::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(100deg,
+    rgba(255, 255, 255, 0) 25%,
+    rgba(255, 255, 255, 0.85) 50%,
+    rgba(255, 255, 255, 0) 75%);
+  animation: scoreShimmer 2.8s ease-in-out infinite;
+}
+@keyframes scoreShimmer {
+  0%        { transform: translateX(-105%); }
+  45%, 100% { transform: translateX(105%); }
+}
+
+.score__list {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+}
+.score__item {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  width: 100%;
+  padding: 9px 4px;
+  text-align: left;
+  border-radius: 9px;
+  transition: background-color 0.16s ease;
+}
+.score__item:not([disabled]):active { background-color: var(--tint); }
+.score__item[disabled] { cursor: default; }
+
+/* Kotak ikon memegang WARNA-nya sendiri (bukan tiap <svg>), supaya
+   perpindahan kuning→hijau ikut ter-transisi lewat currentColor. */
+.score__check {
+  position: relative;
+  display: block;
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  color: var(--warn-solid);
+  transition: color 0.45s ease;
+}
+.score__item--done .score__check {
+  color: var(--ok-fg);
+  /* "achievement": denyut sangat halus, 4 dtk sekali dengan jeda tenang */
+  animation: scoreDonePulse 4s ease-in-out 1s infinite;
+}
+
+/* Dua ikon DITUMPUK dan cuma di-crossfade — elemennya tidak pernah dibuang
+   saat status berubah, jadi transisi warna & opacity benar-benar jalan. */
+.score__ic {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  transition: opacity 0.4s ease, transform 0.4s var(--ease-out);
+}
+.score__ic svg { width: 22px; height: 22px; }
+.score__ic--done { opacity: 0; transform: scale(0.55) rotate(-15deg); }
+.score__item--done .score__ic--done { opacity: 1; transform: none; }
+.score__item--done .score__ic--todo { opacity: 0; transform: scale(0.55) rotate(15deg); }
+
+/* GLOW item BELUM selesai — halo amber berdenyut di belakang ikon. Sedikit
+   lebih terlihat daripada denyut item selesai supaya menarik perhatian,
+   tapi tetap di belakang ikon jadi tidak mengurangi keterbacaan. */
+.score__check::before {
+  content: "";
+  position: absolute;
+  inset: -5px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+}
+.score__item--todo .score__check::before {
+  animation: scoreTodoGlow 2.4s ease-in-out infinite;
+}
+@keyframes scoreTodoGlow {
+  0%, 100% { opacity: 0;    transform: scale(0.6); }
+  50%      { opacity: 0.22; transform: scale(1); }
+}
+@keyframes scoreDonePulse {
+  0%, 66%, 100% { transform: scale(1); }
+  80%           { transform: scale(1.06); }
+}
+/* Saat BARU berpindah belum → selesai: pop bouncy dulu, lalu lanjut denyut
+   halus. Ditaruh SETELAH aturan --done (spesifisitas sama) supaya menang. */
+.score__item--done .score__check--pop {
+  animation: scorePop 0.56s var(--ease-out),
+             scoreDonePulse 4s ease-in-out 1.4s infinite;
+}
+@keyframes scorePop {
+  0%   { transform: scale(0.72); }
+  40%  { transform: scale(1.32); }
+  70%  { transform: scale(0.94); }
+  100% { transform: scale(1); }
+}
+
+.score__label {
+  flex: 1;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text);
+  transition: color 0.4s ease;
+}
+.score__item--done .score__label { color: var(--text-muted); }
+
+/* Chevron ikut memudar saat selesai — opacity saja, ruangnya tetap
+   dipakai supaya lebar label tidak bergeser waktu status berubah. */
+.score__chev {
+  flex-shrink: 0;
+  color: var(--text-muted);
+  transition: opacity 0.35s ease, transform 0.35s var(--ease-out);
+}
+.score__item--done .score__chev { opacity: 0; transform: translateX(-6px); }
+
+.score__msg {
+  margin: 10px 0 2px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  font-size: 11.5px;
+  font-weight: 600;
+  line-height: 1.55;
+  transition: background-color 0.4s ease, color 0.4s ease;
+}
+.score__msg--warn { background: var(--cream-bg); color: var(--cream-fg); }
+.score__msg--ok   { background: var(--ok-bg);   color: var(--ok-fg); }
+
+/* Sorotan singkat pada baris sasaran saat item checklist yang belum
+   selesai diklik (scroll + kilas). */
+.row--flash { animation: rowFlash 1.4s var(--ease-out); }
+@keyframes rowFlash {
+  0%, 100% { background-color: transparent; }
+  18%      { background-color: var(--cream-bg); }
+}
+
+/* ===== Badge ================================================ */
+
+.badge {
+  flex-shrink: 0;
+  font-size: 9.5px;
+  font-weight: 800;
+  padding: 3px 8px;
+  border-radius: 999px;
+  letter-spacing: 0.2px;
+}
+.badge--ok { color: var(--ok-fg); background: var(--ok-bg); }
+.badge--warn { color: var(--warn-fg); background: var(--warn-bg); }
+
+/* ===== Switch toggle ======================================= */
+
+.switch {
+  position: relative;
+  flex-shrink: 0;
+  width: 42px;
+  height: 24px;
+}
+.switch input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+.switch__slider {
+  position: absolute;
+  inset: 0;
+  border-radius: 999px;
+  background: var(--track);
+  transition: background 0.25s ease;
+}
+.switch__slider::before {
+  content: "";
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(11, 36, 71, 0.28);
+  transition: transform 0.25s var(--ease-out);
+}
+.switch input:checked ~ .switch__slider { background: var(--gold-500); }
+.switch input:checked ~ .switch__slider::before { transform: translateX(18px); }
+
+/* ===== Tombol logout ===================================== */
+
+.logout-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  margin-top: 4px;
+  padding: 13px;
+  border-radius: 14px;
+  color: var(--err-fg);
+  background: none;
+  border: 1.5px solid var(--err-fg);
+  font-size: 13.5px;
+  font-weight: 800;
+  transition: transform 0.12s var(--ease-out), background 0.12s ease;
+  animation: mItemIn 0.42s var(--ease-out) 0.4s backwards;
+}
+.logout-btn:active { transform: scale(0.98); background: var(--err-bg); }
+@keyframes mItemIn {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ===== Toast (bawah) ==================================== */
+
+.atoast {
+  position: fixed;
+  left: 50%;
+  bottom: 84px;
+  z-index: 95;
+  max-width: 84%;
+  padding: 10px 16px;
+  border-radius: 999px;
+  background: var(--navy-900);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  text-align: center;
+  opacity: 0;
+  transform: translateX(-50%) translateY(14px);
+  transition: opacity 0.28s ease, transform 0.28s var(--ease-out);
+  pointer-events: none;
+}
+.atoast.is-show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+/* ===== Modal konfirmasi ================================ */
+
+.cmodal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 88;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 26px;
+  background: rgba(11, 36, 71, 0.55);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.24s ease, visibility 0s linear 0.24s;
+}
+.cmodal-overlay.is-open {
+  opacity: 1;
+  visibility: visible;
+  transition: opacity 0.24s ease;
+}
+.cmodal {
+  width: 100%;
+  max-width: 340px;
+  padding: 22px;
+  border-radius: 20px;
+  background: var(--surface);
+  transform: scale(0.9) translateY(12px);
+  opacity: 0;
+  transition: transform 0.26s var(--ease-out), opacity 0.26s ease;
+}
+.cmodal-overlay.is-open .cmodal { transform: none; opacity: 1; }
+.cmodal__title { font-size: 16px; font-weight: 800; color: var(--fg-strong); }
+.cmodal__text { margin-top: 8px; font-size: 12.5px; line-height: 1.55; color: var(--text); }
+.cmodal__actions { display: flex; gap: 10px; margin-top: 18px; }
+.cmodal__btn {
+  flex: 1;
+  padding: 12px;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 800;
+  transition: transform 0.12s var(--ease-out);
+}
+.cmodal__btn:active { transform: scale(0.96); }
+.cmodal__btn--outline { background: none; color: var(--fg-strong); border: 1.5px solid var(--fg-strong); }
+.cmodal__btn--danger { background: var(--err-solid); color: #fff; }
+
+/* ===== Flow overlay (PIN / 2FA / Devices) ============== */
+
+.aflow {
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  z-index: 78;
+  width: 100%;
+  max-width: var(--content-max);
+  margin-left: calc(-1 * min(50vw, var(--content-max) / 2));
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+  transform: translateX(100%);
+  visibility: hidden;
+  transition: transform 0.3s var(--ease-out), visibility 0s linear 0.3s;
+}
+.aflow.is-open {
+  transform: translateX(0);
+  visibility: visible;
+  transition: transform 0.3s var(--ease-out);
+}
+.aflow__head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 16px;
+  background: linear-gradient(160deg, var(--navy-700) -20%, var(--navy-900) 70%);
+  color: var(--white);
+}
+.aflow__back {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  margin-left: -6px;
+  border-radius: 50%;
+  color: var(--white);
+  background: rgba(255, 255, 255, 0.1);
+  transition: transform 0.12s var(--ease-out);
+}
+.aflow__back:active { transform: scale(0.9); }
+.aflow__title { font-size: 16px; font-weight: 700; }
+.aflow__body { flex: 1; overflow-y: auto; padding: 24px 20px; }
+
+/* ---- PIN ---- */
+
+.pin-body { text-align: center; }
+.pin-hint { font-size: 13px; color: var(--text); font-weight: 600; }
+.pin-dots {
+  display: flex;
+  justify-content: center;
+  gap: 15px;
+  margin: 22px 0 4px;
+}
+.pin-dot {
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  border: 2px solid var(--fg-strong);
+  transition: background 0.15s ease, transform 0.15s var(--ease-out);
+}
+.pin-dot.is-filled { background: var(--fg-strong); transform: scale(1.15); }
+.pin-dots.is-error { animation: shake 0.4s ease; }
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-6px); }
+  50% { transform: translateX(5px); }
+  75% { transform: translateX(-3px); }
+}
+
+.keypad {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  max-width: 280px;
+  margin: 34px auto 0;
+}
+.keypad button {
+  padding: 15px;
+  border-radius: 14px;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--fg-strong);
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+  transition: transform 0.1s var(--ease-out), background 0.1s ease;
+}
+.keypad button:active { transform: scale(0.92); background: var(--surface-2); }
+.keypad .key--fn { background: none; box-shadow: none; }
+.keypad .key--fn:active { background: var(--tint); }
+
+/* ---- 2FA ---- */
+
+.tfa-lead { font-size: 12.5px; color: var(--text-muted); line-height: 1.5; }
+.tfa-step { animation: stepIn 0.3s var(--ease-out); }
+.tfa-step[hidden] { display: none; }
+.tfa-step--center { position: relative; text-align: center; padding-top: 24px; }
+@keyframes stepIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+
+.tfa-opt {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  margin-top: 12px;
+  padding: 14px;
+  text-align: left;
+  border-radius: 14px;
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+  transition: transform 0.12s var(--ease-out);
+}
+.tfa-opt:active { transform: scale(0.98); }
+.tfa-opt:disabled,
+.tfa-opt.tfa-opt--disabled { opacity: 0.45; pointer-events: none; }
+.tfa-opt__ic {
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  color: var(--fg-strong);
+  background: var(--tint);
+}
+.tfa-opt__ic svg { width: 20px; height: 20px; }
+.tfa-opt__txt { flex: 1; display: flex; flex-direction: column; gap: 2px; }
+.tfa-opt__txt b { font-size: 13.5px; color: var(--text); }
+.tfa-opt__txt span { font-size: 11px; color: var(--text-muted); }
+
+.tfa-input {
+  width: 100%;
+  margin: 14px 0 18px;
+  padding: 13px 14px;
+  border-radius: 12px;
+  border: 2px solid var(--border);
+  background: var(--surface);
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--fg-strong);
+  outline: none;
+  transition: border-color 0.2s ease;
+}
+.tfa-input:focus { border-color: var(--gold-500); }
+
+/* Loading DikaPay: 3 titik berdenyut (gaya DANA), bukan cincin berputar —
+   `.tfa-spinner` sendiri jadi titik tengah, `::before`/`::after` titik
+   kiri-kanan. `position:relative` supaya pseudo-elemen bisa diposisikan
+   terhadapnya tanpa mengganggu layout (masih `display:inline-block`). */
+.tfa-spinner {
+  position: relative;
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  margin: 0 12px 22px;
+  border-radius: 50%;
+  background: var(--fg-strong);
+  animation: dikaDot 0.9s ease-in-out infinite;
+}
+.tfa-spinner::before, .tfa-spinner::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--fg-strong);
+  animation: dikaDot 0.9s ease-in-out infinite;
+}
+.tfa-spinner::before { left: -18px; animation-delay: -0.3s; }
+.tfa-spinner::after  { left: 18px;  animation-delay: 0.3s; }
+@keyframes dikaDot {
+  0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; }
+  40%           { transform: scale(1);   opacity: 1; }
+}
+
+.otp { display: flex; justify-content: center; gap: 7px; margin: 20px 0 10px; }
+.otp input {
+  width: 40px;
+  height: 52px;
+  text-align: center;
+  font-family: inherit;
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--fg-strong);
+  border: 2px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+  outline: none;
+  transition: border-color 0.18s ease, transform 0.12s var(--ease-out);
+}
+.otp input:focus { border-color: var(--gold-500); transform: translateY(-2px); }
+.otp.is-error input { border-color: var(--err-fg); }
+.otp.is-error { animation: shake 0.4s ease; }
+.otp-hint { font-size: 11.5px; color: var(--text-muted); text-align: center; }
+.otp-hint b { color: var(--fg-strong); }
+
+/* ===== Lupa PIN Transaksi — ikon pesan beranimasi + kode dummy ========
+   Pola visual yang SAMA dengan .auth-otp-icon/.auth-otp-dummy di auth.css
+   (alur OTP pendaftaran), disalin dengan nama sendiri karena akun.html
+   tidak memuat auth.css. Kotak kode & hint OTP-nya sendiri REUSE .otp/
+   .otp-hint yang sudah ada di atas (dipakai juga oleh 2FA). */
+.lupapin-otp-icon {
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  margin: 4px auto 12px;
+  border-radius: 50%;
+  background: var(--info-bg);
+  color: var(--fg-strong);
+  animation: lupapinOtpIconIn 0.5s var(--ease-out);
+}
+.lupapin-otp-icon svg { width: 26px; height: 26px; }
+@keyframes lupapinOtpIconIn {
+  0%   { opacity: 0; transform: scale(0.4) rotate(-8deg); }
+  60%  { opacity: 1; transform: scale(1.12) rotate(3deg); }
+  100% { opacity: 1; transform: scale(1) rotate(0); }
+}
+.lupapin-otp-dummy {
+  margin-bottom: 14px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--cream-bg);
+  color: var(--cream-fg);
+  font-size: 12px;
+  text-align: center;
+}
+.lupapin-otp-dummy b { font-weight: 800; letter-spacing: 1px; }
+.lupapin-err {
+  margin: -4px 0 12px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--err-fg);
+  text-align: center;
+}
+.lupapin-note {
+  margin-top: 16px;
+  font-size: 11.5px;
+  line-height: 1.6;
+  color: var(--text-muted);
+  text-align: center;
+}
+.check-anim--sm { width: 56px; height: 56px; }
+
+.apply-btn {
+  position: relative;
+  width: 100%;
+  margin-top: 6px;
+  padding: 14px;
+  border-radius: 14px;
+  background: var(--gold-500);
+  color: var(--fg-strong);
+  font-size: 14px;
+  font-weight: 800;
+  box-shadow: 0 6px 16px rgba(255, 201, 60, 0.32);
+  transition: transform 0.12s var(--ease-out), filter 0.12s ease, opacity 0.2s ease;
+}
+.apply-btn:active { transform: scale(0.97); }
+.apply-btn[disabled] { pointer-events: none; }
+/* Loading DikaPay: 3 titik berdenyut, bukan cincin berputar (lihat
+   `.tfa-spinner` di atas untuk penjelasan pola `::before`/`::after`). */
+.apply-btn__spin {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 6px;
+  height: 6px;
+  margin: -3px 0 0 -3px;
+  border-radius: 50%;
+  background: var(--fg-strong);
+  opacity: 0;
+  animation: dikaDot 0.9s ease-in-out infinite;
+}
+.apply-btn__spin::before, .apply-btn__spin::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--fg-strong);
+  animation: dikaDot 0.9s ease-in-out infinite;
+}
+.apply-btn__spin::before { left: -12px; animation-delay: -0.3s; }
+.apply-btn__spin::after  { left: 12px;  animation-delay: 0.3s; }
+.apply-btn.is-loading .apply-btn__label { opacity: 0; }
+.apply-btn.is-loading .apply-btn__spin { opacity: 1; }
+
+.check-anim { width: 82px; height: 82px; display: block; margin: 0 auto 4px; }
+.check-anim circle {
+  stroke-dasharray: 226;
+  stroke-dashoffset: 226;
+  animation: draw 0.55s var(--ease-out) forwards;
+}
+.check-anim path {
+  stroke-dasharray: 60;
+  stroke-dashoffset: 60;
+  animation: draw 0.4s var(--ease-out) 0.5s forwards;
+}
+@keyframes draw { to { stroke-dashoffset: 0; } }
+
+.tfa-done-title {
+  margin-top: 10px;
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--fg-strong);
+}
+.tfa-step--center .apply-btn { margin-top: 22px; }
+
+.confetti {
+  position: absolute;
+  left: 50%;
+  top: 90px;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+.confetti span {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  opacity: 0;
+  animation: confetti 1.1s ease-out forwards;
+}
+@keyframes confetti {
+  0% { opacity: 1; transform: translate(0, 0) rotate(0); }
+  100% { opacity: 0; transform: translate(var(--cx), var(--cy)) rotate(var(--cr)); }
+}
+
+/* ---- Devices ---- */
+
+.dev-list { list-style: none; margin-top: 12px; }
+.dev-item {
+  padding: 14px;
+  margin-bottom: 10px;
+  border-radius: 14px;
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+  transition: opacity 0.3s ease, transform 0.3s var(--ease-out);
+}
+.dev-item.is-out { opacity: 0; transform: translateX(30px); }
+.dev-item__top { display: flex; align-items: center; gap: 10px; }
+.dev-item__ic {
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  color: var(--fg-strong);
+  background: var(--tint);
+}
+.dev-item__ic svg { width: 18px; height: 18px; }
+.dev-item__name { font-size: 13px; font-weight: 700; color: var(--text); }
+.dev-item__meta { font-size: 11px; margin-top: 1px; }
+.dev-item__meta.is-current { color: var(--ok-fg); font-weight: 700; }
+.dev-item__meta:not(.is-current) { color: var(--text-muted); }
+.dev-item__logout {
+  margin-top: 10px;
+  width: 100%;
+  padding: 9px;
+  border-radius: 10px;
+  color: var(--err-fg);
+  background: var(--err-bg);
+  font-size: 11.5px;
+  font-weight: 800;
+  transition: transform 0.12s var(--ease-out);
+}
+.dev-item__logout:active { transform: scale(0.97); }
+
+/* Perangkat yang sedang dipakai TIDAK dapat tombol keluar — penanda ini
+   menggantikannya supaya tinggi kartunya tetap sepadan dengan yang lain. */
+.dev-item__here {
+  display: block;
+  margin-top: 10px;
+  padding: 9px;
+  border-radius: 10px;
+  text-align: center;
+  color: var(--ok-fg);
+  background: var(--ok-bg);
+  font-size: 11.5px;
+  font-weight: 800;
+}
+
+/* ---- FAQ accordion ---- */
+
+.faq-list { margin-top: 10px; }
+.faq-item { border-bottom: 1px solid var(--border); }
+.faq-q {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  width: 100%;
+  padding: 15px 2px;
+  text-align: left;
+  font-size: 12.5px;
+  font-weight: 700;
+  line-height: 1.45;
+  color: var(--fg-strong);
+}
+.faq-q__chev {
+  flex-shrink: 0;
+  margin-left: auto;
+  margin-top: 1px;
+  color: var(--text-muted);
+  transition: transform 0.3s var(--ease-out);
+}
+.faq-item.is-open .faq-q__chev { transform: rotate(180deg); }
+.faq-a {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.3s var(--ease-out);
+}
+.faq-a p {
+  padding: 0 2px 15px;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--text-muted);
+}
+
+/* ---- Customer Service ---- */
+
+.cs-hours {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 13px 14px;
+  margin-bottom: 14px;
+  border-radius: 12px;
+  border-left: 4px solid var(--fg-strong);
+  background: var(--info-bg);
+  font-size: 12px;
+  color: var(--fg-strong);
+}
+.cs-hours svg { flex-shrink: 0; color: var(--fg-strong); }
+.cs-hours b { font-weight: 800; }
+
+.cs-opt {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  margin-bottom: 10px;
+  padding: 14px;
+  text-align: left;
+  border-radius: 14px;
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+  transition: transform 0.12s var(--ease-out);
+}
+.cs-opt:active { transform: scale(0.98); }
+.cs-opt__ic {
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  color: var(--fg-strong);
+  background: var(--tint);
+}
+.cs-opt__ic svg { width: 20px; height: 20px; }
+.cs-opt__ic--wa { color: var(--ok-fg); background: var(--ok-bg); }
+.cs-opt__txt { flex: 1; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.cs-opt__txt b { font-size: 13px; color: var(--text); }
+.cs-opt__txt span { font-size: 11px; color: var(--text-muted); }
+
+/* ---- Dokumen (S&K, Privasi) ---- */
+
+.doc { font-size: 12px; line-height: 1.65; color: var(--text-muted); }
+.doc p { margin-bottom: 10px; }
+.doc h3 {
+  font-size: 12.5px;
+  font-weight: 800;
+  color: var(--fg-strong);
+  margin: 18px 0 6px;
+}
+.doc__meta { font-size: 11px; font-style: italic; margin-bottom: 14px; }
+.doc b { color: var(--fg-strong); font-weight: 700; }
+
+/* ---- Tentang DikaPay ---- */
+
+.about { text-align: center; padding-top: 22px; }
+.about__logo {
+  display: grid;
+  place-items: center;
+  width: 72px;
+  height: 72px;
+  margin: 0 auto 14px;
+  border-radius: 20px;
+  background: var(--gold-500);
+  color: var(--fg-strong);
+}
+.about__logo svg { width: 36px; height: 36px; }
+.about__name { font-size: 21px; font-weight: 800; color: var(--fg-strong); letter-spacing: 0.2px; }
+.about__ver { font-size: 12px; color: var(--text-muted); margin-top: 3px; }
+.about__desc {
+  font-size: 12.5px;
+  line-height: 1.7;
+  color: var(--text-muted);
+  text-align: left;
+  margin: 20px 0;
+}
+.about__copy { font-size: 11px; color: var(--text-muted); margin-top: 26px; }
+
+/* ---- Data Diri (redesain: list label-kiri/value-kanan, bukan form) ----
+   Baris REUSE primitif `.row` yang sama dipakai "Keamanan Akun"/"Akun
+   Saya" di halaman utama — persis pola "list item rapi dengan label kiri
+   + value/aksi kanan" dari referensi desain, cuma temanya DikaPay (navy/
+   gold), bukan biru terang referensinya. */
+.dd-list { display: flex; flex-direction: column; }
+.dd-row {
+  opacity: 0;
+  transform: translateY(10px);
+  animation: epIn 0.4s var(--ease-out) forwards;
+}
+/* Stagger fade/slide satu-satu — 4 baris tetap (bukan dirender dinamis),
+   jadi delay tetap lewat nth-child, tidak perlu dihitung dari JS. */
+.dd-row:nth-child(1) { animation-delay: 0.05s; }
+.dd-row:nth-child(2) { animation-delay: 0.12s; }
+.dd-row:nth-child(3) { animation-delay: 0.19s; }
+.dd-row:nth-child(4) { animation-delay: 0.26s; }
+.dd-row:nth-child(5) { animation-delay: 0.33s; }
+@keyframes epIn { to { opacity: 1; transform: none; } }
+
+.row__trail--cta { color: var(--warn-fg); font-weight: 800; }
+
+/* Baris Nama Lengkap SELAMA masa kunci 7 hari — tetap dalam bentuk
+   <button> yang bisa diklik (BUKAN `disabled`), karena mengetuknya justru
+   harus tetap menjelaskan KENAPA lewat popup (pola yang sama dengan kartu
+   produk "gangguan" — aria-disabled, bukan disabled, supaya klik tidak
+   ditelan diam-diam). Yang berubah cuma tampilannya: label & value
+   diredupkan, panah disembunyikan. */
+.dd-row.is-locked { opacity: 0.55; }
+.dd-row.is-locked .row__chev { visibility: hidden; }
+
+.dd-note {
+  margin-top: 20px;
+  padding: 0 4px;
+  font-size: 11.5px;
+  line-height: 1.6;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+.ep-form {
+  opacity: 0;
+  transform: translateY(12px);
+  animation: epIn 0.45s var(--ease-out) 0.1s forwards;
+}
+.ep-form--field { margin-top: 4px; }
+.dd-hint {
+  margin: -14px 0 20px;
+  font-size: 11.5px;
+  color: var(--text-muted);
+}
+
+/* Floating-label field */
+.ff { position: relative; margin-bottom: 24px; }
+.ff__input {
+  width: 100%;
+  padding: 18px 0 8px;
+  border: none;
+  border-bottom: 2px solid var(--border);
+  background: none;
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--fg-strong);
+  outline: none;
+  transition: border-color 0.22s ease;
+}
+.ff__input:focus { border-bottom-color: var(--gold-500); }
+
+.ff__label {
+  position: absolute;
+  left: 0;
+  top: 16px;
+  font-size: 15px;
+  color: var(--text-muted);
+  pointer-events: none;
+  transform-origin: left top;
+  transition: transform 0.18s var(--ease-out), color 0.18s ease;
+}
+.ff__input:focus ~ .ff__label,
+.ff__input:not(:placeholder-shown) ~ .ff__label {
+  transform: translateY(-16px) scale(0.78);
+}
+.ff__input:focus ~ .ff__label { color: var(--warn-fg); }
+
+.ff__badge {
+  position: absolute;
+  right: 0;
+  top: 15px;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--ok-bg);
+  color: var(--ok-fg);
+  font-size: 10px;
+  font-weight: 800;
+}
+.ff--badge .ff__input { padding-right: 96px; }
+.ff__badge[hidden] { display: none; }
+
+.ff__err {
+  display: block;
+  margin-top: 5px;
+  font-size: 11px;
+  color: var(--err-fg);
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+.ff.is-error .ff__input { border-bottom-color: var(--err-fg); }
+.ff.is-error .ff__err { opacity: 1; }
+.ff.is-shake { animation: shake 0.4s ease; }
+.ep-form .apply-btn { margin-top: 8px; }
+
+/* Bottom sheet pilih foto */
+.picker-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 92;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  background: rgba(11, 36, 71, 0.5);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.24s ease, visibility 0s linear 0.24s;
+}
+.picker-overlay.is-open {
+  opacity: 1;
+  visibility: visible;
+  transition: opacity 0.24s ease;
+}
+.picker-sheet {
+  width: 100%;
+  max-width: var(--content-max);
+  padding: 8px 16px calc(16px + env(safe-area-inset-bottom, 0px));
+  background: var(--surface);
+  border-radius: 22px 22px 0 0;
+  transform: translateY(100%);
+  transition: transform 0.3s var(--ease-out);
+}
+.picker-overlay.is-open .picker-sheet { transform: translateY(0); }
+.picker-sheet__handle {
+  display: block;
+  width: 40px;
+  height: 4px;
+  margin: 6px auto 8px;
+  border-radius: 999px;
+  background: var(--handle);
+}
+.picker-opt {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  width: 100%;
+  padding: 15px 6px;
+  text-align: left;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--text);
+  border-radius: 10px;
+  transition: background 0.15s ease;
+}
+.picker-opt + .picker-opt { border-top: 1px solid var(--border); }
+.picker-opt:active { background: var(--tint); }
+.picker-opt svg { width: 20px; height: 20px; color: var(--fg-strong); }
+
+/* Bottom sheet pilihan (bahasa & mode tampilan) */
+.choice-sheet__title {
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--fg-strong);
+  padding: 4px 6px 10px;
+}
+.choice-opt {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 15px 6px;
+  border-radius: 10px;
+  transition: background 0.15s ease;
+}
+.choice-opt + .choice-opt { border-top: 1px solid var(--border); }
+.choice-opt:active { background: var(--tint); }
+.choice-opt__ic {
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  color: var(--fg-strong);
+  background: var(--tint);
+}
+.choice-opt__ic svg { width: 17px; height: 17px; }
+.choice-opt__label { flex: 1; font-size: 13.5px; font-weight: 600; color: var(--text); }
+.choice-opt.is-active .choice-opt__label { color: var(--fg-strong); }
+
+.choice-radio {
+  position: relative;
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 2px solid var(--border);
+  transition: border-color 0.25s var(--ease-out), background 0.25s var(--ease-out);
+}
+.choice-opt.is-active .choice-radio {
+  border-color: var(--gold-500);
+  background: var(--gold-500);
+}
+.choice-radio__check {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: var(--on-brand);
+  opacity: 0;
+  transform: scale(0.3);
+  transition: opacity 0.25s ease, transform 0.25s var(--ease-out);
+}
+.choice-opt.is-active .choice-radio__check { opacity: 1; transform: scale(1); }
+.choice-radio__check svg { width: 12px; height: 12px; }
+
+/* Toast sukses (dari atas) */
+.top-toast {
+  position: fixed;
+  top: 0;
+  left: 50%;
+  z-index: 96;
+  max-width: 90%;
+  padding: 12px 18px;
+  border-radius: 0 0 16px 16px;
+  background: var(--ok-solid);
+  color: #fff;
+  font-size: 12.5px;
+  font-weight: 700;
+  text-align: center;
+  box-shadow: 0 8px 22px rgba(11, 36, 71, 0.22);
+  transform: translateX(-50%) translateY(-120%);
+  transition: transform 0.34s var(--ease-out);
+}
+.top-toast.is-show { transform: translateX(-50%) translateY(0); }
+.top-toast.is-err { background: var(--err-solid); }
+
+/* ---- Alamat Tersimpan ---- */
+
+.addr-gps-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  width: 100%;
+  padding: 13px;
+  border-radius: 14px;
+  color: var(--fg-strong);
+  background: rgba(255, 201, 60, 0.12);
+  border: 1.5px solid var(--gold-500);
+  font-size: 13.5px;
+  font-weight: 800;
+  transition: transform 0.12s var(--ease-out), background 0.12s ease;
+}
+.addr-gps-btn:active { transform: scale(0.97); background: rgba(255, 201, 60, 0.2); }
+.addr-gps-btn__ic {
+  display: grid;
+  place-items: center;
+  color: var(--warn-fg);
+  animation: gpsPulse 1.8s ease-in-out infinite;
+}
+.addr-gps-btn__ic svg { width: 18px; height: 18px; }
+@keyframes gpsPulse {
+  0%, 100% { transform: scale(1); opacity: 0.85; }
+  50% { transform: scale(1.18); opacity: 1; }
+}
+
+.addr-add-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  margin-top: 10px;
+  padding: 12px;
+  border-radius: 14px;
+  color: var(--fg-strong);
+  background: var(--surface);
+  border: 1.5px dashed var(--border);
+  font-size: 13px;
+  font-weight: 700;
+  transition: transform 0.12s var(--ease-out);
+}
+.addr-add-btn:active { transform: scale(0.98); }
+.addr-add-btn svg { width: 15px; height: 15px; color: var(--fg-strong); }
+
+.addr-list { list-style: none; margin-top: 16px; }
+.addr-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 11px;
+  padding: 13px;
+  margin-bottom: 10px;
+  border-radius: 14px;
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+}
+.addr-item--new { animation: addrIn 0.42s var(--ease-out); }
+@keyframes addrIn {
+  from { opacity: 0; transform: translateY(-16px); }
+  to { opacity: 1; transform: none; }
+}
+.addr-item.is-out {
+  opacity: 0;
+  transform: translateX(20px);
+  transition: opacity 0.3s ease, transform 0.3s var(--ease-out);
+}
+.addr-item__ic {
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  color: var(--fg-strong);
+  background: var(--tint);
+}
+.addr-item__ic svg { width: 17px; height: 17px; }
+.addr-item__body { flex: 1; min-width: 0; }
+.addr-item__label { display: block; font-size: 12.5px; font-weight: 800; color: var(--fg-strong); }
+.addr-item__text { display: block; font-size: 11.5px; line-height: 1.5; color: var(--text-muted); margin-top: 2px; }
+.addr-item__del {
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  color: var(--err-fg);
+  background: var(--err-bg);
+  transition: transform 0.12s var(--ease-out);
+}
+.addr-item__del:active { transform: scale(0.9); }
+.addr-item__del svg { width: 13px; height: 13px; }
+
+.addr-empty { text-align: center; font-size: 12px; color: var(--text-muted); padding: 26px 0; }
+.addr-empty[hidden] { display: none; }
+
+/* State loading / form dalam flow tambah alamat */
+.addr-state { transition: opacity 0.25s ease; }
+.addr-state[hidden] { display: none; }
+.addr-state--fading { opacity: 0; }
+#addrLoading { text-align: center; padding-top: 34px; }
+#addrLoading .tfa-spinner { margin-bottom: 14px; }
+.addr-intro { font-size: 12px; line-height: 1.55; color: var(--text-muted); margin-bottom: 10px; }
+
+/* State error lokasi — inline, bukan modal (hanya satu state addr aktif dalam satu waktu) */
+.addr-errbox { text-align: center; padding-top: 26px; }
+.addr-errbox__ic {
+  display: inline-grid;
+  place-items: center;
+  width: 60px;
+  height: 60px;
+  margin-bottom: 12px;
+  border-radius: 50%;
+  color: var(--err-fg);
+  background: var(--err-bg);
+}
+.addr-errbox__title { font-size: 15px; font-weight: 800; color: var(--fg-strong); }
+.addr-errbox__text {
+  margin-top: 8px;
+  font-size: 12px;
+  line-height: 1.55;
+  color: var(--text-muted);
+}
+.addr-errbox__actions { display: flex; gap: 10px; margin-top: 18px; }
+.ff__input--area { resize: none; line-height: 1.5; padding-top: 20px; }
+
+/* ===== Popup "Nama Sedang Terkunci" ====================================
+   Struktur & pola animasi SENGAJA menyalin `.banned-overlay`/`.banned-modal`
+   di style.css (fade+scale masuk, ilustrasi mengambang + halo berdenyut
+   kontinu) — disalin dengan nama sendiri (bukan reuse langsung) karena
+   nadanya beda: ini bukan pelanggaran/hukuman, cuma pembatasan wajar demi
+   keamanan, jadi warnanya navy/gold (tema normal DikaPay), BUKAN merah
+   seperti banned. */
+.namalock-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 160;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(11, 36, 71, 0.62);
+  backdrop-filter: blur(3px);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.26s ease;
+}
+.namalock-overlay.is-open { opacity: 1; pointer-events: auto; }
+
+.namalock-modal {
+  width: 100%;
+  max-width: 340px;
+  max-height: 92vh;
+  overflow-y: auto;
+  padding: 26px 22px 22px;
+  border-radius: 24px;
+  background: var(--surface);
+  text-align: center;
+  transform: scale(0.9) translateY(10px);
+  opacity: 0;
+}
+.namalock-overlay.is-open .namalock-modal { animation: namalockModalIn 0.42s var(--ease-out) forwards; }
+@keyframes namalockModalIn {
+  0%   { opacity: 0; transform: scale(0.86) translateY(14px); }
+  60%  { opacity: 1; transform: scale(1.03) translateY(0); }
+  100% { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.namalock-modal__img-wrap {
+  position: relative;
+  width: 148px;
+  height: 148px;
+  margin: 0 auto 14px;
+  display: grid;
+  place-items: center;
+}
+/* Halo gold berdenyut lembut di belakang ilustrasi — gerakan yang TERUS
+   berjalan selagi popup terbuka, bukan cuma saat masuk (pola bannedGlow). */
+.namalock-modal__img-wrap::before {
+  content: "";
+  position: absolute;
+  inset: 4px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 201, 60, 0.35) 0%, rgba(255, 201, 60, 0) 72%);
+  animation: namalockGlow 2.6s ease-in-out infinite;
+}
+.namalock-modal__img {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  filter: drop-shadow(0 6px 14px rgba(11, 36, 71, 0.2));
+  animation: namalockFloat 3.4s ease-in-out infinite;
+}
+@keyframes namalockGlow {
+  0%, 100% { opacity: 0.55; transform: scale(0.94); }
+  50%      { opacity: 1;    transform: scale(1.08); }
+}
+@keyframes namalockFloat {
+  0%, 100% { transform: translateY(0) scale(1); }
+  50%      { transform: translateY(-5px) scale(1.015); }
+}
+
+.namalock-modal__title { font-size: 17px; font-weight: 800; color: var(--fg-strong); }
+.namalock-modal__text {
+  margin-top: 8px;
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--text-muted);
+}
+.namalock-modal__countdown {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 16px 0 4px;
+  padding: 12px;
+  border-radius: 14px;
+  background: var(--cream-bg);
+}
+.namalock-modal__countdown-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--cream-fg);
+  opacity: 0.85;
+}
+.namalock-modal__countdown-value {
+  font-size: 17px;
+  font-weight: 800;
+  color: var(--cream-fg);
+  font-variant-numeric: tabular-nums;
+}
+.namalock-modal__btn {
+  width: 100%;
+  margin-top: 16px;
+  padding: 13px;
+  border-radius: 14px;
+  background: var(--gold-500);
+  color: var(--on-brand);
+  font-family: inherit;
+  font-size: 13.5px;
+  font-weight: 700;
+  transition: transform 0.1s var(--ease-out);
+}
+.namalock-modal__btn:active { transform: scale(0.97); }
+
+/* ===== Reduced motion ================================= */
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal, .logout-btn { opacity: 1 !important; transform: none !important; }
+  .ep-form { opacity: 1 !important; transform: none !important; animation: none !important; }
+  .dd-row { opacity: 1 !important; transform: none !important; animation: none !important; }
+  .addr-gps-btn__ic { animation: none !important; }
+  .addr-item--new { animation: none !important; }
+  .ahead__avatar, .ahead__status { opacity: 1 !important; transform: none !important; animation: none !important; }
+  /* Skor Keamanan: matikan shimmer + denyut, sisakan status akhirnya saja */
+  .score__fill::after { display: none; }
+  .score__check, .score__check::before, .score__ic { animation: none !important; }
+  .score__item--todo .score__check::before { opacity: 0 !important; }
+  .check-anim circle, .check-anim path { stroke-dashoffset: 0 !important; animation: none !important; }
+  .confetti span { display: none; }
+  .lupapin-otp-icon { animation: none !important; }
+  /* Modal muncul langsung tanpa wobble, ilustrasi & halo boleh diam total —
+     dua-duanya dekoratif, maknanya sepenuhnya dibawa teks & countdown. */
+  .namalock-overlay.is-open .namalock-modal { animation: none; opacity: 1; transform: none; }
+  .namalock-modal__img-wrap::before,
+  .namalock-modal__img { animation: none; }
+}
+
+/* Teks di atas gold / putih-pill — selalu navy, di semua tema */
+.about__logo,
+.apply-btn,
+.cmodal__btn--gold,
+.ahead__status { color: var(--on-brand); }
+
+/* ===========================================================================
+   Layar info ID — Nomor Ponsel / Alamat Email (#idInfoFlow)
+   POLA LAYOUT-nya mengikuti contoh yang diberikan (ilustrasi di atas, judul
+   besar, kartu info + badge verified, tombol outline, daftar aturan di
+   bawah), TAPI seluruh warnanya memakai token DikaPay — navy & gold. Tidak
+   ada warna/logo identitas aplikasi lain yang ditiru.
+   =========================================================================== */
+
+.idinfo {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 6px 4px 8px;
+}
+
+/* Tiap bagian masuk berurutan (fade + naik tipis) supaya layar tidak
+   terasa kosong-lalu-muncul-sekaligus. Delay-nya kecil & sekali jalan. */
+.idinfo > * { animation: idinfoIn 0.42s var(--ease-out) both; }
+.idinfo__art     { animation-delay: 0.02s; }
+.idinfo__title   { animation-delay: 0.08s; }
+.idinfo__sub     { animation-delay: 0.12s; }
+.idinfo__card    { animation-delay: 0.18s; }
+.idinfo__last    { animation-delay: 0.22s; }
+.idinfo__btn     { animation-delay: 0.26s; }
+.idinfo__rules   { animation-delay: 0.32s; }
+
+@keyframes idinfoIn {
+  from { opacity: 0; transform: translateY(9px); }
+  to   { opacity: 1; transform: none; }
+}
+
+.idinfo__art { width: 124px; height: 124px; margin: 4px 0 12px; }
+.idinfo__art svg { width: 100%; height: 100%; }
+
+.idinfo__title {
+  font-size: 19px;
+  font-weight: 800;
+  line-height: 1.35;
+  color: var(--fg-strong);
+  max-width: 300px;
+}
+.idinfo__sub {
+  margin-top: 7px;
+  max-width: 290px;
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--text-muted);
+}
+
+/* Kartu nilai saat ini. Border-kiri gold = penanda "ini datamu", pola yang
+   sama dengan .infobox di margin.css. */
+.idinfo__card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  width: 100%;
+  margin-top: 18px;
+  padding: 13px 15px;
+  text-align: left;
+  border-radius: var(--radius);
+  border-left: 4px solid var(--gold-500);
+  background: var(--surface-2);
+}
+.idinfo__label {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+.idinfo__value {
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--fg-strong);
+  overflow-wrap: anywhere;      /* email panjang tidak melebarkan halaman */
+}
+.idinfo__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 3px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: var(--ok-bg);
+  color: var(--ok-fg);
+  font-size: 10px;
+  font-weight: 800;
+}
+.idinfo__badge[hidden] { display: none; }
+
+.idinfo__last {
+  width: 100%;
+  margin-top: 9px;
+  text-align: left;
+  font-size: 11.5px;
+  line-height: 1.55;
+  color: var(--text-muted);
+}
+.idinfo__last[hidden] { display: none; }
+
+/* Tombol OUTLINE — sengaja bukan tombol gold penuh: mengganti nomor/email
+   itu aksi yang jarang & perlu dipikir, bukan ajakan utama di layar ini. */
+.idinfo__btn {
+  width: 100%;
+  margin-top: 16px;
+  padding: 13px 16px;
+  border: 1.6px solid var(--gold-500);
+  border-radius: 14px;
+  background: transparent;
+  color: var(--fg-strong);
+  font-size: 13.5px;
+  font-weight: 800;
+  transition: background-color 0.16s ease, transform 0.12s var(--ease-out);
+}
+.idinfo__btn:active { background: var(--tint); transform: scale(0.98); }
+
+.idinfo__rules {
+  width: 100%;
+  margin-top: 20px;
+  padding: 14px 15px;
+  text-align: left;
+  border-radius: var(--radius);
+  background: var(--tint);
+}
+.idinfo__rules-title {
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--fg-strong);
+  margin-bottom: 7px;
+}
+.idinfo__list { list-style: none; margin: 0; padding: 0; }
+.idinfo__rule {
+  position: relative;
+  padding: 4px 0 4px 16px;
+  font-size: 11.5px;
+  line-height: 1.6;
+  color: var(--text);
+}
+/* Bullet digambar sendiri supaya warnanya ikut token gold, bukan bullet
+   bawaan yang selalu warna teks. */
+.idinfo__rule::before {
+  content: "";
+  position: absolute;
+  top: 11px;
+  left: 3px;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--gold-500);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* Isinya TETAP TAMPIL, cuma tidak bergerak. `both` pada animasi di atas
+     akan membekukannya di keadaan awal (opacity 0) kalau tidak dimatikan
+     eksplisit — jebakan yang sama dengan .nempty di notifikasi.css. */
+  .idinfo > * { animation: none; opacity: 1; transform: none; }
+}
+
+/* ===========================================================================
+   Animasi masuk isi editor satu-field (#editFieldFlow)
+   Panel `.aflow` sendiri sudah menggeser masuk dari kanan, tapi ISI-nya
+   selama ini muncul jadi begitu saja — terasa "kosong lalu tiba-tiba ada",
+   terutama di layar Ubah Nomor Ponsel & Alamat Email yang isinya sedikit.
+
+   Polanya SAMA dengan `.idinfo` (layar info di atasnya): fade + naik tipis,
+   berurutan, sekali jalan. Diberi jeda kecil supaya mulai setelah panelnya
+   sendiri hampir selesai menggeser — bukan bertabrakan dengan geseran itu.
+   =========================================================================== */
+#editFieldFlow.is-open .ep-form--field > * {
+  animation: efIn 0.4s var(--ease-out) both;
+}
+#editFieldFlow.is-open .ep-form--field > *:nth-child(1) { animation-delay: 0.14s; }
+#editFieldFlow.is-open .ep-form--field > *:nth-child(2) { animation-delay: 0.2s; }
+#editFieldFlow.is-open .ep-form--field > *:nth-child(3) { animation-delay: 0.26s; }
+
+@keyframes efIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* Isinya TETAP TAMPIL, cuma tidak bergerak. `both` akan membekukannya di
+     keadaan awal (opacity 0) kalau tidak dimatikan eksplisit — jebakan yang
+     sama dengan `.nempty` di notifikasi.css dan `.idinfo` di atas. */
+  #editFieldFlow.is-open .ep-form--field > * {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Pratinjau foto profil di baris "Ganti Gambar Profil" (#ddFoto).
+   Ukurannya kecil (sebesar trail baris lain) supaya tidak mendominasi
+   daftar, tapi cukup untuk memastikan member melihat foto mana yang
+   sedang berlaku sebelum menggantinya. */
+.dd-foto {
+  position: relative;             /* patokan .avatar-foto (position:absolute) */
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: var(--gold-500);
+  color: var(--fg-strong);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+/* ===== Verifikasi OTP SIMULASI (#otpSimFlow) =======================
+   Dipakai saat mengganti Nomor Ponsel / Alamat Email. Menyalin pola
+   langkah & kotak OTP milik #tfaFlow di atas (.tfa-step/.otp) dengan
+   nama sendiri, supaya kedua alur tidak saling mengikat. */
+.otpsim-step { animation: stepIn 0.3s var(--ease-out); }
+.otpsim-step[hidden] { display: none; }
+.otpsim-step[data-step="kirim"] { position: relative; text-align: center; padding-top: 30px; }
+
+/* Kotak kode simulasi. Sengaja TIDAK memakai warna sukses/emas: ini
+   bukan hadiah, ini penanda "kode ini belum dikirim ke mana-mana".
+   Garis putus-putus + latar netral = bahasa visual yang sama dengan
+   badge "Gangguan" di produk.css (kondisi sementara, bukan error). */
+.otpsim-kode {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  margin: 4px 0 6px;
+  padding: 16px 14px;
+  border: 1.5px dashed #c3cadb;
+  border-radius: 16px;
+  background: var(--surface-2);
+  text-align: center;
+  animation: otpsimMasuk 0.42s var(--ease-out) both;
+}
+
+.otpsim-kode__label { font-size: 11.5px; color: var(--text-muted); }
+.otpsim-kode__label b { color: #b9600a; }
+
+.otpsim-kode__nilai {
+  font-size: 30px;
+  font-weight: 700;
+  letter-spacing: 7px;
+  color: var(--fg-strong);
+  font-variant-numeric: tabular-nums;
+  /* Huruf terakhir kena letter-spacing juga; digeser supaya tetap
+     terlihat di tengah. */
+  text-indent: 7px;
+}
+
+.otpsim-kode__catatan {
+  max-width: 30ch;
+  font-size: 11px;
+  line-height: 1.6;
+  color: var(--text-muted);
+}
+
+.otp.is-shake { animation: shake 0.4s ease; }
+
+@keyframes otpsimMasuk {
+  from { opacity: 0; transform: translateY(-8px) scale(0.97); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* ===== Diagram Uang Masuk/Keluar (#cashflowFlow) =====================
+   Donut 2-segmen (Masuk/Keluar), pola SAMA dengan `.seg`/`.donut` di
+   statistik.css: <circle pathLength="100"> digambar lewat transition
+   `stroke-dasharray`, digerakkan dari akun.js. Warna pakai token status
+   yang sudah ada (--ok-solid/--err-solid) — bukan warna baru. */
+.cfchart {
+  position: relative;
+  width: 168px;
+  height: 168px;
+  margin: 6px auto 14px;
+}
+.cfchart__donut { width: 100%; height: 100%; transform: rotate(-90deg); }
+.cfchart__track { fill: none; stroke: var(--surface-2); stroke-width: 14; }
+.cfchart__seg {
+  fill: none;
+  stroke-width: 14;
+  stroke-linecap: round;
+  stroke-dasharray: 0 100;
+  transition: stroke-dasharray 0.7s var(--ease-out);
+}
+.cfchart__seg--in  { stroke: var(--ok-solid); }
+.cfchart__seg--out { stroke: var(--err-solid); transition-delay: 0.15s; }
+.cfchart__mid {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  animation: cfMidIn 0.5s var(--ease-out) 0.4s both;
+}
+.cfchart__mid-label { font-size: 10px; font-weight: 700; color: var(--text-muted); }
+.cfchart__mid-val {
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--fg-strong);
+  font-variant-numeric: tabular-nums;
+}
+@keyframes cfMidIn {
+  from { opacity: 0; transform: scale(0.7); }
+  to   { opacity: 1; transform: none; }
+}
+
+.cflegend {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px 14px;
+  margin-bottom: 6px;
+  background: var(--surface-2);
+  border-radius: 14px;
+}
+.cflegend__item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+  opacity: 0;
+  transform: translateY(6px);
+  transition: opacity 0.35s ease, transform 0.35s var(--ease-out);
+}
+.cflegend__item--in  { transition-delay: 0.15s; }
+.cflegend__item--out { transition-delay: 0.3s; }
+.cfchart.is-in ~ .cflegend .cflegend__item,
+.cflegend.is-in .cflegend__item { opacity: 1; transform: none; }
+.cflegend__dot { flex-shrink: 0; width: 10px; height: 10px; border-radius: 50%; }
+.cflegend__item--in .cflegend__dot  { background: var(--ok-solid); }
+.cflegend__item--out .cflegend__dot { background: var(--err-solid); }
+.cflegend__label { flex: 1; color: var(--text); font-weight: 600; }
+.cflegend__val { font-weight: 800; color: var(--fg-strong); font-variant-numeric: tabular-nums; }
+.cflegend__pct { min-width: 34px; text-align: right; font-size: 11px; color: var(--text-muted); }
+
+.cfcats { margin-top: 4px; }
+.cfcats__title { font-size: 11.5px; font-weight: 700; color: var(--text-muted); margin: 0 0 8px; }
+.cfcats__list { list-style: none; display: flex; flex-direction: column; gap: 8px; }
+.cfcats__item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  opacity: 0;
+  transform: translateY(6px);
+  animation: cfCatIn 0.4s var(--ease-out) forwards;
+}
+@keyframes cfCatIn { to { opacity: 1; transform: none; } }
+.cfcats__dot { flex-shrink: 0; width: 9px; height: 9px; border-radius: 3px; }
+.cfcats__bar {
+  flex: 1;
+  height: 6px;
+  border-radius: 4px;
+  background: var(--surface-2);
+  overflow: hidden;
+}
+.cfcats__bar span {
+  display: block;
+  height: 100%;
+  width: 0;
+  border-radius: 4px;
+  transition: width 0.6s var(--ease-out);
+}
+.cfcats__name { font-size: 11.5px; color: var(--text); width: 92px; flex-shrink: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cfcats__amt { font-size: 11.5px; font-weight: 700; color: var(--fg-strong); font-variant-numeric: tabular-nums; }
+
+.cfempty { padding: 30px 10px; text-align: center; font-size: 12.5px; color: var(--text-muted); }
+.cfempty[hidden] { display: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  .otpsim-step { animation: none; }
+  /* otpsimMasuk memakai fill `both` — tanpa baris ini kotak kodenya bisa
+     membeku di opacity 0 dan member tidak pernah melihat kodenya sama
+     sekali. Jebakan yang sama dengan .nempty di notifikasi.css. */
+  .otpsim-kode { animation: none; opacity: 1; transform: none; }
+  .otp.is-shake { animation: none; }
+
+  .cfchart__seg { transition: none; }
+  .cfchart__mid { animation: none; opacity: 1; transform: none; }
+  .cflegend__item { opacity: 1; transform: none; transition: none; }
+  .cfcats__item { animation: none; opacity: 1; transform: none; }
+  .cfcats__bar span { transition: none; }
+}

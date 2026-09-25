@@ -1,0 +1,1912 @@
+/* ===========================================================================
+   DikaPay — produk.css
+   Stylesheet BERSAMA semua halaman produk seluler (pulsa.html,
+   paket-data.html, …). Satu-satunya sumber gaya untuk header .phead,
+   input nomor .pfield, badge operator .opbadge, grid produk .prod,
+   placeholder .pempty, dan modal konfirmasi .cmodal*.
+   JANGAN bikin salinan per halaman — tambahkan di sini saja.
+
+   Pakai token dari style.css (JANGAN hardcode warna;
+   warna brand operator satu-satunya pengecualian, datang dari OPERATORS
+   di pulsa.js dan dipasang inline sebagai custom property --op).
+   =========================================================================== */
+
+body { overflow-x: hidden; }
+
+.app { animation: pageIn 0.32s var(--ease-out); }
+.app.is-leaving {
+  transform: translateX(100%);
+  transition: transform 0.28s var(--ease-out);
+}
+@keyframes pageIn {
+  from { transform: translateX(100%); opacity: 0.5; }
+  to   { transform: translateX(0); opacity: 1; }
+}
+
+/* ===== Header ======================================================= */
+
+.phead {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 16px;
+  background: linear-gradient(160deg, var(--navy-700) -20%, var(--navy-900) 70%);
+  color: var(--white);
+}
+.phead__back {
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  margin-left: -6px;
+  border-radius: 50%;
+  color: var(--white);
+  background: rgba(255, 255, 255, 0.1);
+  transition: transform 0.12s var(--ease-out), background 0.12s ease;
+}
+.phead__back:active { transform: scale(0.9); background: rgba(255, 255, 255, 0.2); }
+.phead__title { font-size: 17px; font-weight: 700; }
+
+.pmain {
+  flex: 1;
+  padding: 14px 14px 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* ===== Banner promo "Top Up Game" (khusus games.html) ==================
+   MURNI dekoratif, section terpisah SEBELUM #brandSec — tidak menyentuh
+   grid "Pilih Game" sama sekali (pola yang sama seperti kartu peringatan
+   `.warn`: section sendiri, ikut `gap` `.pmain`, bukan disisipkan ke
+   dalam grid yang sudah ada). `overflow:hidden` WAJIB di sini: animasi
+   zoom membesarkan gambar sampai 5% lebih besar dari bingkainya, tanpa
+   ini bagian yang membesar akan meluber keluar sudut membulat. */
+.games-banner {
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+}
+.games-banner__img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1672 / 941;          /* rasio asli aset, cegah "lompat" saat gambar termuat */
+  object-fit: cover;
+  animation: gamesBannerZoom 5s ease-in-out infinite;
+}
+/* Pelan & terus-menerus SENGAJA — scale 1 -> 1.05 -> 1, bukan efek
+   mencolok. TIDAK didaftarkan ke blok prefers-reduced-motion produk.css
+   di bawah (itu daftar selector spesifik, bukan `*`) — tetap aman karena
+   style.css (di-link SEBELUM produk.css di semua halaman produk) sudah
+   punya rule global `*, *::before, *::after { animation-duration: 0.01ms
+   !important; animation-iteration-count: 1 !important }` yang menang atas
+   durasi 5s di sini berkat `!important`, tanpa perlu override kedua. */
+@keyframes gamesBannerZoom {
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.05); }
+}
+
+/* ===== Input nomor HP =============================================== */
+
+.pcard { padding: 14px; }
+
+.pfield__label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--fg-strong);
+}
+
+.pfield {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: var(--surface-2);
+  border: 1.5px solid transparent;
+  transition: border-color 0.2s ease, background 0.2s ease;
+}
+.pfield:focus-within { border-color: var(--gold-500); }
+
+.pfield__ic {
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  color: var(--text-muted);
+  transition: color 0.2s ease;
+}
+.pfield__ic svg { width: 19px; height: 19px; }
+.pfield:focus-within .pfield__ic { color: var(--fg-strong); }
+
+.pfield__input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: none;
+  outline: none;
+  font-family: inherit;
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: 0.6px;
+  color: var(--fg-strong);
+}
+.pfield__input::placeholder {
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0;
+  color: var(--text-muted);
+}
+
+.pfield__clear {
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  color: var(--text-muted);
+  background: var(--tint);
+  transition: transform 0.12s var(--ease-out), background 0.12s ease;
+}
+.pfield__clear svg { width: 13px; height: 13px; }
+.pfield__clear:active { transform: scale(0.86); background: var(--tint-strong); }
+
+/* ===== Animasi field input =================================
+   Tiga keadaan: fokus (halo emas), sah (garis hijau tipis), belum sah
+   (garis merah + getar sekali). Semua lewat transform/opacity/warna. */
+
+.pfield {
+  position: relative;
+}
+.pfield:focus-within {
+  background: var(--surface);
+  box-shadow: 0 0 0 3px rgba(255, 201, 60, 0.22);
+}
+/* Garis emas yang melebar dari tengah saat field difokuskan */
+.pfield::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  right: 50%;
+  bottom: -1.5px;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--gold-500);
+  opacity: 0;
+  transition: left 0.28s var(--ease-out), right 0.28s var(--ease-out),
+              opacity 0.2s ease, background 0.2s ease;
+}
+.pfield:focus-within::after { left: 10%; right: 10%; opacity: 1; }
+
+.pfield.is-valid { border-color: var(--ok-solid); }
+.pfield.is-valid::after { background: var(--ok-solid); left: 6%; right: 6%; opacity: 1; }
+/* Centang kecil muncul saat nomor sudah sah */
+.pfield.is-valid .pfield__ic { color: var(--ok-solid); }
+
+.pfield.is-invalid {
+  border-color: var(--err-solid);
+  animation: fieldShake 0.4s var(--ease-out);
+}
+.pfield.is-invalid::after { background: var(--err-solid); left: 6%; right: 6%; opacity: 1; }
+.pfield.is-invalid .pfield__ic { color: var(--err-fg); }
+
+@keyframes fieldShake {
+  0%, 100% { transform: translateX(0); }
+  20%      { transform: translateX(-5px); }
+  40%      { transform: translateX(5px); }
+  60%      { transform: translateX(-3px); }
+  80%      { transform: translateX(3px); }
+}
+
+.pfield__hint {
+  margin-top: 7px;
+  font-size: 11.5px;
+  line-height: 1.5;
+  font-weight: 600;
+  color: var(--err-fg);
+  animation: hintIn 0.26s var(--ease-out);
+}
+.pfield__hint[hidden] { display: none; }
+@keyframes hintIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ===== Baris hasil deteksi operator ================================ */
+
+.opbar {
+  display: flex;
+  align-items: center;
+  min-height: 0;
+  margin-top: 0;
+  transition: min-height 0.2s ease, margin-top 0.2s ease;
+}
+.opbar.is-filled { min-height: 32px; margin-top: 10px; }
+
+/* Badge operator — warna brand lewat --op yang di-set inline dari JS */
+.opbadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 12px 5px 5px;
+  border-radius: 999px;
+  background: var(--op-bg); /* warna brand + alpha hex, di-set inline dari JS */
+  animation: opIn 0.34s var(--ease-out);
+}
+.opbadge__mark {
+  display: grid;
+  place-items: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 5px;
+  border-radius: 7px;
+  background: var(--op);
+  color: var(--op-ink, #fff);
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1;
+}
+.opbadge__name {
+  font-size: 12.5px;
+  font-weight: 800;
+  color: var(--op);
+}
+@keyframes opIn {
+  from { opacity: 0; transform: translateY(-4px) scale(0.94); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* Pesan operator tidak dikenali */
+.opwarn {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--err-fg);
+  animation: opIn 0.28s var(--ease-out);
+}
+.opwarn svg { flex-shrink: 0; width: 15px; height: 15px; }
+
+/* ===== Peringatan manual nomor meter (halaman Listrik) ============
+   Muncul begitu nomor >= 8 digit. Bukan error — jadi amber lembut,
+   bukan merah. */
+
+.warn {
+  display: flex;
+  align-items: flex-start;
+  gap: 11px;
+  padding: 13px 14px;
+  border-radius: var(--radius);
+  border-left: 4px solid var(--gold-500);
+  background: var(--cream-bg);
+  color: var(--cream-fg);
+  box-shadow: var(--shadow-sm);
+  animation: warnIn 0.36s var(--ease-out);
+}
+@keyframes warnIn {
+  from { opacity: 0; transform: translateY(-12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.warn__ic {
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: 27px;
+  height: 27px;
+  border-radius: 50%;
+  color: var(--warn-fg);
+  background: rgba(255, 201, 60, 0.3);
+  /* denyut pelan — menarik perhatian tanpa mengganggu */
+  animation: warnPulse 2.6s ease-in-out infinite;
+}
+.warn__ic svg { width: 15px; height: 15px; }
+@keyframes warnPulse {
+  0%, 100% { transform: scale(1);    box-shadow: 0 0 0 0 rgba(255, 201, 60, 0.55); }
+  50%      { transform: scale(1.08); box-shadow: 0 0 0 7px rgba(255, 201, 60, 0); }
+}
+
+/* Chip sub-brand pascabayar di sebelah badge operator (informatif) */
+.opsub {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 8px;
+  padding: 5px 11px;
+  border-radius: 999px;
+  background: var(--tint);
+  color: var(--fg-strong);
+  font-size: 11.5px;
+  font-weight: 800;
+  animation: opIn 0.34s var(--ease-out);
+}
+
+.warn__body { flex: 1; min-width: 0; }
+.warn__title {
+  font-size: 12.5px;
+  font-weight: 800;
+  line-height: 1.3;
+}
+.warn__text {
+  margin-top: 4px;
+  font-size: 12px;
+  line-height: 1.58;
+}
+
+/* ===== Tombol "Cek Nomor Meter" + error (halaman Listrik) ==========
+   NONAKTIF di alur saat ini (markup-nya dikomen di listrik.html).
+   Gaya dipertahankan supaya tinggal dihidupkan lagi kalau inquiry
+   PLN asli dipakai. */
+
+.act-btn,
+.cek-btn {
+  position: relative;
+  width: 100%;
+  margin-top: 12px;
+  padding: 13px;
+  border-radius: 14px;
+  background: var(--gold-500);
+  color: var(--on-brand);
+  font-size: 13.5px;
+  font-weight: 800;
+  box-shadow: 0 6px 16px rgba(255, 201, 60, 0.3);
+  transition: transform 0.12s var(--ease-out), filter 0.12s ease;
+  animation: cekIn 0.3s var(--ease-out);
+}
+.act-btn:active,
+.cek-btn:active { transform: scale(0.97); filter: brightness(0.97); }
+.act-btn[disabled],
+.cek-btn[disabled] { opacity: 0.75; pointer-events: none; }
+.act-btn.is-loading .act-btn__label,
+.cek-btn.is-loading .cek-btn__label { opacity: 0; }
+.act-btn.is-loading .spinner,
+.cek-btn.is-loading .spinner { opacity: 1; }
+@keyframes cekIn {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: none; }
+}
+
+.cek-err {
+  margin-top: 8px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--err-fg);
+}
+
+/* ===== Kartu data pelanggan (hasil cek) ===========================
+   NONAKTIF di alur saat ini — lihat catatan di blok .cek-btn. */
+
+.cust {
+  padding: 14px;
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+  border-left: 3px solid var(--gold-500);
+  animation: custIn 0.4s var(--ease-out);
+}
+@keyframes custIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: none; }
+}
+
+.cust__head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-bottom: 10px;
+  margin-bottom: 4px;
+  border-bottom: 1px solid var(--border);
+}
+.cust__ic {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 9px;
+  background: var(--tint);
+  color: var(--fg-strong);
+}
+.cust__ic svg { width: 16px; height: 16px; }
+.cust__title {
+  flex: 1;
+  font-size: 12.5px;
+  font-weight: 800;
+  color: var(--fg-strong);
+}
+.cust__ok {
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: var(--ok-bg);
+  color: var(--ok-fg);
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.cust__row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 7px 0;
+  font-size: 12.5px;
+}
+.cust__row dt { color: var(--text-muted); }
+.cust__row dd {
+  font-weight: 700;
+  text-align: right;
+  color: var(--fg-strong);
+}
+
+/* ===== Grid brand/provider (TIPE B) =============================== */
+
+.brand-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px;
+  border-radius: 14px;
+  text-align: left;
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  box-shadow: var(--shadow-sm);
+  animation: prodIn 0.36s var(--ease-out) backwards;
+  transition: transform 0.12s var(--ease-out), border-color 0.16s ease;
+}
+.brand:active { transform: scale(0.96); border-color: var(--gold-500); }
+.brand__mark {
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 11px;
+  background: var(--bd-bg);
+  color: var(--bd);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: -0.3px;
+}
+.brand__body { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.brand__name {
+  font-size: 12.5px;
+  font-weight: 800;
+  color: var(--fg-strong);
+  line-height: 1.25;
+}
+.brand__sub { font-size: 10.5px; font-weight: 600; color: var(--text-muted); }
+
+/* Bar "provider terpilih" + tombol ganti */
+.picked {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 13px;
+  border-radius: 14px;
+  background: var(--surface);
+  border-left: 3px solid var(--gold-500);
+  box-shadow: var(--shadow-sm);
+  animation: warnIn 0.3s var(--ease-out);
+}
+.picked__label { font-size: 11px; font-weight: 600; color: var(--text-muted); }
+.picked__name {
+  flex: 1;
+  min-width: 0;
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--fg-strong);
+}
+.picked__change {
+  flex-shrink: 0;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: var(--tint);
+  color: var(--fg-strong);
+  font-size: 11.5px;
+  font-weight: 800;
+  transition: transform 0.12s var(--ease-out), background 0.12s ease;
+}
+.picked__change:active { transform: scale(0.94); background: var(--tint-strong); }
+
+/* ===== Input nominal manual (TIPE C & D) ========================== */
+
+.nominal-field {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: var(--surface-2);
+  border: 1.5px solid transparent;
+  transition: border-color 0.2s ease;
+}
+.nominal-field:focus-within { border-color: var(--gold-500); }
+.nominal-field.is-error { border-color: var(--err-fg); }
+.nominal-field__rp {
+  flex-shrink: 0;
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--text-muted);
+}
+.nominal-field__input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: none;
+  outline: none;
+  font-family: inherit;
+  font-size: 19px;
+  font-weight: 800;
+  color: var(--fg-strong);
+}
+.nominal-field__input::placeholder {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+.nominal-err {
+  margin-top: 7px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--err-fg);
+}
+.nominal-hint {
+  margin-top: 7px;
+  font-size: 11px;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+/* ===== Pemicu popup pemilih kategori/biller (TIPE D pascabayar) ====
+   DULU di sini kartu vertikal `.choice-row` memanjang ke bawah kalau
+   billernya banyak (PDAM/PBB per kota/kabupaten bisa puluhan). Diganti
+   SATU baris ringkas yang membuka bottom sheet (`UI.createPicker()`,
+   lihat produk-ui.js) — daftar pilihannya sendiri sekarang dirender di
+   sheet itu (`.pick-*` di bawah), bukan di badan halaman. */
+
+.choice-trigger { padding: 0; overflow: hidden; }
+.choice-trigger__btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 15px 16px;
+  text-align: left;
+  transition: background 0.14s ease;
+}
+.choice-trigger__btn:active { background: var(--tint); }
+.choice-trigger__text { flex: 1; min-width: 0; }
+.choice-trigger__label {
+  display: block;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-muted);
+  overflow-wrap: anywhere;
+}
+/* Terpilih -> teks jadi tegas (label lama "Pilih X" diganti "X: Nilai"
+   oleh manual-page.js), dan pill "Ubah" muncul sebagai ajakan eksplisit
+   untuk mengganti pilihan — bukan cuma mengandalkan tap baris itu lagi. */
+.choice-trigger.is-picked .choice-trigger__label { color: var(--fg-strong); font-weight: 800; }
+.choice-trigger__ubah {
+  flex-shrink: 0;
+  padding: 4px 11px;
+  border-radius: 999px;
+  background: var(--tint);
+  color: var(--fg-strong);
+  font-size: 10.5px;
+  font-weight: 800;
+}
+.choice-trigger__chev {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  color: var(--text-muted);
+}
+
+/* ---- Sheet pemilih (createPicker, produk-ui.js) -------------------
+   Salinan pola visual `.picker-overlay`/`.picker-sheet`/`.choice-opt`
+   di akun.css (bottom sheet slide-up + fade, dipakai a.l. sheet Bahasa)
+   dengan nama sendiri — produk.css tidak memuat akun.css. */
+
+.pick-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 130;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  background: rgba(11, 36, 71, 0.5);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.24s ease, visibility 0s linear 0.24s;
+}
+.pick-overlay.is-open {
+  opacity: 1;
+  visibility: visible;
+  transition: opacity 0.24s ease;
+}
+.pick-sheet {
+  width: 100%;
+  max-width: var(--content-max);
+  max-height: 78vh;
+  overflow-y: auto;
+  padding: 8px 16px calc(16px + env(safe-area-inset-bottom, 0px));
+  background: var(--surface);
+  border-radius: 22px 22px 0 0;
+  transform: translateY(100%);
+  transition: transform 0.3s var(--ease-out);
+}
+.pick-overlay.is-open .pick-sheet { transform: translateY(0); }
+.pick-sheet__handle {
+  display: block;
+  width: 40px;
+  height: 4px;
+  margin: 6px auto 8px;
+  border-radius: 999px;
+  background: var(--handle);
+}
+.pick-sheet__title {
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--fg-strong);
+  padding: 4px 6px 10px;
+}
+.pick-opt {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 14px 6px;
+  border-radius: 10px;
+  text-align: left;
+  animation: prodIn 0.3s var(--ease-out) backwards;
+  transition: background 0.15s ease;
+}
+.pick-opt + .pick-opt { border-top: 1px solid var(--border); }
+.pick-opt:active { background: var(--tint); }
+.pick-opt__body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.pick-opt__name { font-size: 13.5px; font-weight: 700; color: var(--text); overflow-wrap: anywhere; }
+.pick-opt.is-active .pick-opt__name { color: var(--fg-strong); font-weight: 800; }
+.pick-opt__sub { font-size: 11px; color: var(--text-muted); line-height: 1.4; }
+.pick-opt__radio {
+  position: relative;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 2px solid var(--border);
+  color: var(--on-brand);
+  transition: border-color 0.2s ease, background 0.2s ease;
+}
+.pick-opt__radio svg { opacity: 0; transform: scale(0.3); transition: opacity 0.2s ease, transform 0.2s var(--ease-out); }
+.pick-opt.is-active .pick-opt__radio { border-color: var(--gold-500); background: var(--gold-500); }
+.pick-opt.is-active .pick-opt__radio svg { opacity: 1; transform: scale(1); }
+
+/* ===== Langkah identitas akun (E-Wallet, Top Up Game) ==============
+   Muncul ANTARA "pilih brand" dan "pilih nominal". Tiap field = label
+   + .pfield (dipakai ulang dari input nomor HP). */
+
+.acct-sec { animation: warnIn 0.3s var(--ease-out); }
+.acct-fields { display: flex; flex-direction: column; gap: 14px; }
+.acct-field { display: flex; flex-direction: column; }
+.acct-hint {
+  margin-top: 6px;
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--text-muted);
+}
+.acct-sec[hidden] { display: none; }
+
+/* ===== Daftar produk =============================================== */
+
+.psec {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.psec__title {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--fg-strong);
+}
+
+.prod-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  align-items: stretch; /* nama paket 2 baris tidak bikin kartu beda tinggi */
+}
+
+.prod {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  padding: 13px 14px;
+  border-radius: 14px;
+  text-align: left;
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  box-shadow: var(--shadow-sm);
+  animation: prodIn 0.36s var(--ease-out) backwards;
+  transition: transform 0.12s var(--ease-out), border-color 0.16s ease;
+}
+.prod:active {
+  transform: scale(0.96);
+  border-color: var(--gold-500);
+}
+.prod__nom {
+  font-size: 13.5px;
+  font-weight: 800;
+  color: var(--fg-strong);
+}
+.prod__sub {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+.prod__price {
+  margin-top: 2px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--fg-strong);
+}
+/* ===== Produk sedang gangguan ==============================
+   Diredupkan tapi TETAP TERBACA (opacity 0.55, bukan 0.3) — member
+   masih perlu tahu produk & harganya, cuma sedang tidak bisa dibeli.
+   Kartunya sengaja TIDAK diberi warna merah/error: ini kondisi
+   sementara dari penyedia, bukan kesalahan siapa pun. */
+
+.prod--gangguan {
+  opacity: 0.55;
+  border-style: dashed;
+  cursor: not-allowed;
+  animation: prodIn 0.36s var(--ease-out) backwards,
+             gangguanPulse 3.4s ease-in-out 0.4s infinite;
+}
+/* Tidak "amblas" saat ditekan seperti kartu normal — supaya tidak
+   terasa seperti pembelian yang berhasil. */
+.prod--gangguan:active { transform: none; border-color: var(--border); }
+
+/* Badge MERAH memakai token status gagal yang sudah ada di style.css
+   (--err-bg / --err-fg / --err-solid) — jangan hardcode merah baru. */
+.prod__badge {
+  position: relative;
+  align-self: flex-start;
+  margin-top: 6px;
+  padding: 2px 9px;
+  border-radius: 999px;
+  background: var(--err-bg);
+  border: 1px solid var(--err-solid);
+  color: var(--err-fg);
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  animation: badgeGlow 2.2s ease-in-out infinite;
+}
+/* Titik kecil berkedip di kiri badge — penanda "live" yang mungil. */
+.prod__badge::before {
+  content: "";
+  display: inline-block;
+  width: 5px;
+  height: 5px;
+  margin-right: 5px;
+  border-radius: 50%;
+  background: var(--err-solid);
+  vertical-align: middle;
+  animation: badgeDot 1.4s ease-in-out infinite;
+}
+
+/* Denyut kartu tetap halus — yang "hidup" cukup badge-nya saja, supaya
+   kartu tidak terasa berkedip-kedip mengganggu saat digulir. */
+@keyframes gangguanPulse {
+  0%, 100% { opacity: 0.55; }
+  50%      { opacity: 0.72; }
+}
+@keyframes badgeGlow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(217, 45, 32, 0.42); }
+  55%      { box-shadow: 0 0 0 6px rgba(217, 45, 32, 0); }
+}
+@keyframes badgeDot {
+  0%, 100% { opacity: 1;   transform: scale(1); }
+  50%      { opacity: 0.35; transform: scale(0.72); }
+}
+
+/* ===== Ajakan baca info (halaman Voucher) ===================
+   Chip tipis, bukan kartu penuh — mengajak tanpa menyaingi konten. */
+
+.infocall {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 11px 13px;
+  border-radius: 14px;
+  border: 1.5px solid var(--gold-500);
+  background: var(--cream-bg);
+  color: var(--cream-fg);
+  font-family: inherit;
+  text-align: left;
+  transition: transform 0.12s var(--ease-out), background 0.16s ease;
+}
+.infocall:active { transform: scale(0.985); background: var(--tint); }
+.infocall__ic {
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: 25px;
+  height: 25px;
+  border-radius: 50%;
+  background: var(--gold-500);
+  color: var(--on-brand);
+  animation: infoBounce 2.4s ease-in-out infinite;
+}
+.infocall__ic svg { width: 14px; height: 14px; }
+.infocall__text { flex: 1; font-size: 12.5px; font-weight: 800; }
+.infocall__go { flex-shrink: 0; display: grid; place-items: center; opacity: 0.65; }
+.infocall__go svg { width: 15px; height: 15px; }
+
+/* Pantulan kecil + halo — mengundang tanpa terasa seperti peringatan. */
+@keyframes infoBounce {
+  0%, 100%   { transform: translateY(0);     box-shadow: 0 0 0 0 rgba(255, 201, 60, 0.6); }
+  15%        { transform: translateY(-3px); }
+  30%        { transform: translateY(0);     box-shadow: 0 0 0 8px rgba(255, 201, 60, 0); }
+}
+
+/* ===== Modal Informasi Voucher ============================= */
+
+.imodal { text-align: left; }
+.imodal__sub {
+  margin-top: 4px;
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--fg-strong);
+}
+.imodal__steps {
+  margin: 8px 0 0;
+  padding-left: 18px;
+  font-size: 12.5px;
+  line-height: 1.75;
+  color: var(--fg-strong);
+}
+.imodal__steps li { padding-left: 2px; }
+.imodal__steps li::marker { font-weight: 800; color: var(--gold-500); }
+.imodal__note {
+  margin-top: 12px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border-left: 3px solid var(--gold-500);
+  background: var(--cream-bg);
+  color: var(--cream-fg);
+  font-size: 11.5px;
+  line-height: 1.55;
+}
+.imodal .cmodal__actions { grid-template-columns: 1fr; }
+
+/* ===== Tab subkategori ======================================
+   Baris tab horizontal yang bisa digeser. Dipakai halaman Tipe A
+   (menyaring nominal) maupun Tipe B (menyaring brand). */
+
+.ptabs {
+  display: flex;
+  gap: 8px;
+  margin: 10px 0 2px;
+  padding-bottom: 4px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+.ptabs::-webkit-scrollbar { display: none; }
+
+.ptab {
+  flex: 0 0 auto;
+  padding: 7px 14px;
+  border-radius: 999px;
+  border: 1.5px solid var(--border);
+  background: var(--surface);
+  color: var(--text-muted);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+  transition: background 0.18s ease, color 0.18s ease,
+              border-color 0.18s ease, transform 0.12s var(--ease-out);
+}
+.ptab:active { transform: scale(0.95); }
+.ptab.is-active {
+  background: var(--gold-500);
+  border-color: var(--gold-500);
+  color: var(--on-brand);
+}
+.ptabs[hidden] { display: none; }
+
+/* ===== Tombol ambil nomor (input-helper.js) =================
+   Dibuat runtime, dipasang tepat di bawah kartu input. */
+
+/* Menyatu DI DALAM .pfield, sederet dengan tombol clear "X" — bukan
+   lagi baris terpisah di bawah kartu input. */
+.ihelp {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  margin-left: 2px;
+  padding-left: 6px;
+  border-left: 1px solid var(--border);
+}
+.ihelp__btn {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 9px;
+  background: none;
+  color: var(--text-muted);
+  transition: transform 0.12s var(--ease-out), color 0.16s ease,
+              background 0.16s ease;
+}
+.ihelp__btn svg { width: 16px; height: 16px; }
+.ihelp__btn:active {
+  transform: scale(0.88);
+  color: var(--fg-strong);
+  background: var(--tint);
+}
+/* Sedang mendengarkan: merah lembut + denyut, supaya jelas mikrofon aktif */
+.ihelp__btn.is-listening {
+  border-color: var(--err-solid);
+  background: var(--err-bg);
+  color: var(--err-fg);
+  animation: ihelpListen 1.3s ease-in-out infinite;
+}
+@keyframes ihelpListen {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(217, 45, 32, 0.4); }
+  60%      { box-shadow: 0 0 0 8px rgba(217, 45, 32, 0); }
+}
+
+/* Kilau singkat saat field terisi otomatis — konfirmasi visual bahwa
+   nomor benar-benar masuk, tanpa perlu toast tambahan. */
+.pfield__input.is-filled-flash {
+  animation: ihelpFill 0.6s var(--ease-out);
+}
+@keyframes ihelpFill {
+  0%   { background: rgba(255, 201, 60, 0.45); }
+  100% { background: transparent; }
+}
+
+.ihelp-toast {
+  position: fixed;
+  left: 50%;
+  bottom: 26px;
+  z-index: 120;
+  max-width: 82%;
+  padding: 10px 16px;
+  border-radius: 999px;
+  background: var(--navy-900);
+  color: var(--white);
+  font-size: 12px;
+  font-weight: 600;
+  text-align: center;
+  opacity: 0;
+  transform: translate(-50%, 14px);
+  pointer-events: none;
+  transition: opacity 0.24s ease, transform 0.24s var(--ease-out);
+}
+.ihelp-toast.is-show { opacity: 1; transform: translate(-50%, 0); }
+
+/* ===== Pemindai QR / barcode =============================== */
+
+.ihelp-scan {
+  position: fixed;
+  inset: 0;
+  z-index: 130;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 24px;
+  background: rgba(11, 36, 71, 0.94);
+  animation: scanIn 0.24s var(--ease-out);
+}
+@keyframes scanIn { from { opacity: 0; } to { opacity: 1; } }
+.ihelp-scan__box {
+  position: relative;
+  width: min(78vw, 300px);
+  aspect-ratio: 1;
+  border-radius: 18px;
+  overflow: hidden;
+  background: #000;
+}
+.ihelp-scan__box video { width: 100%; height: 100%; object-fit: cover; }
+.ihelp-scan__frame {
+  position: absolute;
+  inset: 12%;
+  border: 3px solid var(--gold-500);
+  border-radius: 14px;
+  box-shadow: 0 0 0 100vmax rgba(0, 0, 0, 0.28);
+  animation: scanFrame 1.8s ease-in-out infinite;
+}
+@keyframes scanFrame {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.45; }
+}
+.ihelp-scan__hint {
+  max-width: 300px;
+  color: var(--white);
+  font-size: 12.5px;
+  line-height: 1.5;
+  text-align: center;
+}
+.ihelp-scan__close {
+  padding: 11px 26px;
+  border-radius: 999px;
+  background: var(--gold-500);
+  color: var(--on-brand);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+/* ===== Modal "produk sedang gangguan" ====================== */
+
+.gmodal { text-align: center; }
+.gmodal__ic {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 46px;
+  height: 46px;
+  margin-bottom: 10px;
+  border-radius: 50%;
+  background: var(--cream-bg);
+  color: var(--navy-700, #12306e);
+}
+.gmodal__ic svg { width: 24px; height: 24px; }
+.gmodal__text { line-height: 1.6; }
+.gmodal .cmodal__actions { grid-template-columns: 1fr; }
+
+/* ===== Catatan produk di modal konfirmasi ==================
+   Dibuat runtime oleh produk-ui.js (createModal), hanya kalau produk
+   punya `deskripsi`. Tidak ada markup-nya di HTML halaman. */
+
+.cnote {
+  margin-top: 12px;
+  padding: 11px 13px;
+  border-radius: 12px;
+  border-left: 3px solid var(--gold-500);
+  background: var(--cream-bg);
+  text-align: left;
+}
+.cnote__title {
+  margin-bottom: 3px;
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--fg-strong);
+}
+.cnote__text {
+  font-size: 11.5px;
+  line-height: 1.55;
+  color: var(--fg-strong);
+  overflow-wrap: anywhere;
+}
+
+@keyframes prodIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* ===== Placeholder (nomor < 4 digit) =============================== */
+
+.pempty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 34px 20px;
+  text-align: center;
+}
+.pempty__ic {
+  display: grid;
+  place-items: center;
+  width: 58px;
+  height: 58px;
+  border-radius: 18px;
+  color: var(--text-muted);
+  background: var(--tint);
+}
+.pempty__ic svg { width: 27px; height: 27px; }
+.pempty__text {
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--text-muted);
+}
+
+/* ===== Modal konfirmasi ===========================================
+   Kelas .cmodal* mengikuti kontrak visual yang sama seperti di
+   margin.css & akun.css (kandidat dipindah ke style.css nanti). */
+
+.cmodal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 85;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 26px;
+  background: rgba(11, 36, 71, 0.55);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.24s ease, visibility 0s linear 0.24s;
+}
+.cmodal-overlay.is-open {
+  opacity: 1;
+  visibility: visible;
+  transition: opacity 0.24s ease;
+}
+.cmodal {
+  width: 100%;
+  max-width: 340px;
+  padding: 22px;
+  border-radius: 20px;
+  background: var(--surface);
+  transform: scale(0.9) translateY(12px);
+  opacity: 0;
+  transition: transform 0.26s var(--ease-out), opacity 0.26s ease;
+}
+.cmodal-overlay.is-open .cmodal { transform: none; opacity: 1; }
+.cmodal__title { font-size: 16px; font-weight: 800; color: var(--fg-strong); }
+.cmodal__text {
+  margin-top: 8px;
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: var(--text);
+}
+
+.cdetail {
+  margin-top: 16px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: var(--surface-2);
+}
+.cdetail__row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 6px 0;
+  font-size: 12.5px;
+}
+.cdetail__row dt { color: var(--text-muted); }
+.cdetail__row dd {
+  font-weight: 700;
+  text-align: right;
+  color: var(--fg-strong);
+}
+.cdetail__row--total {
+  margin-top: 4px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+}
+.cdetail__row--total dt { font-weight: 700; color: var(--fg-strong); }
+.cdetail__row--total dd { font-size: 15px; font-weight: 800; }
+
+.cmodal__actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 18px;
+}
+.cmodal__btn {
+  flex: 1;
+  padding: 12px;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 800;
+  transition: transform 0.12s var(--ease-out);
+}
+.cmodal__btn:active { transform: scale(0.96); }
+.cmodal__btn--outline {
+  background: none;
+  color: var(--fg-strong);
+  border: 1.5px solid var(--fg-strong);
+}
+.cmodal__btn--gold {
+  position: relative;
+  background: var(--gold-500);
+  color: var(--fg-strong);
+}
+.cmodal__btn[disabled] { opacity: 0.7; pointer-events: none; }
+
+/* Loading DikaPay: 3 titik berdenyut naik-turun (gaya DANA), bukan lagi
+   cincin berputar — `.spinner` jadi titik tengah, `::before`/`::after`
+   titik kiri-kanan. Markup tidak berubah (masih satu `<span>` kosong). */
+.spinner {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 6px;
+  height: 6px;
+  margin: -3px 0 0 -3px;
+  border-radius: 50%;
+  background: var(--fg-strong);
+  opacity: 0;
+  animation: dikaDot 0.9s ease-in-out infinite;
+}
+.spinner::before, .spinner::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--fg-strong);
+  animation: dikaDot 0.9s ease-in-out infinite;
+}
+.spinner::before { left: -12px; animation-delay: -0.3s; }
+.spinner::after  { left: 12px;  animation-delay: 0.3s; }
+.cmodal__btn--gold.is-loading .cmodal__btn-label { opacity: 0; }
+.cmodal__btn--gold.is-loading .spinner { opacity: 1; }
+@keyframes dikaDot {
+  0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; }
+  40%           { transform: scale(1);   opacity: 1; }
+}
+
+/* Teks di atas gold — selalu navy */
+.cmodal__btn--gold { color: var(--on-brand); }
+
+/* ===== Warna brand ================================================
+   --op/--op-ink (badge operator) & --bd/--bd-ink (kartu brand Tipe B)
+   ditulis INLINE oleh DikaProdukUI.brandVars(), sudah dalam varian yang
+   kontrasnya >= 4.5:1 di latar terang — jadi tidak ada lagi lapisan
+   pemetaan per tema di sini.
+
+   Kenapa perlu: warna brand dipakai sekaligus sebagai teks dan latar
+   chip-nya, jadi warna yang sangat terang (#44D62C Razer, #F2A900 PUBG)
+   akan hilang di latar terang — kontras sempat 1.04:1. brandVars() yang
+   menggelapkannya, bukan file data. */
+
+/* ===== Anti-luap teks produk =======================================
+   Kartu produk & brand duduk di grid `repeat(2, 1fr)`. Track 1fr =
+   minmax(auto, 1fr), jadi minimum-nya = min-content: SATU KATA yang
+   lebih lebar dari kolom akan melebarkan track dan bikin halaman
+   menggeser ke samping.
+
+   Data dummy sekarang aman (kata terpanjang masih muat), TAPI nama
+   produk asli Digiflazz sering panjang tanpa spasi
+   (mis. "TELKOMSEL_DATA_OMG_30HARI_25GB"). min-width:0 melepas minimum
+   min-content itu, overflow-wrap:anywhere yang benar-benar memecah
+   katanya (`break-word` TIDAK ikut mengecilkan min-content, jadi
+   tidak cukup di sini). */
+
+.prod { min-width: 0; }
+
+.prod__nom, .prod__sub, .prod__price,
+.brand__name, .brand__sub,
+.choice-trigger__label, .pick-opt__name, .pick-opt__sub,
+.picked__name, .opbadge__name,
+.cdetail__row dt, .cdetail__row dd {
+  overflow-wrap: anywhere;
+}
+
+/* dd baris modal ikut menyusut supaya nilai panjang membungkus,
+   bukan mendorong label keluar kartu. */
+.cdetail__row dd { min-width: 0; text-align: right; }
+
+
+/* ===== Kartu hasil Cek Tagihan (pascabayar) =======================
+   Dirender manual-page.js setelah tombol "Cek Tagihan" ditekan. HANYA
+   halaman pascabayar — halaman prabayar tidak memuat manual-page.js
+   sama sekali, jadi tidak ada yang berubah di sana. */
+
+.tagihan {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  margin: 12px 0 14px;
+  padding: 14px 15px;
+  border-radius: 14px;
+  border-left: 3px solid var(--gold-500);
+  background: var(--surface-2);
+  animation: tagihanIn 0.34s var(--ease-out);
+}
+.tagihan__judul {
+  margin-bottom: 3px;
+  font-size: 12.5px;
+  font-weight: 800;
+  color: var(--fg-strong);
+}
+.tagihan__baris {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+.tagihan__baris b {
+  color: var(--fg-strong);
+  font-weight: 700;
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+.tagihan__baris--total {
+  margin-top: 5px;
+  padding-top: 8px;
+  border-top: 1px dashed var(--border);
+  font-size: 13px;
+}
+.tagihan__baris--total b { font-size: 15px; font-weight: 800; }
+
+@keyframes tagihanIn {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* ===== Status pemuatan katalog (produk-ui.js createStatus) =========
+   Dipakai halaman produk yang datanya datang dari backend (api.js):
+   skeleton saat memuat, pesan ramah + "Coba Lagi" saat gagal, dan
+   pesan wajar saat daftarnya memang kosong. Kartunya dibuat runtime,
+   jadi tidak ada halaman yang perlu menambah markup. */
+
+.pstatus {
+  display: block;
+  margin-bottom: 14px;
+  padding: 16px;
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+  animation: warnIn 0.32s var(--ease-out);
+}
+.pstatus--gagal, .pstatus--kosong { text-align: center; padding: 22px 18px; }
+
+.pstatus__lead {
+  margin-bottom: 12px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+.pstatus__ic {
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  margin: 0 auto 10px;
+  border-radius: 50%;
+  background: var(--tint);
+  color: var(--fg-strong);
+}
+.pstatus--gagal .pstatus__ic { background: var(--err-bg); color: var(--err-fg); }
+.pstatus__ic svg { width: 24px; height: 24px; }
+
+.pstatus__title { font-size: 14px; font-weight: 800; color: var(--fg-strong); }
+.pstatus__text {
+  margin-top: 5px;
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--text-muted);
+}
+.pstatus__retry {
+  margin-top: 14px;
+  padding: 11px 26px;
+  border-radius: 12px;
+  background: var(--gold-500);
+  color: var(--on-brand);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 800;
+  transition: transform 0.12s var(--ease-out);
+}
+.pstatus__retry:active { transform: scale(0.96); }
+
+/* Skeleton meniru bentuk .prod-grid (2 kolom) supaya pergantian
+   skeleton -> kartu asli tidak menggeser layout. */
+.pskel-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+.pskel {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 9px;
+  min-height: 76px;
+  padding: 14px 12px;
+  border-radius: var(--radius-md);
+  background: var(--surface-2);
+  animation: pskelPulse 1.3s ease-in-out infinite;
+}
+.pskel__line { display: block; height: 10px; border-radius: 6px; background: var(--border); }
+.pskel__line--nom { width: 72%; }
+.pskel__line--price { width: 46%; height: 13px; }
+@keyframes pskelPulse {
+  0%, 100% { opacity: 0.55; }
+  50%      { opacity: 1; }
+}
+
+/* ===== Atribut [hidden] ===========================================
+   Aturan UA `[hidden] { display: none }` KALAH dari class rule author
+   yang menyetel display (.psec/.pempty/.warn/.pfield__clear pakai flex
+   atau grid). Tanpa aturan ini, elemen ber-atribut hidden tetap tampil. */
+
+.pfield__clear[hidden],
+.psec[hidden],
+.pempty[hidden],
+.warn[hidden],
+.cust[hidden],
+.pstatus[hidden],
+.brand-grid[hidden],
+.picked[hidden],
+.nominal-field[hidden],
+.nominal-hint[hidden],
+.tagihan[hidden],
+.nominal-err[hidden] { display: none; }
+
+/* ===== Reduced motion ============================================= */
+
+@media (prefers-reduced-motion: reduce) {
+  .app { animation: none; }
+  .prod, .opbadge, .opwarn, .cust, .cek-btn, .act-btn,
+  .warn, .warn__ic, .brand, .picked, .pick-opt, .acct-sec,
+  .tagihan, .pstatus { animation: none; opacity: 1; transform: none; }
+
+  /* Skeleton berhenti berdenyut, tapi kotaknya TETAP tampil — bentuknya
+     yang memberi tahu "sedang dimuat", bukan geraknya. Teks
+     "Memuat daftar produk terbaru…" di atasnya juga tetap ada. */
+  .pskel { animation: none; opacity: 0.75; }
+
+  /* Redup produk gangguan BUKAN animasi — itu status, satu-satunya
+     penanda visual selain badge. Aturan .prod di atas menyetel
+     opacity:1 dengan spesifisitas yang sama tapi urutan lebih akhir,
+     jadi tanpa baris ini kartu gangguan tampil normal di reduced-motion
+     dan kehilangan pembeda utamanya. Denyutnya tetap dimatikan. */
+  .prod--gangguan { opacity: 0.55; }
+  /* Badge merahnya tetap terbaca penuh walau glow & titiknya diam —
+     warnanya yang membawa arti, bukan geraknya. */
+  .prod__badge, .prod__badge::before { animation: none; opacity: 1; }
+  /* Animasi pembayaran & field dimatikan, tapi WARNA keadaannya tetap —
+     garis hijau/merah pada field itu informasi, bukan dekorasi. */
+  .payflow__ring, .payflow__ring--2, .payflow__core, .payflow__orb::before,
+  .payflow__bar span, .payflow__mark, .payflow__mark::before,
+  .payflow__mark::after, .payflow__mark--pending::after,
+  .saldo__ic, .pfield.is-invalid, .pfield__hint { animation: none; }
+  .payflow__card { transform: none; }
+  .infocall__ic { animation: none; }
+  .ihelp-scan__frame, .ihelp__btn.is-listening { animation: none; }
+  /* Sheet pemilih biller: hilangkan slide-up, opacity fade overlay-nya
+     tetap (dianggap gerakan wajar, sama seperti overlay lain di sini). */
+  .pick-sheet { transform: none; }
+}
+
+/* Teks di atas gold — selalu navy */
+.act-btn { color: var(--on-brand); }
+
+/* ===== Alur pembayaran (payment-flow.js) ====================
+   Overlay penuh, dibangun runtime — tidak ada markupnya di HTML
+   halaman mana pun, jadi 22 halaman produk tidak perlu diubah. */
+
+.payflow {
+  position: fixed;
+  inset: 0;
+  z-index: 140;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(11, 36, 71, 0.55);
+  backdrop-filter: blur(3px);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.26s ease;
+}
+.payflow.is-open { opacity: 1; pointer-events: auto; }
+
+.payflow__card {
+  width: 100%;
+  max-width: 340px;
+  padding: 26px 22px 20px;
+  border-radius: 22px;
+  background: var(--surface);
+  box-shadow: 0 18px 44px rgba(11, 36, 71, 0.28);
+  text-align: center;
+  transform: translateY(16px) scale(0.96);
+  transition: transform 0.32s var(--ease-out);
+}
+.payflow.is-open .payflow__card { transform: none; }
+
+.payflow__title {
+  margin-top: 14px;
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--fg-strong);
+}
+.payflow__text {
+  margin-top: 7px;
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--text-muted);
+}
+
+/* ---- Animasi pemrosesan: 3 titik gold berdenyut + halo napas ----
+   GANTI dari dua cincin berputar (`payspin`) — member (lewat rekaman layar)
+   melaporkan animasi loading "bundar berjalan" terasa nyangkut/janggal, dan
+   pola cincin-berputar dipakai berulang di banyak tempat di app ini.
+   Gantinya: 3 titik gold memantul bergantian di atas halo lingkaran yang
+   NAPAS (scale+opacity, diam di tempat, bukan berputar) — pola yang sama
+   dengan "gaya DANA" yang diminta, dipakai ULANG (nama animasi sendiri,
+   `payDot`/`payHalo`) sebagai variasi lebih besar dari `.spinner`/`dikaDot`
+   di atas untuk konteks pemrosesan penuh-layar ini. */
+.payflow__orb {
+  position: relative;
+  width: 84px;
+  height: 84px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.payflow__orb::before {
+  content: "";
+  position: absolute;
+  inset: 6px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 201, 60, 0.28), rgba(255, 201, 60, 0) 70%);
+  animation: payHalo 1.6s ease-in-out infinite;
+}
+.payflow__ring,
+.payflow__ring--2 {
+  position: relative;
+  width: 13px;
+  height: 13px;
+  margin: 0 5px;
+  border-radius: 50%;
+  background: linear-gradient(150deg, var(--gold-500), #ffd873);
+  animation: payDot 1.05s ease-in-out infinite;
+}
+.payflow__ring { animation-delay: -0.21s; }
+.payflow__ring--2 { animation-delay: -0.07s; }
+.payflow__core {
+  position: relative;
+  width: 13px;
+  height: 13px;
+  margin: 0 5px;
+  border-radius: 50%;
+  background: linear-gradient(150deg, var(--gold-500), #ffd873);
+  animation: payDot 1.05s ease-in-out infinite;
+  animation-delay: 0.07s;
+}
+@keyframes payHalo {
+  0%, 100% { transform: scale(0.85); opacity: 0.6; }
+  50%      { transform: scale(1.08); opacity: 1; }
+}
+@keyframes payDot {
+  0%, 80%, 100% { transform: translateY(0) scale(0.7); opacity: 0.5; }
+  40%           { transform: translateY(-10px) scale(1); opacity: 1; }
+}
+
+.payflow__step { min-height: 2.6em; }
+
+.payflow__bar {
+  margin-top: 4px;
+  height: 4px;
+  border-radius: 4px;
+  background: var(--surface-2);
+  overflow: hidden;
+}
+.payflow__bar span {
+  display: block;
+  width: 38%;
+  height: 100%;
+  border-radius: 4px;
+  background: linear-gradient(90deg, transparent, var(--gold-500), transparent);
+  animation: payslide 1.25s ease-in-out infinite;
+}
+@keyframes payslide {
+  0%   { transform: translateX(-100%); }
+  100% { transform: translateX(320%); }
+}
+
+/* ---- Tanda hasil ---- */
+
+.payflow__mark {
+  position: relative;
+  width: 74px;
+  height: 74px;
+  margin: 0 auto;
+  border-radius: 50%;
+}
+.payflow__mark::before,
+.payflow__mark::after {
+  content: "";
+  position: absolute;
+  background: currentColor;
+  border-radius: 2px;
+}
+/* centang */
+.payflow__mark--berhasil {
+  background: var(--ok-bg);
+  color: var(--ok-solid);
+  animation: markPop 0.5s var(--ease-out);
+}
+/* Satu sudut ber-border yang diputar 45° — dua goresnya dijamin
+   bertemu rapi di satu titik, tidak seperti dua batang terpisah. */
+.payflow__mark--berhasil::before {
+  width: 26px;
+  height: 13px;
+  left: 23px;
+  top: 25px;
+  background: none;
+  border-left: 4px solid currentColor;
+  border-bottom: 4px solid currentColor;
+  border-radius: 0 0 0 3px;
+  transform: rotate(-45deg);
+  animation: markDraw 0.34s var(--ease-out) 0.14s backwards;
+}
+.payflow__mark--berhasil::after { display: none; }
+/* silang lembut — amber, BUKAN merah menyala, supaya tidak menakutkan */
+.payflow__mark--gagal {
+  background: var(--cream-bg);
+  color: #b26a00;
+  animation: markPop 0.5s var(--ease-out);
+}
+.payflow__mark--gagal::before,
+.payflow__mark--gagal::after {
+  width: 4px; height: 30px;
+  left: 35px; top: 22px;
+}
+.payflow__mark--gagal::before { transform: rotate(45deg); }
+.payflow__mark--gagal::after  { transform: rotate(-45deg); }
+/* PENDING — spinner melingkar.
+   Versi lama memakai "jarum jam" yang diputar 360° penuh dengan
+   ease-in-out + infinite: tiap putaran melambat di ujung lalu menyentak
+   lagi di awal, jadi terlihat goyang dan patah-patah. Spinner yang benar
+   HARUS linear — kecepatan konstan, tanpa titik jeda.
+
+   Bentuknya: satu cincin tipis netral + satu busur warna aksen yang
+   berputar. Hanya `transform` yang dianimasikan (bukan width/height atau
+   posisi), jadi ringan dan tidak memicu layout di tiap frame. */
+.payflow__mark--pending {
+  background: var(--info-bg, #e6edfb);
+  color: var(--navy-700);
+  animation: markPop 0.5s var(--ease-out);
+}
+.payflow__mark--pending::before {
+  /* cincin dasar — diam, sebagai "rel" spinner.
+     `inset` sudah menyetel keempat sisi; JANGAN menambahkan left/top:auto
+     setelahnya — itu membatalkan dua sisi dan kotaknya mengerut jadi titik. */
+  inset: 18px;
+  background: none;
+  border: 4px solid currentColor;
+  border-radius: 50%;
+  opacity: 0.18;
+}
+.payflow__mark--pending::after {
+  /* Titik gold di tengah, berdenyut — GANTI dari busur berputar
+     (`pendingSpin`), pola yang sama dengan `payDot`/`dikaDot` di atas:
+     tanpa rotasi, cuma scale+opacity. */
+  inset: 30px;
+  background: var(--gold-500);
+  border-radius: 50%;
+  animation: dikaDot 0.9s ease-in-out infinite;
+}
+@keyframes markPop {
+  0%   { transform: scale(0.4); opacity: 0; }
+  60%  { transform: scale(1.08); opacity: 1; }
+  100% { transform: scale(1); }
+}
+@keyframes markDraw {
+  from { clip-path: inset(0 100% 0 0); opacity: 0; }
+  to   { clip-path: inset(0 0 0 0); opacity: 1; }
+}
+.payflow__ringkas {
+  margin-top: 16px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: var(--surface-2);
+  text-align: left;
+}
+.payflow__row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 4px 0;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+.payflow__row dd { font-weight: 700; color: var(--fg-strong); text-align: right; min-width: 0; }
+.payflow__row--total {
+  margin-top: 5px;
+  padding-top: 9px;
+  border-top: 1px dashed var(--border);
+  font-size: 13px;
+}
+.payflow__row--total dd { font-size: 15px; }
+
+.payflow__actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 18px;
+}
+.payflow__btn {
+  padding: 12px;
+  border-radius: 13px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 800;
+  transition: transform 0.12s var(--ease-out), filter 0.12s ease;
+}
+.payflow__btn:active { transform: scale(0.96); }
+.payflow__btn--gold { background: var(--gold-500); color: var(--on-brand); }
+.payflow__btn--outline {
+  background: none;
+  border: 1.5px solid var(--border);
+  color: var(--fg-strong);
+}
+
+/* ===== Popup saldo tidak cukup ============================== */
+
+.saldo { text-align: center; }
+.saldo__ic {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 52px;
+  height: 52px;
+  margin-bottom: 12px;
+  border-radius: 50%;
+  background: var(--cream-bg);
+  color: #b26a00;
+  animation: dompetGoyang 2.6s ease-in-out infinite;
+}
+.saldo__ic svg { width: 26px; height: 26px; }
+/* Goyangan SANGAT halus — mengingatkan, bukan memarahi */
+@keyframes dompetGoyang {
+  0%, 86%, 100% { transform: rotate(0); }
+  89%           { transform: rotate(-7deg); }
+  93%           { transform: rotate(6deg); }
+  97%           { transform: rotate(-3deg); }
+}
+.saldo__rinci {
+  margin-top: 14px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: var(--surface-2);
+  text-align: left;
+}
+.saldo__baris {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 4px 0;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+.saldo__baris b { color: var(--fg-strong); }
+.saldo__baris--kurang {
+  margin-top: 5px;
+  padding-top: 9px;
+  border-top: 1px dashed var(--border);
+}
+.saldo__baris--kurang b { color: var(--err-fg); font-size: 14px; }
+
+/* ===== Estimasi harga jual (kalkulator margin) ==============
+   TAMPILAN SAJA. Harga yang dibayar member tetap .prod__price di atasnya;
+   baris ini cuma memberi tahu berapa idealnya dijual ulang ke pelanggan
+   member sendiri. Sengaja dibuat SEKUNDER secara visual (lebih kecil,
+   warna lebih redup) supaya tidak tertukar dengan harga sebenarnya. */
+
+.prod__margin {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  margin-top: 5px;
+  padding-top: 5px;
+  border-top: 1px dashed var(--border);
+  width: 100%;
+}
+.prod__jual {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+.prod__untung {
+  font-size: 10.5px;
+  font-weight: 800;
+  color: var(--ok-solid);
+}
+
+/* .margin-est* DIHAPUS bersama estimasi margin di halaman pascabayar.
+   Pascabayar tidak punya margin sama sekali (lihat `bolehMargin` di
+   kategori-map.js), jadi kotaknya tidak akan pernah dirender lagi. */
+
+/* ---- Kotak pencarian nama brand (UI.createCari) ---------------------
+   Dipakai halaman TIPE B yang daftar brand-nya panjang (Games: 107 game).
+   Dibuat runtime oleh produk-ui.js, jadi tidak ada halaman yang perlu
+   menambah markup. Pola visualnya menyalin .pfield supaya terasa satu
+   keluarga dengan field nomor di halaman produk lain. */
+.pcari {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 12px;
+  padding: 0 12px;
+  background: var(--surface-2);
+  border: 1.5px solid transparent;
+  border-radius: 14px;
+  transition: border-color .2s var(--ease-out), background .2s var(--ease-out);
+}
+.pcari:focus-within {
+  background: var(--surface);
+  border-color: var(--gold);
+}
+.pcari__ic {
+  flex: 0 0 auto;
+  width: 18px;
+  height: 18px;
+  color: var(--fg-muted);
+}
+.pcari__ic svg { width: 100%; height: 100%; display: block; }
+.pcari__input {
+  flex: 1 1 auto;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  padding: 12px 0;
+  font: inherit;
+  font-size: 15px;
+  color: var(--fg-strong);
+}
+.pcari__input::placeholder { color: var(--fg-muted); }
+/* Tombol "x" bawaan Chrome untuk type=search — kita pakai tombol sendiri */
+.pcari__input::-webkit-search-cancel-button { display: none; }
+.pcari__clear {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--tint);
+  color: var(--fg-muted);
+  cursor: pointer;
+}
+.pcari__clear svg { width: 14px; height: 14px; }
+.pcari__clear:active { transform: scale(0.92); }
+.pcari__kosong {
+  margin: 2px 0 14px;
+  padding: 18px 16px;
+  text-align: center;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--fg-muted);
+  background: var(--surface);
+  border-radius: 14px;
+}
+
+/* Guard [hidden]: keduanya menyetel `display`, jadi aturan UA kalah.
+   Alasan yang sama seperti .psec/.pempty/.warn di atas. */
+.pcari[hidden],
+.pcari__clear[hidden],
+.pcari__kosong[hidden] { display: none; }
+
+/* Varian BERIKON dari `.brand__mark` (dipakai halaman Games lewat
+   `config.markIcon` di provider-page.js). Inisial dua huruf butuh
+   font-size besar; SVG butuh ukuran kotak — jadi ukurannya disetel di
+   sini, bukan menimpa font-size yang tidak berlaku untuk gambar. */
+.brand__mark--ikon svg {
+  width: 60%;
+  height: 60%;
+}

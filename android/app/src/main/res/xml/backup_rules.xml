@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Aturan Auto Backup untuk Android 11 ke bawah (API <= 30), dipakai lewat
+  android:fullBackupContent di AndroidManifest.xml.
+
+  KENAPA ADA: sesi login DikaPay hidup di localStorage WebView, yang
+  tersimpan di dalam folder data aplikasi. Dengan Auto Backup bawaan
+  Android (default AKTIF), folder itu ikut tercadang ke akun Google
+  pemilik perangkat dan DIPULIHKAN OTOMATIS saat aplikasi dipasang ulang —
+  sehingga uninstall + install ulang tetap masuk ke akun yang tadinya
+  login, tanpa pernah melewati halaman Login. Itu masalah privasi: ponsel
+  yang berpindah tangan atau diservis bisa membuka akun pemilik lama.
+
+  android:allowBackup="false" sudah mematikan semuanya, tapi file ini tetap
+  dipasang sebagai lapis kedua yang eksplisit: kalau suatu saat allowBackup
+  dihidupkan lagi (mis. untuk fitur lain), data sensitif tetap TIDAK ikut
+  tercadang, bukan diam-diam bocor.
+-->
+<full-backup-content>
+    <!-- Kecualikan SELURUH isi data aplikasi. -->
+    <exclude domain="root" />
+    <exclude domain="file" />
+    <exclude domain="database" />
+    <exclude domain="sharedpref" />
+    <exclude domain="external" />
+</full-backup-content>

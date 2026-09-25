@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="theme-color" content="#0B2447" />
+  <title>DikaPay — Beranda</title>
+  <!-- Jaring pengaman galat: PALING ATAS di antara semua skrip, supaya
+       galat di file mana pun (termasuk script di bawah ini) tetap tertangkap
+       dan member tidak pernah melihat layar putih tanpa penjelasan. -->
+  <script src="scripts/galat-global.js"></script>
+  <!-- Pemeriksa integritas perangkat (aplikasi modifikasi / root).
+       PALING ATAS, sebelum auth.js: layar aplikasi tidak boleh sempat
+       tergambar di perangkat yang bermasalah. -->
+  <script src="scripts/integritas.js"></script>
+  <script src="scripts/auth.js"></script>
+  <!-- Popup "Akun Kamu Telah Dibanned" (dipakai bersama oleh PIN transaksi
+       & PIN auto-lock) -- wajib ada SEBELUM auto-lock.js supaya banned 3x
+       salah PIN auto-lock bisa langsung menampilkannya. -->
+  <script src="scripts/pin-transaksi.js"></script>
+  <!-- Kunci otomatis: minta PIN lagi kalau app ditinggal >= 5 menit. -->
+  <script src="scripts/auto-lock.js"></script>
+  <link rel="stylesheet" href="styles/style.css" />
+</head>
+<body>
+  <div class="app">
+
+    <!-- ===== Area atas: blok navy penuh ===== -->
+    <header class="topbar">
+
+      <!-- Gelombang cahaya latar, gaya menu XMB PlayStation 3 — MURNI
+           dekoratif (lihat .topbar__wave di style.css). aria-hidden karena
+           tidak membawa informasi apa pun. -->
+      <span class="topbar__wave topbar__wave--1" aria-hidden="true"></span>
+      <span class="topbar__wave topbar__wave--2" aria-hidden="true"></span>
+      <span class="topbar__wave topbar__wave--3" aria-hidden="true"></span>
+
+      <!-- Baris kompak: avatar + saldo + toggle -->
+      <div class="topbar__row">
+        <!-- SENGAJA TANPA data-avatar: ini ikon dompet topbar, BUKAN
+             avatar foto profil member (beda dari header Akun/Data Diri).
+             DikaProfilFoto.pasangSemua() (script.js) menarget SEMUA
+             elemen [data-avatar] di halaman dan menggantinya dengan foto
+             profil begitu member punya satu — kalau atribut ini ada di
+             sini, ikon dompet ikut berubah jadi foto profil, padahal
+             seharusnya TETAP ikon dompet selamanya. BUG yang diperbaiki:
+             dulu elemen ini ikut ditarget karena kebetulan memakai
+             atribut yang sama dengan avatar sungguhan. JANGAN
+             dikembalikan tanpa mengganti maksudnya jadi avatar asli. -->
+        <span class="avatar" aria-hidden="true">
+          <svg class="avatar__wallet" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M8 5.5V3.7A1.2 1.2 0 0 1 9.2 2.5h5.6A1.2 1.2 0 0 1 16 3.7V5.5" />
+            <path d="M2.5 11V8.5A3 3 0 0 1 5.5 5.5h11A1.5 1.5 0 0 1 18 7v.5" />
+            <rect x="2.5" y="7.5" width="19" height="13" rx="3" />
+            <path d="M21.5 12.4h-3.3a2 2 0 0 0 0 3.9h3.3" />
+          </svg>
+        </span>
+        <button class="topbar__balance" type="button" id="balanceToggle" aria-label="Sembunyikan saldo" aria-pressed="false">
+          <span class="topbar__amount" id="balanceAmount">Rp0</span>
+          <span class="topbar__eye">
+            <svg class="icon-eye" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z" /><circle cx="12" cy="12" r="3" />
+            </svg>
+            <svg class="icon-eye-off" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
+              <path d="M1 1l22 22" />
+            </svg>
+          </span>
+        </button>
+      </div>
+
+      <!-- Aksi cepat -->
+      <div class="quick-actions">
+        <button class="quick-action press" type="button" data-action="topup">
+          <span class="quick-action__icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+          </span>
+          <span>Top Up</span>
+        </button>
+        <button class="quick-action press" type="button" data-action="transfer">
+          <span class="quick-action__icon">
+            <svg class="qa-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <g class="qa-swap">
+                <path d="M4 9h13" />
+                <path d="M13 5l4 4-4 4" />
+                <path d="M20 15H7" />
+                <path d="M11 11l-4 4 4 4" />
+              </g>
+            </svg>
+          </span>
+          <span>Transfer</span>
+        </button>
+        <button class="quick-action press" type="button" data-action="notif">
+          <span class="quick-action__icon">
+            <svg class="qa-ic qa-ic--bell" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 4a5.5 5.5 0 0 1 5.5 5.5c0 3.3.8 5 1.6 6 .6.7.1 1.8-.8 1.8H5.7c-.9 0-1.4-1.1-.8-1.8.8-1 1.6-2.7 1.6-6A5.5 5.5 0 0 1 12 4z" />
+              <path d="M10.2 20.2a2 2 0 0 0 3.6 0" />
+              <path d="M12 4V2.4" />
+            </svg>
+            <span class="quick-action__dot" id="notifBadge" aria-label="Notifikasi baru"></span>
+          </span>
+          <span>Notifikasi</span>
+        </button>
+      </div>
+
+    </header>
+
+    <!-- ===== Konten putih ===== -->
+    <main class="content">
+
+      <!-- Layanan -->
+      <section class="card reveal">
+        <h2 class="section__title" data-i18n="home.services">Layanan</h2>
+        <div class="menu-grid" id="menuGrid"><!-- diisi oleh script.js --></div>
+      </section>
+
+      <!-- Ticker keamanan & tips -->
+      <section class="reveal">
+        <div class="ticker">
+          <span class="ticker__shield" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+              <path class="ticker__check" d="m9 12 2 2 4-4" />
+            </svg>
+          </span>
+          <div class="ticker__viewport">
+            <p class="ticker__text" id="tickerText"><!-- diisi oleh script.js --></p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Promo carousel — TANPA judul section "Promo" (keputusan produk:
+           banner-nya sudah bicara sendiri, judulnya cuma menambah tinggi). -->
+      <section class="reveal">
+        <div class="carousel" id="infoCarousel">
+          <div class="carousel__track" id="infoTrack"><!-- diisi oleh script.js --></div>
+          <div class="carousel__dots" id="infoDots"></div>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- ===== Bottom navigation 5 item ===== -->
+    <nav class="bottom-nav" id="bottomNav">
+      <span class="bottom-nav__indicator" id="navIndicator" aria-hidden="true"></span>
+
+      <button class="bottom-nav__item is-active" type="button" data-tab="home">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5 12 3l9 6.5V20a1 1 0 0 1-1 1h-5v-6H10v6H4a1 1 0 0 1-1-1z"/></svg>
+        <span data-i18n="nav.home">Beranda</span>
+      </button>
+      <button class="bottom-nav__item" type="button" data-tab="transaction">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>
+        <span data-i18n="nav.transaction">Transaksi</span>
+      </button>
+
+      <button class="bottom-nav__item" type="button" data-tab="margin">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 5 5 19"/><circle cx="6.5" cy="6.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/></svg>
+        <span data-i18n="nav.margin">Margin</span>
+      </button>
+      <button class="bottom-nav__item" type="button" data-tab="account">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21a8 8 0 1 0-16 0"/><circle cx="12" cy="7" r="4"/></svg>
+        <span data-i18n="nav.account">Akun</span>
+      </button>
+    </nav>
+
+  </div>
+
+  <!-- Popup "amankan akun" — HANYA muncul sekali, tepat setelah member baru
+       (bukan login biasa) pertama kali mendarat di Beranda. Dipicu &
+       dikonsumsi oleh script.js (maybeShowNewMemberPrompt), flag ditulis
+       auth-flow.js saat pendaftaran selesai. Pakai .cmodal* — primitif
+       generik dari style.css (lihat komentarnya di sana), bukan style baru. -->
+  <div class="cmodal-overlay" id="secPromptOverlay">
+    <div class="cmodal">
+      <h2 class="cmodal__title">Yuk, Amankan Akun Kamu</h2>
+      <p class="cmodal__text">
+        Selamat bergabung di DikaPay! Akun kamu masih belum sepenuhnya aman —
+        luangkan waktu sebentar buat aktifkan biometrik atau lapisan keamanan
+        lain di halaman Akun, ya. Saldo kamu jadi lebih terlindungi.
+      </p>
+      <div class="cmodal__actions">
+        <button class="cmodal__btn cmodal__btn--outline press" type="button" id="secPromptLater">Nanti Saja</button>
+        <button class="cmodal__btn cmodal__btn--gold press" type="button" id="secPromptGo">Lengkapi Sekarang</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="scripts/illustrations.js"></script>
+  <script src="scripts/paymodal.js"></script>
+  <script src="scripts/bottomnav.js"></script>
+  <script src="scripts/translations.js"></script>
+  <script src="scripts/notif-store.js"></script>
+    <!-- Pendengar ketukan notifikasi sistem (buka halaman Notifikasi pada
+       entri yang ditekan). WAJIB sesudah notif-store.js. -->
+    <script src="scripts/notif-hp.js"></script>
+  <script src="scripts/api.js"></script>
+  <!-- Penyaring notifikasi server (baseline per-perangkat). Di-link SEBELUM
+       member-sync.js & script.js — keduanya memakainya: member-sync untuk
+       polling kabar baru, script.js untuk badge lonceng. -->
+  <!-- Foto profil member (avatar topbar) — WAJIB sebelum script.js. -->
+  <script src="scripts/profil-foto.js"></script>
+  <script src="scripts/notif-server.js"></script>
+  <script src="scripts/member-sync.js"></script>
+  <!-- Kenalan fitur sekali-saja untuk member yang baru mendaftar.
+       WAJIB sebelum script.js (alurMemberBaru memanggilnya). -->
+  <script src="scripts/fitur-baru.js"></script>
+  <script src="scripts/script.js"></script>
+</body>
+</html>

@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="theme-color" content="#0B2447" />
+  <title>DikaPay — Riwayat Transaksi</title>
+  <!-- Jaring pengaman galat: PALING ATAS di antara semua skrip, supaya
+       galat di file mana pun (termasuk script di bawah ini) tetap tertangkap
+       dan member tidak pernah melihat layar putih tanpa penjelasan. -->
+  <script src="../scripts/galat-global.js"></script>
+  <!-- Pemeriksa integritas perangkat (aplikasi modifikasi / root).
+       PALING ATAS, sebelum auth.js: layar aplikasi tidak boleh sempat
+       tergambar di perangkat yang bermasalah. -->
+  <script src="../scripts/integritas.js"></script>
+  <script src="../scripts/auth.js"></script>
+  <!-- Popup "Akun Kamu Telah Dibanned" (dipakai bersama oleh PIN transaksi
+       & PIN auto-lock) -- wajib ada SEBELUM auto-lock.js supaya banned 3x
+       salah PIN auto-lock bisa langsung menampilkannya. -->
+  <script src="../scripts/pin-transaksi.js"></script>
+  <!-- Kunci otomatis: minta PIN lagi kalau app ditinggal >= 5 menit. -->
+  <script src="../scripts/auto-lock.js"></script>
+  <link rel="stylesheet" href="../styles/style.css" />
+  <link rel="stylesheet" href="../styles/riwayat.css" />
+</head>
+<body>
+  <div class="app">
+
+    <!-- ===== Header ===== -->
+    <header class="rhead">
+      <!-- Tombol back header SENGAJA dihapus (keputusan produk) — member
+           berpindah halaman hanya lewat bottom nav. Tombol Back FISIK
+           Android tetap punya jalan keluar wajar, lihat backButton
+           listener di riwayat.js. -->
+      <div class="rhead__bar">
+        <h1 class="rhead__title">Riwayat Transaksi</h1>
+      </div>
+
+      <div class="rsearch">
+        <svg class="rsearch__icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+        <input type="search" id="searchInput" class="rsearch__input" placeholder="Cari nama atau nominal…" autocomplete="off" />
+        <button class="rsearch__sort" type="button" id="sortBtn" aria-label="Urutkan transaksi">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M6 12h12M9 18h6"/></svg>
+        </button>
+      </div>
+    </header>
+
+    <main class="rmain">
+
+      <!-- ===== Ringkasan bulanan ===== -->
+      <button class="summary reveal" type="button" id="summaryCard">
+        <span class="summary__glow" aria-hidden="true"></span>
+        <span class="summary__info">
+          <span class="summary__label">Bulan Ini</span>
+          <span class="summary__total" id="summaryTotal">-Rp0</span>
+          <span class="summary__hint" id="summaryHint">0 transaksi berhasil</span>
+        </span>
+        <svg class="summary__arrow" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+      </button>
+
+      <!-- ===== Filter chips ===== -->
+      <div class="chips reveal" id="filterChips">
+        <button class="chip is-active" type="button" data-filter="all">Semua</button>
+        <button class="chip" type="button" data-filter="pulsa">Pulsa &amp; Data</button>
+        <button class="chip" type="button" data-filter="tagihan">Tagihan</button>
+        <button class="chip" type="button" data-filter="transfer">Transfer</button>
+        <button class="chip" type="button" data-filter="topupgame">Top Up &amp; Game</button>
+      </div>
+
+      <!-- ===== List transaksi ===== -->
+      <div class="txlist" id="txList"><!-- dirender oleh riwayat.js --></div>
+
+      <!-- ===== Muat riwayat (pertama kali / pagination) ===== -->
+      <div class="rstate" id="loadingState" hidden>
+        <span class="rstate__spin" aria-hidden="true"></span>
+        <p class="rstate__text">Memuat riwayat transaksi…</p>
+      </div>
+
+      <!-- ===== Gagal memuat ===== -->
+      <div class="rstate" id="errorState" hidden>
+        <svg class="rstate__art" viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg>
+        <p class="rstate__text" id="errorText">Gagal memuat riwayat transaksi. Coba lagi, ya.</p>
+        <button class="rstate__retry" type="button" id="retryBtn">Coba Lagi</button>
+      </div>
+
+      <!-- ===== Empty state (belum ada transaksi SAMA SEKALI, atau hasil filter kosong) ===== -->
+      <div class="empty" id="emptyState" hidden>
+        <svg class="empty__art" viewBox="0 0 120 120" fill="none" aria-hidden="true">
+          <rect x="26" y="18" width="68" height="84" rx="10" fill="#E7EDFB" />
+          <path d="M26 30h68" stroke="#C4D2F0" stroke-width="3" />
+          <rect x="38" y="42" width="30" height="6" rx="3" fill="#C4D2F0" />
+          <rect x="38" y="56" width="44" height="6" rx="3" fill="#DCE3F2" />
+          <rect x="38" y="70" width="36" height="6" rx="3" fill="#DCE3F2" />
+          <circle cx="86" cy="86" r="18" fill="#FFC93C" />
+          <path d="M80 86h12M86 80v12" stroke="#0B2447" stroke-width="3" stroke-linecap="round" />
+        </svg>
+        <p class="empty__title" id="emptyTitle">Belum ada transaksi</p>
+        <p class="empty__sub" id="emptySub">Transaksi yang kamu lakukan akan muncul di sini.</p>
+      </div>
+
+      <!-- ===== Muat halaman berikutnya (pagination api-riwayat.php) ===== -->
+      <button class="rmore" type="button" id="loadMoreBtn" hidden>Muat Transaksi Lainnya</button>
+
+    </main>
+
+    <!-- ===== Bottom navigation ===== -->
+    <nav class="bottom-nav" id="bottomNav">
+      <span class="bottom-nav__indicator" id="navIndicator" aria-hidden="true"></span>
+
+      <button class="bottom-nav__item" type="button" data-tab="home">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5 12 3l9 6.5V20a1 1 0 0 1-1 1h-5v-6H10v6H4a1 1 0 0 1-1-1z"/></svg>
+        <span data-i18n="nav.home">Beranda</span>
+      </button>
+      <button class="bottom-nav__item is-active" type="button" data-tab="transaction">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>
+        <span data-i18n="nav.transaction">Transaksi</span>
+      </button>
+
+      <button class="bottom-nav__item" type="button" data-tab="margin">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 5 5 19"/><circle cx="6.5" cy="6.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/></svg>
+        <span data-i18n="nav.margin">Margin</span>
+      </button>
+      <button class="bottom-nav__item" type="button" data-tab="account">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21a8 8 0 1 0-16 0"/><circle cx="12" cy="7" r="4"/></svg>
+        <span data-i18n="nav.account">Akun</span>
+      </button>
+    </nav>
+
+    <!-- ===== Struk detail transaksi (diisi oleh riwayat.js) ===== -->
+    <section class="rc" id="receipt" aria-hidden="true"></section>
+
+  </div>
+
+  <script src="../scripts/illustrations.js"></script>
+  <script src="../scripts/paymodal.js"></script>
+  <script src="../scripts/bottomnav.js"></script>
+  <script src="../scripts/translations.js"></script>
+  <!-- data.js SEKARANG memuat riwayat LIVE lewat api.js + device_token
+       (member-sync.js) -- WAJIB di-link SETELAH keduanya, karena data.js
+       langsung memulai fetch pertamanya saat dieksekusi. -->
+  <script src="../scripts/api.js"></script>
+  <script src="../scripts/member-sync.js"></script>
+  <script src="../scripts/data.js"></script>
+  <!-- Perhitungan ringkasan bulanan dipakai BERSAMA oleh kartu "Bulan Ini"
+       (riwayat) dan halaman Statistik — wajib sebelum keduanya. -->
+  <script src="../scripts/tx-ringkas.js"></script>
+  <script src="../scripts/riwayat.js"></script>
+    <!-- Kotak masuk notifikasi + pendengar ketukan notifikasi sistem. -->
+    <script src="../scripts/notif-store.js"></script>
+    <script src="../scripts/notif-hp.js"></script>
+  </body>
+</html>

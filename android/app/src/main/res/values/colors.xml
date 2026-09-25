@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Warna brand DikaPay. Nilainya HARUS sama dengan token navy-900 di
+         styles/style.css: kalau berbeda, akan terlihat "kedip" warna saat
+         layar peluncuran berganti ke WebView. -->
+    <color name="colorPrimary">#0B2447</color>
+    <color name="colorPrimaryDark">#0B2447</color>
+    <color name="colorAccent">#FFC93C</color>
+
+    <!-- Latar layar peluncuran. Sengaja WARNA POLOS, bukan artwork splash:
+         layar ini muncul SEBELUM WebView jalan, jadi ia tidak mungkin tahu
+         apakah member sudah login atau belum. Dibuat sepolos mungkin supaya
+         tidak terbaca sebagai "animasi pembuka" bagi member yang sudah
+         login. Lihat catatan splash di CLAUDE.md. -->
+    <color name="splashBackground">#0B2447</color>
+</resources>

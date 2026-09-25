@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="theme-color" content="#0B2447" />
+  <title>DikaPay — Atur Margin Saya</title>
+  <!-- Jaring pengaman galat: PALING ATAS di antara semua skrip, supaya
+       galat di file mana pun (termasuk script di bawah ini) tetap tertangkap
+       dan member tidak pernah melihat layar putih tanpa penjelasan. -->
+  <script src="../scripts/galat-global.js"></script>
+  <!-- Pemeriksa integritas perangkat (aplikasi modifikasi / root).
+       PALING ATAS, sebelum auth.js: layar aplikasi tidak boleh sempat
+       tergambar di perangkat yang bermasalah. -->
+  <script src="../scripts/integritas.js"></script>
+  <script src="../scripts/auth.js"></script>
+  <!-- Popup "Akun Kamu Telah Dibanned" (dipakai bersama oleh PIN transaksi
+       & PIN auto-lock) -- wajib ada SEBELUM auto-lock.js supaya banned 3x
+       salah PIN auto-lock bisa langsung menampilkannya. -->
+  <script src="../scripts/pin-transaksi.js"></script>
+  <!-- Kunci otomatis: minta PIN lagi kalau app ditinggal >= 5 menit. -->
+  <script src="../scripts/auto-lock.js"></script>
+  <link rel="stylesheet" href="../styles/style.css" />
+  <link rel="stylesheet" href="../styles/margin.css" />
+</head>
+<body>
+  <div class="app" id="app">
+
+    <!-- ===== Header ===== -->
+    <header class="mhead">
+      <h1 class="mhead__title">Atur Margin Saya</h1>
+    </header>
+
+    <main class="mmain">
+
+      <!-- ===== Sakelar utama: Aktifkan Margin ===== -->
+      <section class="card reveal">
+        <div class="margin-toggle">
+          <div class="margin-toggle__text">
+            <p class="margin-toggle__title">Aktifkan Margin</p>
+            <p class="margin-toggle__sub">Kalau dimatikan, harga jual di semua halaman produk sama persis dengan harga modal DikaPay — tanpa tambahan apa pun. Pengaturan di bawah nonaktif sementara.</p>
+          </div>
+          <label class="switch"><input type="checkbox" id="swMarginAktif" checked /><span class="switch__slider" aria-hidden="true"></span></label>
+        </div>
+      </section>
+
+      <!-- ===== Form pengaturan margin =====
+           SATU MODE SAJA: Nominal Tetap (Rp). Segmented toggle
+           "Persentase (%) / Nominal Tetap (Rp)" DIHAPUS karena tidak ada
+           lagi yang bisa dipilih — halaman langsung menampilkan satu input
+           rupiah. Jangan dikembalikan tanpa keputusan produk baru. -->
+      <section class="card reveal" id="marginModeCard">
+        <h2 class="card__title">Nominal Margin</h2>
+        <p class="card__sub">Tambahan rupiah yang sama untuk setiap produk dalam cakupanmu. Maksimal Rp6.000 per produk.</p>
+
+        <div class="stepper">
+          <button class="stepper__btn" type="button" data-step="-1" aria-label="Kurangi">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M5 12h14"/></svg>
+          </button>
+          <div class="stepper__field">
+            <span class="stepper__prefix" id="inpPrefix">Rp</span>
+            <input class="stepper__input" id="marginInput" type="text" inputmode="numeric" value="1000" aria-label="Nominal margin dalam rupiah" />
+          </div>
+          <button class="stepper__btn" type="button" data-step="1" aria-label="Tambah">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+          </button>
+        </div>
+
+        <!-- Peringatan MENETAP (bukan toast sekejap) tepat di bawah input:
+             muncul saat nominal yang diketik melebihi batas Rp6.000 dan
+             otomatis disesuaikan turun. Dulu satu-satunya pemberitahuan
+             adalah toast atas yang hilang sendiri, jadi member baru sadar
+             setelah "Terapkan" dan mengecek satu-satu ke halaman produk. -->
+        <div class="capwarn" id="capWarn" hidden aria-live="polite">
+          <span class="capwarn__ic" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9 1.9 18a2 2 0 0 0 1.7 3h16.8a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/></svg>
+          </span>
+          <span class="capwarn__txt" id="capWarnTxt"></span>
+        </div>
+
+        <div class="sim">
+          <div class="sim__row"><span>Harga Modal</span><span id="simModal">Rp10.000</span></div>
+          <div class="sim__row sim__row--margin"><span>Margin Kamu</span><span id="simMargin">+Rp1.000 (10%)</span></div>
+          <div class="sim__row sim__row--sell"><span>Harga Jual ke Pelanggan</span><span id="simSell">Rp11.000</span></div>
+        </div>
+        <p class="sim__note" id="simNote">*Simulasi memakai contoh harga modal Rp10.000</p>
+      </section>
+
+      <!-- ===== Cakupan produk ===== -->
+      <section class="card reveal" id="marginCakupanCard">
+        <h2 class="card__title">Cakupan Produk</h2>
+
+        <label class="chk chk--all">
+          <input type="checkbox" id="chkAll" checked />
+          <span class="chk__box" aria-hidden="true"></span>
+          <span class="chk__label">Semua Produk</span>
+        </label>
+
+        <div class="chk-list" id="chkList"><!-- dirender margin.js --></div>
+      </section>
+
+      <!-- ===== Info box ===== -->
+      <div class="infobox reveal">
+        <span class="infobox__ic" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg>
+        </span>
+        <div class="infobox__body">
+          <p class="infobox__title">Margin ini hanya untuk akun kamu</p>
+          <p class="infobox__text">Margin ini <b>tidak mengubah</b> jumlah yang kamu bayar ke DikaPay — fungsinya menghitung estimasi harga jual yang muncul di halaman produk, sebagai patokan saat kamu menjual ulang ke pelangganmu. Maksimal Rp6.000 per produk.</p>
+        </div>
+      </div>
+
+      <!-- ===== Tombol aksi ===== -->
+      <button class="apply-btn" type="button" id="applyBtn">Terapkan ke Produk Saya</button>
+
+      <!-- ===== Riwayat margin ===== -->
+      <section class="card reveal">
+        <h2 class="card__title">Riwayat Margin Saya</h2>
+        <ul class="mhist" id="mhist"><!-- dirender margin.js --></ul>
+      </section>
+
+    </main>
+
+    <!-- ===== Bottom navigation ===== -->
+    <nav class="bottom-nav" id="bottomNav">
+      <span class="bottom-nav__indicator" id="navIndicator" aria-hidden="true"></span>
+
+      <button class="bottom-nav__item" type="button" data-tab="home">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5 12 3l9 6.5V20a1 1 0 0 1-1 1h-5v-6H10v6H4a1 1 0 0 1-1-1z"/></svg>
+        <span data-i18n="nav.home">Beranda</span>
+      </button>
+      <button class="bottom-nav__item" type="button" data-tab="transaction">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>
+        <span data-i18n="nav.transaction">Transaksi</span>
+      </button>
+
+      <button class="bottom-nav__item is-active" type="button" data-tab="margin">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 5 5 19"/><circle cx="6.5" cy="6.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/></svg>
+        <span data-i18n="nav.margin">Margin</span>
+      </button>
+      <button class="bottom-nav__item" type="button" data-tab="account">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21a8 8 0 1 0-16 0"/><circle cx="12" cy="7" r="4"/></svg>
+        <span data-i18n="nav.account">Akun</span>
+      </button>
+    </nav>
+
+    <!-- ===== Modal konfirmasi ===== -->
+    <div class="cmodal-overlay" id="confirmOverlay">
+      <div class="cmodal" role="dialog" aria-modal="true" aria-labelledby="cmTitle">
+        <h3 class="cmodal__title" id="cmTitle">Terapkan Margin?</h3>
+        <p class="cmodal__text" id="confirmText"></p>
+        <div class="cmodal__actions">
+          <button class="cmodal__btn cmodal__btn--outline" type="button" id="cancelBtn">Batalkan</button>
+          <button class="cmodal__btn cmodal__btn--gold" type="button" id="okBtn">
+            <span class="cmodal__btn-label">Ya, Terapkan</span>
+            <span class="spinner" aria-hidden="true"></span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== Toast sukses (dari atas) ===== -->
+    <div class="topmsg" id="topMsg" role="status"></div>
+
+  </div>
+
+  <script src="../scripts/illustrations.js"></script>
+  <script src="../scripts/paymodal.js"></script>
+  <script src="../scripts/bottomnav.js"></script>
+  <script src="../scripts/translations.js"></script>
+  <!-- Daftar kategori + kalkulator margin — SATU sumber,
+       dipakai bersama halaman produk. -->
+  <script src="../scripts/kategori-map.js"></script>
+  <script src="../scripts/margin-calc.js"></script>
+
+  <!-- Jumlah produk SUNGGUHAN per kategori (bukan angka hardcode) —
+       ditulis oleh 12 file data kategori prabayar sendiri, dibaca lewat
+       registry katalog-jumlah.js. HARUS di atas 12 file data itu supaya
+       registry-nya sudah ada saat ditulisi. Controller aslinya (produk-ui.js
+       dst) SENGAJA TIDAK ikut dimuat — lihat komentar katalog-jumlah.js. -->
+  <script src="../scripts/katalog-jumlah.js"></script>
+  <!-- api.js + brand-map.js: kategori yang sudah tersambung ke backend
+       (mulai dari Pulsa) menghitung jumlah produknya dari katalog ASLI.
+       Di halaman ini keduanya TIDAK menembak jaringan sama sekali —
+       pulsa.js cuma membaca cache sesi kalau kebetulan ada (lihat
+       cobaDariCache() di sana); kalau tidak ada, margin.js menampilkan
+       "—", bukan angka dummy yang basi. -->
+  <script src="../scripts/api.js"></script>
+  <script src="../scripts/member-sync.js"></script>
+  <script src="../scripts/brand-map.js"></script>
+  <!-- tipe-map.js: streaming.js memanggilnya di dalam bangun(), yang IKUT
+       jalan di halaman ini lewat cobaDariCache(). Tanpa ini jumlahnya tetap
+       benar, tapi bentuk datanya beda dengan halaman aslinya — lebih baik
+       dibuat identik supaya tidak ada kejutan nanti. -->
+  <script src="../scripts/tipe-map.js"></script>
+  <!-- Perangkai bersama kategori live (masa-aktif/perdana/sms-telpon).
+       Di sini ia mendeteksi tidak adanya produk-page.js lalu berhenti
+       setelah membaca cache — tidak ada fetch, tidak ada render. -->
+  <script src="../scripts/kategori-live.js"></script>
+  <script src="../scripts/pulsa.js"></script>
+  <script src="../scripts/paket-data.js"></script>
+  <script src="../scripts/listrik.js"></script>
+  <script src="../scripts/gas-prabayar.js"></script>
+  <script src="../scripts/masa-aktif.js"></script>
+  <script src="../scripts/perdana.js"></script>
+  <script src="../scripts/sms-telpon.js"></script>
+  <script src="../scripts/games.js"></script>
+  <script src="../scripts/streaming.js"></script>
+  <script src="../scripts/voucher.js"></script>
+  <script src="../scripts/voucher-act.js"></script>
+  <script src="../scripts/emoney.js"></script>
+
+  <script src="../scripts/margin.js"></script>
+    <!-- Kotak masuk notifikasi + pendengar ketukan notifikasi sistem. -->
+    <script src="../scripts/notif-store.js"></script>
+    <script src="../scripts/notif-hp.js"></script>
+  </body>
+</html>

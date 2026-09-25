@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="theme-color" content="#0B2447" />
+  <title>DikaPay — Masuk</title>
+  <!-- Jaring pengaman galat: PALING ATAS di antara semua skrip, supaya
+       galat di file mana pun (termasuk script di bawah ini) tetap tertangkap
+       dan member tidak pernah melihat layar putih tanpa penjelasan. -->
+  <script src="../scripts/galat-global.js"></script>
+  <!-- Pemeriksa integritas perangkat (aplikasi modifikasi / root).
+       PALING ATAS, sebelum auth.js: layar aplikasi tidak boleh sempat
+       tergambar di perangkat yang bermasalah. -->
+  <script src="../scripts/integritas.js"></script>
+  <script src="../scripts/auth.js"></script>
+  <link rel="stylesheet" href="../styles/style.css" />
+  <link rel="stylesheet" href="../styles/auth.css" />
+</head>
+<body>
+  <div class="auth-app" id="app">
+
+    <!-- ===== Splash awal — particle background + logo (satu kali) ===== -->
+    <section class="auth-splash" id="splash">
+      <!-- .auth-particle diisi oleh JS -->
+      <span class="auth-logo auth-logo--img" aria-hidden="true">
+        <img src="../assets/images/logo-dikapay.png" alt="" />
+      </span>
+      <h1 class="auth-title">DikaPay</h1>
+      <p class="auth-tagline">Semua kebutuhan, satu ketukan saja.</p>
+    </section>
+
+    <!-- ===== Blok navy atas — tetap tampil di semua step setelah splash ===== -->
+    <header class="auth-hero">
+      <span class="auth-logo auth-logo--img" aria-hidden="true">
+        <img src="../assets/images/logo-dikapay.png" alt="" />
+      </span>
+      <h1 class="auth-title">DikaPay</h1>
+      <p class="auth-tagline">Semua kebutuhan, satu ketukan saja.</p>
+    </header>
+
+    <main class="auth-main">
+
+      <!-- ===== Indikator langkah pendaftaran (4 langkah: Data Diri →
+           Info Tambahan → Verifikasi Nomor → Buat PIN). Elemen TUNGGAL di
+           luar .astep manapun — tetap di DOM, cuma disembunyikan/diperbarui
+           lewat JS (lihat perbaruiProgress() di auth-flow.js), supaya tidak
+           ikut animasi fade/slide tiap step berpindah. Tersembunyi di step
+           nomor HP, cabang masuk (member lama), dan step sukses. ===== -->
+      <div class="auth-progress" id="regProgress" hidden>
+        <div class="auth-progress__track">
+          <span class="auth-progress__dot" data-n="1">1</span>
+          <span class="auth-progress__line"></span>
+          <span class="auth-progress__dot" data-n="2">2</span>
+          <span class="auth-progress__line"></span>
+          <span class="auth-progress__dot" data-n="3">3</span>
+          <span class="auth-progress__line"></span>
+          <span class="auth-progress__dot" data-n="4">4</span>
+        </div>
+        <p class="auth-progress__text" id="regProgressText"></p>
+      </div>
+
+      <!-- ===== STEP: nomor HP ===== -->
+      <section class="astep auth-card" data-step="phone" id="stepPhone" hidden>
+        <h2 class="auth-card__title">Masuk atau Daftar</h2>
+        <p class="auth-card__sub">Masukkan nomor HP kamu — kami cek dulu apakah sudah jadi member DikaPay.</p>
+
+        <form id="phoneForm" novalidate>
+          <p class="auth-err" id="phoneErrBox" hidden>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <circle cx="12" cy="12" r="9" /><path d="M12 7.5v5M12 16h.01" />
+            </svg>
+            <span id="phoneErrText"></span>
+          </p>
+
+          <div class="aff" id="phoneField">
+            <input class="aff__input" id="phoneInput" type="tel" placeholder=" "
+                   inputmode="tel" autocomplete="tel" maxlength="16" />
+            <label class="aff__label" for="phoneInput">Nomor HP</label>
+            <span class="aff__err"></span>
+          </div>
+
+          <button class="abtn" type="submit" id="phoneBtn">
+            <span class="abtn__label">Lanjutkan</span>
+            <span class="abtn__spin" aria-hidden="true"></span>
+          </button>
+        </form>
+
+        <div class="auth-divider" aria-hidden="true"><span>atau</span></div>
+
+        <button class="auth-google-btn" type="button" id="googleBtn">
+          <span class="auth-google-btn__ic" aria-hidden="true">
+            <svg viewBox="0 0 48 48" width="20" height="20">
+              <path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.6 29.3 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.1 8 3l6-6C34.5 5.4 29.6 3 24 3 12.4 3 3 12.4 3 24s9.4 21 21 21 21-9.4 21-21c0-1.2-.1-2.4-.4-3.5z"/>
+              <path fill="#FF3D00" d="m6.3 14.7 6.6 4.8C14.6 15.9 18.9 13 24 13c3.1 0 5.8 1.1 8 3l6-6C34.5 5.4 29.6 3 24 3 16.3 3 9.7 7.3 6.3 14.7z"/>
+              <path fill="#4CAF50" d="M24 45c5.5 0 10.4-1.9 14.2-5.1l-6.6-5.4C29.6 36.3 26.9 37 24 37c-5.3 0-9.7-3.4-11.3-8.1l-6.6 5.1C9.6 40.6 16.3 45 24 45z"/>
+              <path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.3-2.3 4.2-4.3 5.5l6.6 5.4C41.2 35.6 45 30.3 45 24c0-1.2-.1-2.4-.4-3.5z"/>
+            </svg>
+          </span>
+          <span class="abtn__label">Lanjutkan dengan Google</span>
+          <span class="abtn__spin" aria-hidden="true"></span>
+        </button>
+        <p class="auth-google-note" id="googleNote" hidden></p>
+
+      </section>
+
+      <!-- ===== CABANG GOOGLE (C) — STEP: akun Google belum terhubung, minta
+           nomor HP. Nama & email SUDAH terverifikasi Google (read-only) —
+           beda dari CABANG A yang menanyakannya dari nol. ===== -->
+      <section class="astep auth-card" data-step="google-phone" id="stepGooglePhone" hidden>
+        <h2 class="auth-card__title">Satu Langkah Lagi</h2>
+        <p class="auth-card__sub">Akun Google ini belum terhubung ke DikaPay. Masukkan nomor HP kamu untuk melanjutkan.</p>
+
+        <div class="auth-member">
+          <span class="auth-avatar" id="gpAvatar" aria-hidden="true"></span>
+          <p class="auth-member__name" id="gpName"></p>
+          <p class="auth-member__phone" id="gpEmail"></p>
+        </div>
+
+        <p class="auth-err" id="gpErrBox" hidden>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="9" /><path d="M12 7.5v5M12 16h.01" />
+          </svg>
+          <span id="gpErrText"></span>
+        </p>
+
+        <form id="gpForm" novalidate>
+          <div class="aff" id="gpPhoneField">
+            <input class="aff__input" id="gpPhoneInput" type="tel" placeholder=" "
+                   inputmode="tel" autocomplete="tel" maxlength="16" />
+            <label class="aff__label" for="gpPhoneInput">Nomor HP</label>
+            <span class="aff__err"></span>
+          </div>
+          <button class="abtn" type="submit" id="gpPhoneBtn">
+            <span class="abtn__label">Lanjutkan</span>
+            <span class="abtn__spin" aria-hidden="true"></span>
+          </button>
+        </form>
+        <button class="auth-link" type="button" id="gpBackBtn">Batal, kembali</button>
+      </section>
+
+      <!-- ===== CABANG A — STEP: sambutan member baru + nama ===== -->
+      <section class="astep auth-card" data-step="register" id="stepRegister" hidden>
+        <div class="auth-welcome" id="welcomeBox">
+          <span class="auth-welcome__ic" aria-hidden="true">👋</span>
+          <div>
+            <p class="auth-welcome__title" id="welcomeTitle"></p>
+            <p class="auth-welcome__text" id="welcomeText"></p>
+          </div>
+        </div>
+
+        <p class="auth-err" id="regErrBox" hidden>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="9" /><path d="M12 7.5v5M12 16h.01" />
+          </svg>
+          <span id="regErrText"></span>
+        </p>
+
+        <form id="regNameForm" novalidate>
+          <div class="aff" id="regNameField">
+            <input class="aff__input" id="regName" type="text" placeholder=" " autocomplete="name" />
+            <label class="aff__label" for="regName">Nama Lengkap</label>
+            <span class="aff__err"></span>
+          </div>
+          <div class="aff" id="regEmailField">
+            <input class="aff__input" id="regEmail" type="email" placeholder=" " autocomplete="email" inputmode="email" />
+            <label class="aff__label" for="regEmail">Email Gmail</label>
+            <span class="aff__err"></span>
+          </div>
+          <button class="abtn" type="submit" id="regNameBtn">
+            <span class="abtn__label">Lanjutkan</span>
+            <span class="abtn__spin" aria-hidden="true"></span>
+          </button>
+        </form>
+        <button class="auth-link" type="button" id="regBackBtn">Ganti nomor HP</button>
+      </section>
+
+      <!-- ===== CABANG A — STEP: alamat, tanggal lahir, jenis kelamin ===== -->
+      <section class="astep auth-card" data-step="register-more" id="stepRegisterMore" hidden>
+        <h2 class="auth-card__title">Sedikit Info Lagi</h2>
+        <p class="auth-card__sub">Data ini membantu kami melayanimu lebih baik ke depannya.</p>
+
+        <p class="auth-err" id="moreErrBox" hidden>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="9" /><path d="M12 7.5v5M12 16h.01" />
+          </svg>
+          <span id="moreErrText"></span>
+        </p>
+
+        <form id="regMoreForm" novalidate>
+          <div class="aff" id="regAlamatField">
+            <textarea class="aff__input aff__input--area" id="regAlamat" rows="2" placeholder=" "></textarea>
+            <label class="aff__label" for="regAlamat">Alamat</label>
+            <span class="aff__err"></span>
+          </div>
+
+          <!-- Cari alamat lewat GPS — HANYA di form pendaftaran ini, jangan
+               disalin ke field alamat lain (mis. Alamat Tersimpan di Akun,
+               yang punya alur lokasinya sendiri). -->
+          <button class="auth-gps-btn" type="button" id="regAlamatGpsBtn">
+            <span class="auth-gps-btn__ic" id="regAlamatGpsIc" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-6-7-11a7 7 0 0 1 14 0c0 5-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/></svg>
+            </span>
+            <span id="regAlamatGpsLabel">Cari Lokasi Saya</span>
+          </button>
+
+          <div class="auth-field-plain" id="regTglField">
+            <label class="auth-field-plain__label" for="regTglLahir">Tanggal Lahir</label>
+            <input class="auth-field-plain__input" id="regTglLahir" type="date" />
+            <span class="aff__err" id="regTglErr"></span>
+          </div>
+
+          <div class="auth-field-plain" id="regGenderField">
+            <label class="auth-field-plain__label">Jenis Kelamin</label>
+            <div class="auth-gender" id="regGender">
+              <span class="auth-gender__pill" aria-hidden="true"></span>
+              <label class="auth-gender__opt">
+                <input type="radio" name="jenisKelamin" value="L" />
+                <span>Laki-laki</span>
+              </label>
+              <label class="auth-gender__opt">
+                <input type="radio" name="jenisKelamin" value="P" />
+                <span>Perempuan</span>
+              </label>
+            </div>
+            <span class="aff__err" id="regGenderErr"></span>
+          </div>
+
+          <button class="abtn" type="submit" id="regMoreBtn">
+            <span class="abtn__label">Lanjutkan</span>
+            <span class="abtn__spin" aria-hidden="true"></span>
+          </button>
+        </form>
+        <button class="auth-link" type="button" id="regMoreBackBtn">Kembali</button>
+      </section>
+
+      <!-- ===== CABANG A — STEP: verifikasi nomor HP (OTP dummy) ===== -->
+      <section class="astep auth-card" data-step="register-otp" id="stepRegisterOtp" hidden>
+        <span class="auth-otp-icon" id="otpIcon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="5" width="18" height="14" rx="2" /><path d="m3 7 9 6 9-6" />
+          </svg>
+        </span>
+        <h2 class="auth-card__title">Verifikasi Nomor HP</h2>
+        <p class="auth-card__sub" id="otpChannelDesc">Kode verifikasi sudah dikirim lewat SMS ke <b id="otpTarget"></b>.</p>
+
+        <p class="auth-otp-dummy" id="otpDummyBox">
+          Kode dummy untuk testing: <b id="otpDummyCode"></b>
+        </p>
+
+        <div id="otpFormBlock">
+          <p class="auth-err" id="otpErrBox" hidden>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <circle cx="12" cy="12" r="9" /><path d="M12 7.5v5M12 16h.01" />
+            </svg>
+            <span id="otpErrText"></span>
+          </p>
+
+          <div class="auth-otp" id="regOtpBoxes">
+            <input type="text" inputmode="numeric" maxlength="1" />
+            <input type="text" inputmode="numeric" maxlength="1" />
+            <input type="text" inputmode="numeric" maxlength="1" />
+            <input type="text" inputmode="numeric" maxlength="1" />
+            <input type="text" inputmode="numeric" maxlength="1" />
+            <input type="text" inputmode="numeric" maxlength="1" />
+          </div>
+          <p class="auth-otp-hint">
+            Belum menerima kode?
+            <button type="button" class="auth-otp-resend" id="otpResendBtn">Kirim Ulang Kode</button>
+          </p>
+
+          <button class="abtn" type="button" id="otpVerifyBtn">
+            <span class="abtn__label">Verifikasi</span>
+            <span class="abtn__spin" aria-hidden="true"></span>
+          </button>
+        </div>
+
+        <div class="auth-otp-sukses" id="otpSukses" hidden>
+          <svg class="auth-check auth-check--sm" viewBox="0 0 80 80" aria-hidden="true">
+            <circle cx="40" cy="40" r="36" />
+            <path d="M24 41l11 11 21-23" />
+          </svg>
+          <p class="auth-otp-sukses__text" id="otpSuksesText">Nomor berhasil diverifikasi!</p>
+        </div>
+
+        <button class="auth-link" type="button" id="otpBackBtn">Kembali</button>
+      </section>
+
+      <!-- ===== CABANG A — STEP: buat & konfirmasi PIN ===== -->
+      <section class="astep auth-card" data-step="register-pin" id="stepRegisterPin" hidden>
+        <h2 class="auth-card__title" id="regPinTitle">Buat PIN DikaPay</h2>
+        <p class="auth-pin-greet" id="regPinGreet"></p>
+        <p class="auth-card__sub">PIN 6 digit ini dipakai untuk masuk ke app & konfirmasi transaksi — satu PIN, dua fungsi, gampang diingat.</p>
+
+        <p class="auth-err" id="regPinErrBox" hidden>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="9" /><path d="M12 7.5v5M12 16h.01" />
+          </svg>
+          <span id="regPinErrText"></span>
+        </p>
+        <button class="abtn" type="button" id="regPinToLogin" hidden style="margin-bottom:10px">
+          <span class="abtn__label">Masuk ke Akun Kamu</span>
+          <span class="abtn__spin" aria-hidden="true"></span>
+        </button>
+
+        <div class="auth-pin-dots" id="regPinDots" aria-hidden="true">
+          <span class="auth-pin-dot"></span><span class="auth-pin-dot"></span><span class="auth-pin-dot"></span>
+          <span class="auth-pin-dot"></span><span class="auth-pin-dot"></span><span class="auth-pin-dot"></span>
+        </div>
+        <p class="auth-pin-hint" id="regPinHint">Buat PIN baru — 6 digit</p>
+
+        <div class="auth-keypad" id="regPinKeypad">
+          <button type="button" data-k="1">1</button><button type="button" data-k="2">2</button><button type="button" data-k="3">3</button>
+          <button type="button" data-k="4">4</button><button type="button" data-k="5">5</button><button type="button" data-k="6">6</button>
+          <button type="button" data-k="7">7</button><button type="button" data-k="8">8</button><button type="button" data-k="9">9</button>
+          <span></span><button type="button" data-k="0">0</button>
+          <button type="button" class="key--fn" data-k="del" aria-label="Hapus">
+            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 5H8l-5 7 5 7h13a1 1 0 0 0 1-1V6a1 1 0 0 0-1-1z"/><path d="m13 9 4 6M17 9l-4 6"/></svg>
+          </button>
+        </div>
+        <button class="auth-link" type="button" id="regPinBackBtn">Kembali</button>
+      </section>
+
+      <!-- ===== CABANG B — STEP: member ditemukan (biometrik / PIN) ===== -->
+      <section class="astep auth-card" data-step="login" id="stepLogin" hidden>
+        <div class="auth-member">
+          <span class="auth-avatar" id="loginAvatar" aria-hidden="true"></span>
+          <p class="auth-member__name" id="loginName"></p>
+          <p class="auth-member__phone" id="loginPhone"></p>
+        </div>
+
+        <!-- Ditampilkan HANYA saat cabang login ini datang dari "Lanjutkan
+             dengan Google" (akun sudah terhubung, atau nomor ini perlu
+             ditautkan) — menegaskan PIN di sini adalah PIN transaksi
+             DikaPay, BUKAN PIN akun Google. Teks & visibility diatur
+             enterLoginBranch() di auth-flow.js. -->
+        <p class="auth-card__sub" id="loginGoogleNote" hidden></p>
+
+        <!-- Biometrik SEBAGAI PRIORITAS UTAMA — hanya tampil kalau preferensi aktif -->
+        <div id="bioBlock" hidden>
+          <button class="auth-bio-btn" type="button" id="bioBtn">
+            <span class="auth-bio-btn__ic" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 3a7 7 0 0 0-7 7v2c0 2.5-.5 4-1 5" />
+                <path d="M12 3a7 7 0 0 1 7 7v2c0 3 .5 5 1 6" />
+                <path d="M8.5 21c.5-1.5 1-3 1-6v-3a2.5 2.5 0 0 1 5 0v3" />
+                <path d="M12 21c-.3-1-.5-2-.5-4v-4a1 1 0 1 1 2 0" />
+                <path d="M15.5 20.5c.5-1.2.8-2.6.8-4.5v-4" />
+              </svg>
+            </span>
+            <span class="auth-bio-btn__label" id="bioLabel">Masuk dengan Biometrik</span>
+            <span class="auth-bio-btn__hint" id="bioHint">Ketuk lalu verifikasi lewat sensor HP kamu</span>
+          </button>
+          <button class="auth-link" type="button" id="usePinBtn">Pakai PIN saja</button>
+        </div>
+
+        <!-- Keypad PIN — utama kalau biometrik belum aktif, fallback kalau aktif -->
+        <div id="pinBlock">
+          <div class="auth-pin-dots" id="loginPinDots" aria-hidden="true">
+            <span class="auth-pin-dot"></span><span class="auth-pin-dot"></span><span class="auth-pin-dot"></span>
+            <span class="auth-pin-dot"></span><span class="auth-pin-dot"></span><span class="auth-pin-dot"></span>
+          </div>
+          <p class="auth-pin-hint" id="loginPinHint">Masukkan PIN kamu</p>
+
+          <div class="auth-keypad" id="loginPinKeypad">
+            <button type="button" data-k="1">1</button><button type="button" data-k="2">2</button><button type="button" data-k="3">3</button>
+            <button type="button" data-k="4">4</button><button type="button" data-k="5">5</button><button type="button" data-k="6">6</button>
+            <button type="button" data-k="7">7</button><button type="button" data-k="8">8</button><button type="button" data-k="9">9</button>
+            <span></span><button type="button" data-k="0">0</button>
+            <button type="button" class="key--fn" data-k="del" aria-label="Hapus">
+              <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 5H8l-5 7 5 7h13a1 1 0 0 0 1-1V6a1 1 0 0 0-1-1z"/><path d="m13 9 4 6M17 9l-4 6"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <button class="auth-link" type="button" id="loginBackBtn">Ganti nomor HP</button>
+      </section>
+
+      <!-- ===== STEP: sukses (dwifungsi — habis daftar ATAU habis masuk) ===== -->
+      <section class="astep auth-success" data-step="success" id="stepSuccess" hidden>
+        <svg class="auth-check" viewBox="0 0 80 80" aria-hidden="true">
+          <circle cx="40" cy="40" r="36" />
+          <path d="M24 41l11 11 21-23" />
+        </svg>
+        <p class="auth-success__title" id="successTitle">Selamat datang!</p>
+        <p class="auth-success__desc" id="successDesc"></p>
+      </section>
+
+    </main>
+  </div>
+
+  <div class="auth-toast" id="authToast" hidden></div>
+
+  <!-- Peringatan PIN lemah/gampang ditebak — muncul begitu 6 digit PERTAMA
+       (langkah "buat PIN", sebelum konfirmasi) terdeteksi pola lemah. Bukan
+       block total: member tetap boleh lanjut pakai PIN itu kalau mau. Primitif
+       sendiri (.auth-modal-*) — bukan .cmodal (beda kebutuhan warna tombol:
+       hijau/merah, bukan gold/outline standar), pola yang sama seperti
+       auth.css memisahkan diri dari akun.css/transfer-member.css sejak awal. -->
+  <div class="auth-modal-overlay" id="weakPinOverlay">
+    <div class="auth-modal" id="weakPinModal">
+      <div class="auth-modal__ic" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M10.3 3.9 1.9 18.3A2 2 0 0 0 3.6 21.3h16.8a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9.2v4.4M12 17.2h.01"/>
+        </svg>
+      </div>
+      <h2 class="auth-modal__title">PIN Ini Gampang Ditebak, lho</h2>
+      <p class="auth-modal__text">
+        PIN berpola seperti ini gampang ditebak orang lain dan bisa
+        membahayakan saldo kamu. Mau coba PIN lain yang lebih aman, atau
+        tetap lanjut pakai PIN ini?
+      </p>
+      <div class="auth-modal__actions">
+        <button class="auth-modal__btn auth-modal__btn--green press" type="button" id="weakPinRetry">Coba Lagi, Yuk</button>
+        <button class="auth-modal__btn auth-modal__btn--red press" type="button" id="weakPinContinue">Lanjutkan</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- auth.js di-link di <head> seperti halaman lain. Auto-guard-nya sengaja
+       DILEWATI di auth.html (dicek dari nama file di auth.js) supaya tidak
+       looping ke dirinya sendiri — jadi auth-flow.js cukup pakai
+       window.DikaAuth, tanpa menyentuh storage sesi mentah. -->
+  <script src="../scripts/sound.js"></script>
+  <!-- operator-detect.js = SATU-SATUNYA peta prefix operator di project ini.
+       Dipakai di sini HANYA untuk memvalidasi nomor (prefix dikenal atau
+       tidak) — nama operatornya tidak pernah ditampilkan ke member. -->
+  <script src="../scripts/operator-detect.js"></script>
+  <!-- Catat perangkat ini sebagai sesi aktif saat login berhasil. -->
+  <script src="../scripts/perangkat.js"></script>
+  <!-- Sensor biometrik asli (plugin Capacitor). WAJIB sebelum auth-flow.js:
+       tanpa modul ini tombol sidik jari sengaja tidak membuka sesi. -->
+  <script src="../scripts/biometrik.js"></script>
+  <!-- Popup "Akun Kamu Telah Dibanned" (PIN transaksi salah 3x, ATAU PIN
+       auto-lock salah 3x) ditampilkan ULANG dari sini kalau member yang
+       sedang banned mencoba login lagi. -->
+  <script src="../scripts/pin-transaksi.js"></script>
+  <!-- auto-lock.js TIDAK menjalankan layar kuncinya sendiri di sini (lihat
+       init() di file itu) -- dimuat semata supaya auth-flow.js bisa memanggil
+       DikaLock.cekBanned() saat memeriksa nomor yang mau login. -->
+  <script src="../scripts/auto-lock.js"></script>
+  <!-- SATU-SATUNYA pintu fetch ke backend DikaPay — dipakai auth-flow.js
+       untuk POST api-daftar.php (pendaftaran) & api-login.php (masuk). -->
+  <script src="../scripts/api.js"></script>
+  <script src="../scripts/member-sync.js"></script>
+  <!-- Google Sign-In native (plugin Capacitor). WAJIB sebelum auth-flow.js:
+       auth-flow.js memanggil window.DikaGoogleAuth. -->
+  <script src="../scripts/google-auth.js"></script>
+  <script src="../scripts/auth-flow.js"></script>
+</body>
+</html>

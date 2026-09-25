@@ -1,0 +1,13 @@
+{
+  "appId": "com.dikapay.app",
+  "appName": "DikaPay",
+  "webDir": "www",
+  "plugins": {
+    "GoogleAuth": {
+      "scopes": ["profile", "email"],
+      "androidClientId": "307159266118-i4sq5jthcu9m927gcst2mfjf74589fig.apps.googleusercontent.com",
+      "serverClientId": "307159266118-i4sq5jthcu9m927gcst2mfjf74589fig.apps.googleusercontent.com",
+      "forceCodeForRefreshToken": false
+    }
+  }
+}

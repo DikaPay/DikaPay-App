@@ -1,0 +1,194 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!--
+      allowBackup="false" — DULU "true" (nilai bawaan Capacitor) dan itu
+      BUG KEAMANAN yang nyata: sesi login DikaPay disimpan di localStorage
+      WebView, yang ikut tercadang Android Auto Backup ke akun Google
+      pemilik perangkat lalu DIPULIHKAN otomatis saat APK dipasang ulang.
+      Akibatnya uninstall + install ulang tetap langsung masuk ke akun yang
+      tadinya login, tanpa melewati halaman Login sama sekali.
+      JANGAN dikembalikan ke "true" tanpa memindahkan sesi ke penyimpanan
+      yang memang dikecualikan dari backup.
+
+      Dua file aturan di bawahnya adalah lapis kedua (lihat komentar di
+      masing-masing file): backup_rules untuk API <= 30, dan
+      dataExtractionRules untuk API 31+ — yang terakhir ini juga menutup
+      transfer perangkat-ke-perangkat, jalur yang TIDAK ikut tertutup oleh
+      allowBackup="false".
+    -->
+    <application
+        android:allowBackup="false"
+        android:fullBackupContent="@xml/backup_rules"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:theme="@style/AppTheme">
+
+        <activity
+            android:configChanges="orientation|keyboardHidden|keyboard|screenSize|locale|smallestScreenSize|screenLayout|uiMode|navigation|density"
+            android:name=".MainActivity"
+            android:label="@string/title_activity_main"
+            android:theme="@style/AppTheme.NoActionBarLaunch"
+            android:launchMode="singleTask"
+            android:exported="true">
+
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+
+        </activity>
+
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths"></meta-data>
+        </provider>
+    </application>
+
+    <!-- Permissions -->
+
+    <uses-permission android:name="android.permission.INTERNET" />
+
+    <!-- Fitur pengisian nomor tanpa mengetik (input-helper.js).
+         Ketiganya izin BERBAHAYA (dangerous permission), jadi mencantumkannya
+         di sini saja TIDAK cukup: Android 6+ mewajibkan izin diminta saat
+         runtime, tepat ketika tombolnya ditekan. Lihat mintaIzin() di
+         scripts/input-helper.js. -->
+
+    <!-- Ambil nomor dari daftar kontak.
+         WRITE_CONTACTS WAJIB ikut meski app ini TIDAK PERNAH menulis kontak:
+         plugin @capacitor-community/contacts mendeklarasikan satu alias
+         "contacts" = { READ_CONTACTS, WRITE_CONTACTS }, dan Capacitor hanya
+         menganggap alias itu granted kalau SEMUA izin di dalamnya granted.
+         Tanpa baris kedua ini, checkPermissions() selalu melaporkan belum
+         diizinkan — walaupun member sudah mengaktifkan izin Kontak lewat
+         Pengaturan. Itulah sebab fitur kontak "sudah diizinkan tapi tetap
+         mati". JANGAN dihapus tanpa mengganti pluginnya lebih dulu. -->
+    <uses-permission android:name="android.permission.READ_CONTACTS" />
+    <uses-permission android:name="android.permission.WRITE_CONTACTS" />
+
+    <!-- Scan QR / barcode nomor tujuan, DAN foto profil (@capacitor/camera).
+         Satu izin CAMERA dipakai kedua fitur — tidak perlu dideklarasikan
+         dua kali. -->
+    <uses-permission android:name="android.permission.CAMERA" />
+
+    <!-- Foto profil: memilih gambar dari galeri (@capacitor/camera).
+         Android 13+ (API 33) memecah READ_EXTERNAL_STORAGE jadi izin
+         per-jenis media, jadi READ_MEDIA_IMAGES yang dipakai di sana;
+         READ_EXTERNAL_STORAGE dibatasi maxSdkVersion 32 supaya tidak
+         diminta lagi di versi baru (Android menolaknya di sana). -->
+    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32" />
+
+    <!-- Notifikasi sistem HP saat transaksi diproses/berhasil/gagal
+         (@capacitor/local-notifications, lihat notif-hp.js).
+         WAJIB diminta saat runtime sejak Android 13 (API 33); versi lama
+         menganggapnya sudah diberikan. Tanpa baris ini notifikasi tidak
+         pernah muncul di Android 13+ dan tidak ada error apa pun. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+    <!-- Isi nomor lewat suara -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+
+    <!-- Login dengan sidik jari / wajah (biometrik.js + BiometricPrompt).
+         USE_BIOMETRIC adalah izin NORMAL, bukan dangerous: tidak ada dialog
+         runtime, prompt sistemnya sendiri yang jadi persetujuan member.
+         USE_FINGERPRINT untuk Android 8 ke bawah, yang belum punya
+         BiometricPrompt terpadu. Tanpa keduanya prompt tidak pernah muncul
+         dan checkBiometry() melaporkan sensor tidak tersedia. -->
+    <uses-permission android:name="android.permission.USE_BIOMETRIC" />
+    <uses-permission android:name="android.permission.USE_FINGERPRINT" android:maxSdkVersion="28" />
+
+    <!-- Ambil lokasi otomatis untuk mengisi alamat (akun.js).
+         Keduanya dideklarasikan karena alias `location` milik
+         @capacitor/geolocation mencakup FINE + COARSE. Android 12+ membiarkan
+         member memilih "Perkiraan" saja — alur di akun.js menerima keduanya,
+         karena untuk mengisi alamat lokasi perkiraan sudah cukup dan memaksa
+         presisi hanya memperbesar peluang izinnya ditolak. -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+
+    <!-- Kamera & mikrofon TIDAK diwajibkan ada: perangkat tanpa keduanya
+         tetap boleh memasang aplikasi, fiturnya saja yang disembunyikan.
+         Tanpa baris ini Play Store menyaring perangkat itu dari daftar. -->
+    <uses-feature android:name="android.hardware.camera" android:required="false" />
+    <uses-feature android:name="android.hardware.microphone" android:required="false" />
+    <uses-feature android:name="android.hardware.location.gps" android:required="false" />
+    <uses-feature android:name="android.hardware.fingerprint" android:required="false" />
+
+    <!-- Android 11+ (API 30) menyembunyikan aplikasi lain dari app kita
+         kecuali dideklarasikan di sini. Tanpa blok ini, SpeechRecognizer
+         TIDAK MENEMUKAN layanan pengenalan suara di perangkat dan
+         `available()` selalu mengembalikan false — fiturnya mati tanpa
+         pesan error apa pun, meski izin RECORD_AUDIO sudah diberikan. -->
+    <queries>
+        <intent>
+            <action android:name="android.speech.RecognitionService" />
+        </intent>
+
+        <!-- ============ APLIKASI BERISIKO YANG DIPERIKSA IntegritasPlugin ====
+             Sejak Android 11 (API 30) daftar paket disembunyikan:
+             getPackageInfo() melempar NameNotFoundException untuk paket yang
+             TIDAK didaftarkan di sini — seolah-olah tidak terpasang, TANPA
+             error apa pun. Jadi deteksinya diam-diam mati kalau paketnya
+             lupa didaftarkan.
+
+             QUERY_ALL_PACKAGES sengaja TIDAK dipakai: izin itu sensitif di
+             Play Store dan sering ditolak kecuali aplikasinya memang perlu
+             melihat seluruh daftar (peluncur/antivirus). Mendaftarkan paket
+             satu per satu tidak butuh izin apa pun.
+
+             DAFTAR INI HARUS SAMA PERSIS dengan PAKET_BERISIKO di
+             IntegritasPlugin.java. Kalau menambah di satu tempat, tambahkan
+             juga di tempat lainnya. -->
+        <!-- Lucky Patcher -->
+        <package android:name="com.dimonvideo.luckypatcher" />
+        <package android:name="com.forpda.lp" />
+        <package android:name="com.android.vending.billing.InAppBillingService.LUCK" />
+        <package android:name="com.android.vending.billing.InAppBillingService.LACK" />
+        <package android:name="com.android.vending.billing.InAppBillingService.CLON" />
+        <package android:name="com.chelpus.lackypatch" />
+
+        <!-- Game Guardian -->
+        <package android:name="catch_.me.if.you.can" />
+        <package android:name="com.gameguardian.app" />
+
+        <!-- APK Editor / App Packer -->
+        <package android:name="com.gmail.heagoo.apkeditor" />
+        <package android:name="com.gmail.heagoo.apkeditor.pro" />
+        <package android:name="com.gmail.heagoo.apkeditor.ppro" />
+        <package android:name="com.gmail.heagoo.apkeditor.trial" />
+        <package android:name="com.gmail.heagoo.apppacker" />
+
+        <!-- Xposed / LSPosed / EdXposed -->
+        <package android:name="de.robv.android.xposed.installer" />
+        <package android:name="org.meowcat.edxposed.manager" />
+        <package android:name="org.lsposed.manager" />
+        <package android:name="io.va.exposed" />
+        <package android:name="me.weishu.exp" />
+
+        <!-- Magisk (pengelola root) -->
+        <package android:name="com.topjohnwu.magisk" />
+        <package android:name="io.github.huskydg.magisk" />
+
+        <!-- Frida (instrumentasi dinamis) -->
+        <package android:name="re.frida.server" />
+
+        <!-- Pembobol pembelian lain -->
+        <package android:name="uret.jasi2169.patcher" />
+        <package android:name="zone.jasi2169.uretpatcher" />
+        <package android:name="com.blackmartalpha" />
+        <package android:name="org.creeplays.hack" />
+        <package android:name="com.baseappfull.fwd" />
+        <package android:name="com.repodroid.app" />
+        <package android:name="cc.madkite.freedom" />
+    </queries>
+</manifest>

@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="theme-color" content="#0B2447" />
+  <title>DikaPay — Beli Pulsa</title>
+  <!-- Jaring pengaman galat: PALING ATAS di antara semua skrip, supaya
+       galat di file mana pun (termasuk script di bawah ini) tetap tertangkap
+       dan member tidak pernah melihat layar putih tanpa penjelasan. -->
+  <script src="../scripts/galat-global.js"></script>
+  <!-- Pemeriksa integritas perangkat (aplikasi modifikasi / root).
+       PALING ATAS, sebelum auth.js: layar aplikasi tidak boleh sempat
+       tergambar di perangkat yang bermasalah. -->
+  <script src="../scripts/integritas.js"></script>
+  <script src="../scripts/auth.js"></script>
+  <!-- Kunci otomatis: minta PIN lagi kalau app ditinggal >= 5 menit. -->
+  <script src="../scripts/auto-lock.js"></script>
+  <link rel="stylesheet" href="../styles/style.css" />
+  <link rel="stylesheet" href="../styles/produk.css" />
+</head>
+<body>
+  <div class="app" id="app">
+
+    <header class="phead">
+      <button class="phead__back" type="button" id="backBtn" aria-label="Kembali">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+      </button>
+      <h1 class="phead__title">Beli Pulsa</h1>
+    </header>
+
+    <main class="pmain">
+
+      <!-- Nomor tujuan + hasil deteksi operator -->
+      <section class="card pcard">
+        <label class="pfield__label" for="phoneInput">Nomor HP</label>
+        <div class="pfield">
+          <span class="pfield__ic" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="2.5" width="12" height="19" rx="2.6"/><path d="M10.5 18.5h3"/></svg>
+          </span>
+          <input
+            class="pfield__input"
+            id="phoneInput"
+            type="tel"
+            inputmode="numeric"
+            autocomplete="tel"
+            maxlength="13"
+            placeholder="Masukkan nomor HP" />
+          <button class="pfield__clear" type="button" id="clearBtn" aria-label="Hapus nomor" hidden>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+          </button>
+        </div>
+        <!-- diisi pulsa.js: badge operator ATAU pesan "tidak terdeteksi" -->
+        <div class="opbar" id="opBar" aria-live="polite"></div>
+        <!-- Pesan validasi nomor — hanya tampil saat member mencoba lanjut
+             dengan nomor yang belum sah (produk-page.js: tolakNomor). -->
+        <p class="pfield__hint" id="phoneHint" hidden></p>
+      </section>
+
+      <!-- Daftar produk — hanya muncul saat operator terdeteksi -->
+      <!-- Peringatan sebelum transaksi — disembunyikan sampai member
+           berinteraksi (isi nomor / pilih penyedia). Yang menampilkannya:
+           produk-page.js & provider-page.js lewat UI.createWarn(). -->
+      <section class="warn" id="warnBox" hidden aria-live="polite">
+        <span class="warn__ic" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9 1.9 18.3A2 2 0 0 0 3.6 21.3h16.8a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9.2v4.4M12 17.2h.01"/></svg>
+        </span>
+        <div class="warn__body">
+          <p class="warn__title">Periksa kembali nomor HP tujuan</p>
+          <p class="warn__text">Pulsa akan langsung masuk ke nomor yang kamu isi dan tidak bisa ditarik kembali. Pastikan nomor tujuannya sudah benar sebelum melanjutkan, ya — salah satu digit saja sudah cukup membuatnya masuk ke nomor orang lain.</p>
+        </div>
+      </section>
+      <section class="psec" id="prodSec" hidden>
+        <h2 class="psec__title" id="prodTitle">Pilih Nominal</h2>
+        <!-- Tab SUBKATEGORI dari field `tipe` resmi Digiflazz. Di kategori
+             Pulsa hampir semua produk bertipe "Umum", jadi bilah ini
+             TERSEMBUNYI di 6 dari 7 operator (produk-page.js menyembunyikan
+             tab kalau isinya < 2). Yang memunculkannya cuma Indosat, yang
+             punya tipe kedua "Combo Data". -->
+        <nav class="ptabs" id="prodTabs" hidden aria-label="Subkategori"></nav>
+        <div class="prod-grid" id="prodGrid"><!-- dirender produk-page.js --></div>
+      </section>
+
+      <!-- Placeholder saat nomor masih < 4 digit -->
+      <div class="pempty" id="pEmpty">
+        <span class="pempty__ic" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 20h.01M7 20v-4M12 20v-8M17 20V8M22 20V4"/></svg>
+        </span>
+        <p class="pempty__text">Masukkan minimal 4 digit nomor HP<br />untuk melihat daftar pulsa.</p>
+      </div>
+
+    </main>
+  </div>
+
+  <!-- Modal konfirmasi pembelian -->
+  <div class="cmodal-overlay" id="confirmOverlay">
+    <div class="cmodal" role="dialog" aria-modal="true" aria-labelledby="cmTitle">
+      <h3 class="cmodal__title" id="cmTitle">Konfirmasi Pembelian</h3>
+      <p class="cmodal__text">Periksa kembali detail sebelum melanjutkan.</p>
+
+      <!-- baris diisi produk-ui.js (createModal) -->
+      <dl class="cdetail" id="cmRows"></dl>
+
+      <div class="cmodal__actions">
+        <button class="cmodal__btn cmodal__btn--outline" type="button" id="cmCancel">Batal</button>
+        <button class="cmodal__btn cmodal__btn--gold" type="button" id="cmPay">
+          <span class="cmodal__btn-label">Bayar</span>
+          <span class="spinner" aria-hidden="true"></span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script src="../scripts/illustrations.js"></script>
+  <script src="../scripts/paymodal.js"></script>
+  <script src="../scripts/produk-schema.js"></script>
+  <script src="../scripts/produk-ui.js"></script>
+  <!-- Kalkulator margin (TAMPILAN saja) + daftar kategorinya. -->
+  <script src="../scripts/kategori-map.js"></script>
+  <script src="../scripts/margin-calc.js"></script>
+  <!-- Kotak masuk notifikasi per member — diisi payment-flow.js. -->
+  <script src="../scripts/notif-store.js"></script>
+  <!-- Suara sukses transaksi — dipanggil payment-flow.js. -->
+  <script src="../scripts/sound.js"></script>
+  <!-- Pemetaan kode alasan (rc) penyedia -> pesan untuk member.
+       Di-link SEBELUM payment-flow.js yang memakainya. -->
+  <script src="../scripts/digiflazz-rc.js"></script>
+  <!-- PIN wajib tiap transaksi. HARUS sebelum payment-flow.js:
+       tanpa modul ini pembayaran sengaja DITOLAK, bukan dilewati. -->
+  <script src="../scripts/pin-transaksi.js"></script>
+  <!-- Notifikasi SISTEM HP (local notification). WAJIB sebelum
+       payment-flow.js / transfer-member.js yang memanggilnya. -->
+  <script src="../scripts/notif-hp.js"></script>
+  <script src="../scripts/payment-flow.js"></script>
+  <script src="../scripts/input-helper.js"></script>
+  <!-- Placeholder beranimasi untuk field nomor (satu implementasi). -->
+  <script src="../scripts/placeholder-anim.js"></script>
+  <script src="../scripts/operator-detect.js"></script>
+  <script src="../scripts/produk-page.js"></script>
+  <!-- DATA ASLI dari backend: api.js = satu-satunya pintu fetch (+cache
+       bersama 5 menit), brand-map.js memetakan brand penyedia -> opKey
+       internal. Keduanya WAJIB sebelum pulsa.js yang memakainya. -->
+  <script src="../scripts/api.js"></script>
+  <script src="../scripts/member-sync.js"></script>
+  <script src="../scripts/brand-map.js"></script>
+  <!-- tipe-map.js: field `tipe` RESMI Digiflazz -> famili subkategori.
+       Di halaman ini yang dipisahkannya cuma "Combo Data" milik Indosat,
+       tapi modulnya sama dengan yang dipakai Paket Data. -->
+  <script src="../scripts/tipe-map.js"></script>
+  <script src="../scripts/pulsa.js"></script>
+</body>
+</html>

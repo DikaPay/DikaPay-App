@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Aturan untuk Android 12+ (API 31+), dipakai lewat
+  android:dataExtractionRules di AndroidManifest.xml. Project ini
+  targetSdkVersion 36, jadi INI yang berlaku di perangkat modern —
+  backup_rules.xml hanya dipakai perangkat API <= 30 (minSdk project ini 24).
+
+  DUA jalur data keluar dari perangkat, dan keduanya HARUS ditutup:
+    1. <cloud-backup>   — cadangan ke akun Google (yang membuat sesi login
+                          "hidup lagi" setelah uninstall + install ulang).
+    2. <device-transfer> — salin langsung ke HP baru saat ganti perangkat.
+  android:allowBackup="false" menutup jalur cloud, TAPI transfer
+  perangkat-ke-perangkat punya sakelarnya sendiri di sini. Tanpa blok
+  <device-transfer> di bawah, data sesi masih bisa ikut berpindah saat
+  member memindahkan datanya ke HP baru.
+-->
+<data-extraction-rules>
+    <cloud-backup>
+        <exclude domain="root" />
+        <exclude domain="file" />
+        <exclude domain="database" />
+        <exclude domain="sharedpref" />
+        <exclude domain="external" />
+    </cloud-backup>
+
+    <device-transfer>
+        <exclude domain="root" />
+        <exclude domain="file" />
+        <exclude domain="database" />
+        <exclude domain="sharedpref" />
+        <exclude domain="external" />
+    </device-transfer>
+</data-extraction-rules>

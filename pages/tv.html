@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="theme-color" content="#0B2447" />
+  <title>DikaPay — TV Berlangganan</title>
+  <!-- Jaring pengaman galat: PALING ATAS di antara semua skrip, supaya
+       galat di file mana pun (termasuk script di bawah ini) tetap tertangkap
+       dan member tidak pernah melihat layar putih tanpa penjelasan. -->
+  <script src="../scripts/galat-global.js"></script>
+  <!-- Pemeriksa integritas perangkat (aplikasi modifikasi / root).
+       PALING ATAS, sebelum auth.js: layar aplikasi tidak boleh sempat
+       tergambar di perangkat yang bermasalah. -->
+  <script src="../scripts/integritas.js"></script>
+  <script src="../scripts/auth.js"></script>
+  <!-- Kunci otomatis: minta PIN lagi kalau app ditinggal >= 5 menit. -->
+  <script src="../scripts/auto-lock.js"></script>
+  <link rel="stylesheet" href="../styles/style.css" />
+  <link rel="stylesheet" href="../styles/produk.css" />
+</head>
+<body>
+  <div class="app" id="app">
+
+    <header class="phead">
+      <button class="phead__back" type="button" id="backBtn" aria-label="Kembali">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+      </button>
+      <h1 class="phead__title">TV Berlangganan</h1>
+    </header>
+
+    <main class="pmain">
+
+      <section class="psec" id="brandSec">
+        <h2 class="psec__title" id="brandTitle">Pilih Penyedia</h2>
+        <div class="brand-grid" id="brandGrid"><!-- dirender provider-page.js --></div>
+      </section>
+
+      <section class="picked" id="pickedBar" hidden>
+        <span class="picked__label">Penyedia</span>
+        <span class="picked__name" id="pickedName">—</span>
+        <button class="picked__change" type="button" id="changeBtn">Ganti</button>
+      </section>
+
+      <!-- Identitas tujuan — dirender provider-page.js dari accountFields().
+           Muncul setelah penyedia dipilih, sebelum grid nominal. -->
+      <section class="card pcard acct-sec" id="acctSec" hidden>
+        <div class="acct-fields" id="acctFields"><!-- dirender provider-page.js --></div>
+      </section>
+
+      <!-- Peringatan sebelum transaksi — disembunyikan sampai member
+           berinteraksi (isi nomor / pilih penyedia). Yang menampilkannya:
+           produk-page.js & provider-page.js lewat UI.createWarn(). -->
+      <section class="warn" id="warnBox" hidden aria-live="polite">
+        <span class="warn__ic" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9 1.9 18.3A2 2 0 0 0 3.6 21.3h16.8a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9.2v4.4M12 17.2h.01"/></svg>
+        </span>
+        <div class="warn__body">
+          <p class="warn__title">Periksa kembali pilihan kamu</p>
+          <p class="warn__text">Pastikan penyedia & paket TV yang kamu pilih sudah benar. Paket yang sudah dibeli tidak bisa ditukar atau dibatalkan, jadi kesalahan pilihan menjadi tanggung jawab pembeli.</p>
+        </div>
+      </section>
+      <section class="psec" id="prodSec" hidden>
+        <h2 class="psec__title" id="prodTitle">Pilih Paket</h2>
+        <div class="prod-grid" id="prodGrid"><!-- dirender produk-ui.js --></div>
+      </section>
+
+    </main>
+  </div>
+
+  <div class="cmodal-overlay" id="confirmOverlay">
+    <div class="cmodal" role="dialog" aria-modal="true" aria-labelledby="cmTitle">
+      <h3 class="cmodal__title" id="cmTitle">Konfirmasi Pembelian</h3>
+      <p class="cmodal__text">Periksa kembali detail sebelum melanjutkan.</p>
+      <!-- baris diisi produk-ui.js (createModal) -->
+      <dl class="cdetail" id="cmRows"></dl>
+      <div class="cmodal__actions">
+        <button class="cmodal__btn cmodal__btn--outline" type="button" id="cmCancel">Batal</button>
+        <button class="cmodal__btn cmodal__btn--gold" type="button" id="cmPay">
+          <span class="cmodal__btn-label">Bayar</span>
+          <span class="spinner" aria-hidden="true"></span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script src="../scripts/illustrations.js"></script>
+  <script src="../scripts/paymodal.js"></script>
+  <script src="../scripts/produk-schema.js"></script>
+  <script src="../scripts/produk-ui.js"></script>
+  <!-- Kalkulator margin (TAMPILAN saja) + daftar kategorinya. -->
+  <script src="../scripts/kategori-map.js"></script>
+  <script src="../scripts/margin-calc.js"></script>
+  <!-- Kotak masuk notifikasi per member — diisi payment-flow.js. -->
+  <script src="../scripts/notif-store.js"></script>
+  <!-- Suara sukses transaksi — dipanggil payment-flow.js. -->
+  <script src="../scripts/sound.js"></script>
+  <!-- Pemetaan kode alasan (rc) penyedia -> pesan untuk member.
+       Di-link SEBELUM payment-flow.js yang memakainya. -->
+  <script src="../scripts/digiflazz-rc.js"></script>
+  <!-- PIN wajib tiap transaksi. HARUS sebelum payment-flow.js:
+       tanpa modul ini pembayaran sengaja DITOLAK, bukan dilewati. -->
+  <script src="../scripts/pin-transaksi.js"></script>
+  <!-- Notifikasi SISTEM HP (local notification). WAJIB sebelum
+       payment-flow.js / transfer-member.js yang memanggilnya. -->
+  <script src="../scripts/notif-hp.js"></script>
+  <script src="../scripts/payment-flow.js"></script>
+  <script src="../scripts/input-helper.js"></script>
+  <!-- Placeholder beranimasi untuk field nomor (satu implementasi). -->
+  <script src="../scripts/placeholder-anim.js"></script>
+  <!-- Peta prefix operator — dibutuhkan validasi ketat field "Nomor HP
+       Tujuan" (provider-page.js: fieldSah). SATU sumber prefix. -->
+  <script src="../scripts/operator-detect.js"></script>
+  <script src="../scripts/provider-page.js"></script>
+  <!-- DATA ASLI dari backend: api.js = satu-satunya pintu fetch (+cache
+       bersama 5 menit), brand-map.js memetakan brand -> provider.id.
+       kategori-map.js (sudah di-link di atas) dipakai MENYARING katalog ke
+       slug `tv` — halaman ini tidak menebak satu nama kategori, karena
+       Digiflazz belum punya kategori TV sama sekali. Lihat header tv.js. -->
+  <script src="../scripts/api.js"></script>
+  <script src="../scripts/member-sync.js"></script>
+  <script src="../scripts/brand-map.js"></script>
+  <script src="../scripts/tv.js"></script>
+</body>
+</html>

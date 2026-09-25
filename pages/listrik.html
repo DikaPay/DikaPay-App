@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="theme-color" content="#0B2447" />
+  <title>DikaPay — Token Listrik PLN</title>
+  <!-- Jaring pengaman galat: PALING ATAS di antara semua skrip, supaya
+       galat di file mana pun (termasuk script di bawah ini) tetap tertangkap
+       dan member tidak pernah melihat layar putih tanpa penjelasan. -->
+  <script src="../scripts/galat-global.js"></script>
+  <!-- Pemeriksa integritas perangkat (aplikasi modifikasi / root).
+       PALING ATAS, sebelum auth.js: layar aplikasi tidak boleh sempat
+       tergambar di perangkat yang bermasalah. -->
+  <script src="../scripts/integritas.js"></script>
+  <script src="../scripts/auth.js"></script>
+  <!-- Kunci otomatis: minta PIN lagi kalau app ditinggal >= 5 menit. -->
+  <script src="../scripts/auto-lock.js"></script>
+  <link rel="stylesheet" href="../styles/style.css" />
+  <link rel="stylesheet" href="../styles/produk.css" />
+</head>
+<body>
+  <div class="app" id="app">
+
+    <header class="phead">
+      <button class="phead__back" type="button" id="backBtn" aria-label="Kembali">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+      </button>
+      <h1 class="phead__title">Token Listrik PLN</h1>
+    </header>
+
+    <main class="pmain">
+
+      <!-- Nomor meter + tombol cek -->
+      <section class="card pcard">
+        <label class="pfield__label" for="meterInput">Nomor Meter/ID Pelanggan</label>
+        <div class="pfield">
+          <span class="pfield__ic" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 3 14h7l-1 8 10-12h-7z"/></svg>
+          </span>
+          <input
+            class="pfield__input"
+            id="meterInput"
+            type="tel"
+            inputmode="numeric"
+            autocomplete="off"
+            maxlength="12"
+            placeholder="Contoh: 12345678901" />
+          <button class="pfield__clear" type="button" id="clearBtn" aria-label="Hapus nomor" hidden>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+          </button>
+        </div>
+
+        <!-- Cek NAMA pelanggan (inquiry-pln asli lewat backend proxy).
+             Muncul setelah nomor meter >= 8 digit. -->
+        <button class="cek-btn" type="button" id="cekBtn" hidden>
+          <span class="cek-btn__label">Cek Nama Pelanggan</span>
+          <span class="spinner" aria-hidden="true"></span>
+        </button>
+        <p class="cek-err" id="cekErr" role="alert" hidden></p>
+      </section>
+
+      <!-- Kartu data pelanggan hasil cek (nama asli dari Digiflazz) -->
+      <section class="cust" id="custCard" hidden aria-live="polite">
+        <div class="cust__head">
+          <span class="cust__ic" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+          </span>
+          <span class="cust__title">Data Pelanggan</span>
+          <span class="cust__ok">Ditemukan</span>
+        </div>
+        <dl class="cust__rows">
+          <div class="cust__row"><dt>Nama</dt><dd id="custName">-</dd></div>
+          <div class="cust__row"><dt>ID Pelanggan</dt><dd id="custId">-</dd></div>
+          <div class="cust__row"><dt>Tarif/Daya</dt><dd id="custTarif">-</dd></div>
+        </dl>
+      </section>
+
+      <!-- Peringatan — muncul setelah cek (sukses maupun gagal) -->
+      <section class="warn" id="warnBox" hidden aria-live="polite">
+        <span class="warn__ic" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9 1.9 18.3A2 2 0 0 0 3.6 21.3h16.8a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9.2v4.4M12 17.2h.01"/></svg>
+        </span>
+        <div class="warn__body">
+          <p class="warn__title">Periksa kembali nomor meter</p>
+          <p class="warn__text">Pastikan nomor meter &amp; nama pelanggan di atas sudah sesuai sebelum membeli token. Token yang terlanjur dibeli untuk nomor meter yang salah tidak bisa ditarik kembali.</p>
+        </div>
+      </section>
+
+      <!-- Nominal token -->
+      <section class="psec" id="prodSec" hidden>
+        <h2 class="psec__title" id="prodTitle">Pilih Nominal Token</h2>
+        <div class="prod-grid" id="prodGrid"><!-- dirender produk-ui.js --></div>
+      </section>
+
+      <!-- Placeholder sebelum nomor cukup panjang -->
+      <div class="pempty" id="pEmpty">
+        <span class="pempty__ic" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 3 14h7l-1 8 10-12h-7z"/></svg>
+        </span>
+        <p class="pempty__text" id="pEmptyText">Masukkan nomor meter/ID pelanggan<br />minimal 8 digit untuk mulai.</p>
+      </div>
+
+    </main>
+  </div>
+
+  <!-- Modal konfirmasi pembelian -->
+  <div class="cmodal-overlay" id="confirmOverlay">
+    <div class="cmodal" role="dialog" aria-modal="true" aria-labelledby="cmTitle">
+      <h3 class="cmodal__title" id="cmTitle">Konfirmasi Pembelian</h3>
+      <p class="cmodal__text">Periksa kembali detail sebelum melanjutkan.</p>
+
+      <!-- baris diisi produk-ui.js (createModal) -->
+      <dl class="cdetail" id="cmRows"></dl>
+
+      <div class="cmodal__actions">
+        <button class="cmodal__btn cmodal__btn--outline" type="button" id="cmCancel">Batal</button>
+        <button class="cmodal__btn cmodal__btn--gold" type="button" id="cmPay">
+          <span class="cmodal__btn-label">Bayar</span>
+          <span class="spinner" aria-hidden="true"></span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script src="../scripts/illustrations.js"></script>
+  <script src="../scripts/paymodal.js"></script>
+  <script src="../scripts/produk-schema.js"></script>
+  <script src="../scripts/produk-ui.js"></script>
+  <!-- Kalkulator margin (TAMPILAN saja) + daftar kategorinya. -->
+  <script src="../scripts/kategori-map.js"></script>
+  <script src="../scripts/margin-calc.js"></script>
+  <!-- Kotak masuk notifikasi per member — diisi payment-flow.js. -->
+  <script src="../scripts/notif-store.js"></script>
+  <!-- Suara sukses transaksi — dipanggil payment-flow.js. -->
+  <script src="../scripts/sound.js"></script>
+  <!-- Pemetaan kode alasan (rc) penyedia -> pesan untuk member.
+       Di-link SEBELUM payment-flow.js yang memakainya. -->
+  <script src="../scripts/digiflazz-rc.js"></script>
+  <!-- PIN wajib tiap transaksi. HARUS sebelum payment-flow.js:
+       tanpa modul ini pembayaran sengaja DITOLAK, bukan dilewati. -->
+  <script src="../scripts/pin-transaksi.js"></script>
+  <!-- Notifikasi SISTEM HP (local notification). WAJIB sebelum
+       payment-flow.js / transfer-member.js yang memanggilnya. -->
+  <script src="../scripts/notif-hp.js"></script>
+  <script src="../scripts/payment-flow.js"></script>
+  <script src="../scripts/input-helper.js"></script>
+  <!-- Placeholder beranimasi untuk field nomor (satu implementasi). -->
+  <script src="../scripts/placeholder-anim.js"></script>
+  <!-- DATA ASLI dari backend: api.js = satu-satunya pintu fetch (+cache
+       bersama 5 menit). Halaman ini TIDAK memakai brand-map/kategori-live
+       (tidak ada operator yang dideteksi — nomor meter, bukan nomor HP);
+       listrik.js merangkai fetch-nya sendiri di atas produk-ui.js. -->
+  <script src="../scripts/api.js"></script>
+  <script src="../scripts/member-sync.js"></script>
+  <script src="../scripts/listrik.js"></script>
+</body>
+</html>

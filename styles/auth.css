@@ -1,0 +1,1049 @@
+/* ===========================================================================
+   DikaPay — auth.css
+   Gaya untuk auth.html — SATU halaman alur (splash → nomor HP → cabang
+   daftar/masuk → sukses). style.css di-link lebih dulu (token :root, .press,
+   .reveal).
+
+   auth.html TIDAK memuat akun.css / transfer-member.css, jadi primitif yang
+   mirip (keypad PIN, checkmark sukses) DISALIN ulang di sini dengan nama
+   sendiri (.auth-keypad, .auth-check, dst) — pola yang sama seperti file ini
+   sudah pakai sejak awal (.aff/.abtn alih-alih .ff/.apply-btn dari akun.css).
+   =========================================================================== */
+
+body { overflow-x: hidden; }
+
+/* ===== Kerangka halaman ================================================= */
+
+.auth-app {
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+  position: relative;
+}
+
+/* Blok navy atas dengan sudut bawah membulat — konsisten dengan .topbar
+   di beranda. Dipakai di SEMUA step kecuali splash (yang full-bleed). */
+.auth-hero {
+  position: relative;
+  overflow: hidden;
+  padding: 46px 20px 34px;
+  background: linear-gradient(160deg, var(--navy-800) 0%, var(--navy-900) 100%);
+  border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+  text-align: center;
+  color: var(--white);
+  transition: padding 0.3s var(--ease-out);
+}
+
+/* Dua bulatan dekoratif — murni transform/opacity saat animasi. */
+.auth-hero::before,
+.auth-hero::after {
+  content: "";
+  position: absolute;
+  border-radius: 50%;
+  background: rgba(255, 201, 60, 0.1);
+  pointer-events: none;
+}
+.auth-hero::before {
+  width: 190px; height: 190px;
+  top: -84px; right: -58px;
+  animation: authBlob 9s ease-in-out infinite;
+}
+.auth-hero::after {
+  width: 120px; height: 120px;
+  bottom: -62px; left: -34px;
+  background: rgba(255, 255, 255, 0.05);
+  animation: authBlob 11s ease-in-out infinite reverse;
+}
+@keyframes authBlob {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+  50%      { transform: translate3d(0, 10px, 0) scale(1.07); }
+}
+
+.auth-logo {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  width: 62px;
+  height: 62px;
+  border-radius: 20px;
+  background: var(--gold-500);
+  color: var(--navy-900);
+  box-shadow: 0 8px 20px rgba(255, 201, 60, 0.34);
+  animation: authLogoIn 0.6s var(--ease-out) both;
+}
+.auth-logo svg { width: 31px; height: 31px; }
+
+/* Varian BERGAMBAR — logo DikaPay yang baru sudah membawa latar & bentuk
+   rounded-square-nya sendiri, jadi kotak gold + bayangan gold di
+   `.auth-logo` justru menumpuk dua latar yang berbeda. Di varian ini
+   latarnya dilepas dan gambarnya mengisi penuh; animasi masuk
+   (authLogoIn) sengaja TETAP dipakai supaya gerakan pembukanya tidak
+   berubah. */
+.auth-logo--img {
+  width: 76px;
+  height: 76px;
+  border-radius: 22px;
+  background: none;
+  box-shadow: 0 10px 24px rgba(11, 36, 71, 0.28);
+  overflow: hidden;
+}
+.auth-logo--img img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+}
+@keyframes authLogoIn {
+  from { opacity: 0; transform: scale(0.6) rotate(-12deg); }
+  to   { opacity: 1; transform: scale(1) rotate(0); }
+}
+
+.auth-title {
+  position: relative;
+  margin-top: 14px;
+  font-size: 23px;
+  font-weight: 800;
+  letter-spacing: 0.3px;
+}
+.auth-tagline {
+  position: relative;
+  margin-top: 5px;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.auth-main {
+  flex: 1;
+  width: 100%;
+  max-width: var(--content-max);
+  margin: 0 auto;
+  padding: 18px 16px calc(24px + env(safe-area-inset-bottom, 0px));
+}
+
+.auth-card {
+  background: var(--surface);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+  padding: 22px 18px 18px;
+}
+.auth-card__title {
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--fg-strong);
+}
+.auth-card__sub {
+  margin-top: 4px;
+  margin-bottom: 20px;
+  font-size: 12px;
+  line-height: 1.55;
+  color: var(--text-muted);
+}
+
+/* ===== Splash awal — particle background + logo =========================
+   Full-bleed, satu-satunya step TANPA .auth-hero (dia SENDIRI adalah hero-
+   nya). Auto-lanjut ke step nomor HP setelah jeda singkat; boleh diketuk
+   untuk lompat lebih cepat. */
+
+.auth-splash {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background: linear-gradient(165deg, var(--navy-700) 0%, var(--navy-900) 65%);
+  transition: opacity 0.45s ease, visibility 0s linear 0.45s;
+}
+.auth-splash.is-leaving { opacity: 0; visibility: hidden; }
+/* Jaring pengaman CSS untuk `splash.hidden = true` (lihat auth-flow.js,
+   "BUG splash nyangkut di atas form"): TANPA baris ini, `[hidden]` UA
+   stylesheet (`display:none`) KALAH melawan `.auth-splash{display:flex}`
+   di atas — author stylesheet SELALU menang atas UA stylesheet apa pun
+   urutan/specificity-nya, jadi setel `splash.hidden = true` dari JS TIDAK
+   benar-benar menyembunyikannya secara visual, ia cuma kehilangan makna
+   semantik/aksesibilitasnya. Class+attribute selector di sini (specificity
+   lebih tinggi dari `.auth-splash` saja) memaksa `display:none` menang. */
+.auth-splash[hidden] { display: none; }
+
+.auth-particle {
+  position: absolute;
+  bottom: -10%;
+  border-radius: 50%;
+  background: rgba(255, 201, 60, var(--pOpacity, 0.5));
+  width: var(--pSize, 5px);
+  height: var(--pSize, 5px);
+  left: var(--pLeft, 50%);
+  animation: authParticleUp var(--pDur, 7s) linear infinite;
+  animation-delay: var(--pDelay, 0s);
+}
+@keyframes authParticleUp {
+  from { transform: translateY(0) translateX(0); opacity: 0; }
+  10%  { opacity: 1; }
+  90%  { opacity: 1; }
+  to   { transform: translateY(-115vh) translateX(var(--pDrift, 12px)); opacity: 0; }
+}
+
+.auth-splash .auth-logo {
+  position: relative;
+  z-index: 1;
+  width: 84px;
+  height: 84px;
+  border-radius: 26px;
+  animation: authLogoIn 0.7s var(--ease-out) both, authLogoFloat 3.2s ease-in-out 0.7s infinite;
+}
+.auth-splash .auth-logo svg { width: 42px; height: 42px; }
+@keyframes authLogoFloat {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-8px); }
+}
+.auth-splash .auth-title {
+  position: relative;
+  z-index: 1;
+  margin-top: 18px;
+  font-size: 26px;
+  color: var(--white);
+  animation: authFadeUp 0.5s var(--ease-out) 0.25s both;
+}
+.auth-splash .auth-tagline {
+  position: relative;
+  z-index: 1;
+  margin-top: 6px;
+  animation: authFadeUp 0.5s var(--ease-out) 0.4s both;
+}
+@keyframes authFadeUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ===== Transisi antar step ===============================================
+   .astep = satu tahap alur (nomor HP / sambutan-daftar / masuk / sukses).
+   Ditoggle lewat [hidden]; setiap kali sebuah step MUNCUL, ia dapat class
+   .is-in yang dilepas-pasang ulang (bukan animasi otomatis di [hidden]
+   lepas — supaya bisa dipicu lagi walau elemen sama dipakai berkali-kali). */
+
+.astep[hidden] { display: none; }
+.astep.is-in { animation: authStepIn 0.4s var(--ease-out); }
+@keyframes authStepIn {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ===== Field floating-label (pola .ff di akun.css) ====================== */
+
+.aff { position: relative; margin-bottom: 22px; }
+.aff__input {
+  width: 100%;
+  padding: 18px 0 8px;
+  border: none;
+  border-bottom: 2px solid var(--border);
+  background: none;
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--fg-strong);
+  outline: none;
+  transition: border-color 0.22s ease;
+}
+.aff__input:focus { border-bottom-color: var(--gold-500); }
+
+.aff__label {
+  position: absolute;
+  left: 0;
+  top: 16px;
+  font-size: 15px;
+  color: var(--text-muted);
+  pointer-events: none;
+  transform-origin: left top;
+  transition: transform 0.18s var(--ease-out), color 0.18s ease;
+}
+.aff__input:focus ~ .aff__label,
+.aff__input:not(:placeholder-shown) ~ .aff__label {
+  transform: translateY(-16px) scale(0.78);
+}
+.aff__input:focus ~ .aff__label { color: var(--warn-fg); }
+
+.aff__err {
+  display: block;
+  margin-top: 5px;
+  font-size: 11px;
+  color: var(--err-fg);
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+.aff.is-error .aff__input { border-bottom-color: var(--err-fg); }
+.aff.is-error .aff__err { opacity: 1; }
+.aff.is-shake { animation: authShake 0.4s ease; }
+
+@keyframes authShake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-6px); }
+  50% { transform: translateX(5px); }
+  75% { transform: translateX(-3px); }
+}
+
+/* ===== Kotak error umum ================================================= */
+
+.auth-err {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 16px;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--err-bg);
+  color: var(--err-fg);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.45;
+  animation: authErrIn 0.3s var(--ease-out);
+}
+.auth-err svg { flex: 0 0 15px; width: 15px; height: 15px; margin-top: 1px; }
+@keyframes authErrIn {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.auth-err[hidden] { display: none; }
+
+/* ===== Tombol utama (pola .apply-btn) =================================== */
+
+.abtn {
+  position: relative;
+  width: 100%;
+  margin-top: 4px;
+  padding: 15px;
+  border-radius: 14px;
+  background: var(--gold-500);
+  color: var(--fg-strong);
+  font-size: 14.5px;
+  font-weight: 800;
+  box-shadow: 0 6px 16px rgba(255, 201, 60, 0.32);
+  transition: transform 0.12s var(--ease-out), filter 0.12s ease, opacity 0.2s ease;
+}
+.abtn:active { transform: scale(0.97); }
+.abtn[disabled] { pointer-events: none; opacity: 0.65; }
+/* Loading DikaPay: 3 titik berdenyut naik-turun (gaya DANA), bukan lagi
+   cincin berputar — `.abtn__spin` jadi titik tengah, `::before`/`::after`
+   titik kiri-kanan. Markup tidak berubah (masih satu `<span>` kosong). */
+.abtn__spin {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 6px;
+  height: 6px;
+  margin: -3px 0 0 -3px;
+  border-radius: 50%;
+  background: var(--fg-strong);
+  opacity: 0;
+  animation: authDot 0.9s ease-in-out infinite;
+}
+.abtn__spin::before, .abtn__spin::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--fg-strong);
+  animation: authDot 0.9s ease-in-out infinite;
+}
+.abtn__spin::before { left: -12px; animation-delay: -0.3s; }
+.abtn__spin::after  { left: 12px;  animation-delay: 0.3s; }
+.abtn.is-loading { pointer-events: none; }
+.abtn.is-loading .abtn__label { opacity: 0; }
+.abtn.is-loading .abtn__spin { opacity: 1; }
+
+@keyframes authDot {
+  0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; }
+  40%           { transform: scale(1);   opacity: 1; }
+}
+
+/* ===== "Lanjutkan dengan Google" =========================================
+   Entrance-nya SENGAJA terpisah dari .astep.is-in (yang menganimasikan
+   seluruh kartu): divider muncul dulu, tombol menyusul sedikit lebih
+   lambat — supaya terasa "menyusul" alih-alih numpuk jadi satu gerakan,
+   pola yang sama seperti auth-pin-greet vs .astep.is-in. */
+
+.auth-divider {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 18px 0 14px;
+  opacity: 0;
+  animation: authFadeUp 0.4s var(--ease-out) 0.45s forwards;
+}
+.auth-divider::before,
+.auth-divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: rgba(11, 36, 71, 0.12);
+}
+.auth-divider span {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+.auth-google-btn {
+  position: relative;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 13px;
+  border-radius: 14px;
+  background: #fff;
+  border: 1.5px solid rgba(11, 36, 71, 0.14);
+  color: var(--fg-strong);
+  font-size: 14px;
+  font-weight: 700;
+  opacity: 0;
+  transform: translateY(8px);
+  animation: authFadeUp 0.45s var(--ease-out) 0.58s forwards;
+  transition: transform 0.12s var(--ease-out), box-shadow 0.2s ease,
+    border-color 0.2s ease, opacity 0.2s ease;
+}
+.auth-google-btn:active {
+  transform: scale(0.97);
+  box-shadow: 0 3px 12px rgba(11, 36, 71, 0.18);
+  border-color: rgba(11, 36, 71, 0.24);
+}
+.auth-google-btn[disabled] { pointer-events: none; opacity: 0.6; }
+.auth-google-btn.is-loading { pointer-events: none; }
+
+.auth-google-btn__ic {
+  display: inline-flex;
+  line-height: 0;
+  transition: opacity 0.18s ease, transform 0.18s var(--ease-out);
+}
+.auth-google-btn .abtn__label { transition: opacity 0.18s ease; }
+.auth-google-btn.is-loading .auth-google-btn__ic,
+.auth-google-btn.is-loading .abtn__label {
+  opacity: 0;
+  transform: scale(0.6);
+}
+.auth-google-btn.is-loading .abtn__spin { opacity: 1; }
+
+.auth-google-note {
+  margin-top: 10px;
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--text-muted);
+  text-align: center;
+}
+.auth-google-note[hidden] { display: none; }
+
+/* Keypad PIN dikunci + diredupkan selama panggilan jaringan berjalan
+   (mendaftar / memeriksa PIN ke backend) — lihat createPinPad.setBusy(). */
+.auth-keypad.is-busy { opacity: 0.45; pointer-events: none; }
+
+.auth-note {
+  margin-top: 16px;
+  font-size: 10.5px;
+  line-height: 1.55;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+/* Link teks kecil (mis. "Pakai PIN", "Ganti nomor") */
+.auth-link {
+  display: block;
+  margin-top: 14px;
+  text-align: center;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--navy-700);
+}
+.auth-link:active { opacity: 0.6; }
+
+/* ===== Toast sukses (slide dari atas, pola .topmsg) ===================== */
+
+.auth-toast {
+  position: fixed;
+  top: 14px;
+  left: 50%;
+  z-index: 120;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: calc(100% - 32px);
+  padding: 12px 16px;
+  border-radius: 999px;
+  background: var(--ok-solid);
+  color: var(--white);
+  font-size: 12.5px;
+  font-weight: 700;
+  box-shadow: var(--shadow-md);
+  opacity: 0;
+  transform: translate(-50%, -22px);
+  pointer-events: none;
+  transition: opacity 0.3s ease, transform 0.36s var(--ease-out);
+}
+.auth-toast.is-show { opacity: 1; transform: translate(-50%, 0); }
+.auth-toast[hidden] { display: none; }
+
+/* ===== Sambutan member baru (Cabang A) =================================== */
+
+.auth-welcome {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 18px;
+  padding: 13px 14px;
+  border-radius: var(--radius);
+  background: var(--cream-bg);
+  color: var(--cream-fg);
+}
+.auth-welcome__ic {
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: rgba(255, 201, 60, 0.3);
+  color: var(--warn-fg);
+  font-size: 17px;
+}
+.auth-welcome__title { font-size: 13px; font-weight: 800; line-height: 1.35; }
+.auth-welcome__text { margin-top: 3px; font-size: 11.5px; line-height: 1.55; }
+
+/* ===== Member ditemukan — avatar + nama (Cabang B) ======================= */
+
+.auth-member {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  margin-bottom: 20px;
+}
+.auth-avatar {
+  display: grid;
+  place-items: center;
+  width: 66px;
+  height: 66px;
+  border-radius: 50%;
+  background: var(--gold-500);
+  color: var(--fg-strong);
+  font-size: 22px;
+  font-weight: 800;
+  animation: authAvatarPop 0.45s var(--ease-out) both;
+}
+@keyframes authAvatarPop {
+  from { opacity: 0; transform: scale(0.5); }
+  to   { opacity: 1; transform: scale(1); }
+}
+.auth-member__name {
+  margin-top: 10px;
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--fg-strong);
+}
+.auth-member__phone { margin-top: 2px; font-size: 12px; color: var(--text-muted); }
+
+/* ===== Biometrik — tombol utama besar ===================================== */
+
+.auth-bio-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 22px 16px;
+  border-radius: var(--radius);
+  background: var(--tint);
+  transition: transform 0.12s var(--ease-out), background 0.15s ease;
+}
+.auth-bio-btn:active { transform: scale(0.97); background: var(--tint-strong); }
+.auth-bio-btn__ic {
+  display: grid;
+  place-items: center;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: var(--gold-500);
+  color: var(--fg-strong);
+  box-shadow: 0 6px 16px rgba(255, 201, 60, 0.32);
+}
+.auth-bio-btn__ic svg { width: 32px; height: 32px; }
+.auth-bio-btn__label { font-size: 13px; font-weight: 800; color: var(--fg-strong); }
+.auth-bio-btn__hint { font-size: 11px; color: var(--text-muted); }
+
+.auth-bio-btn.is-scanning .auth-bio-btn__ic {
+  animation: authBioScan 1.1s ease-in-out infinite;
+}
+@keyframes authBioScan {
+  0%, 100% { box-shadow: 0 6px 16px rgba(255, 201, 60, 0.32), 0 0 0 0 rgba(255, 201, 60, 0.5); }
+  50%      { box-shadow: 0 6px 16px rgba(255, 201, 60, 0.32), 0 0 0 10px rgba(255, 201, 60, 0); }
+}
+
+/* ===== Keypad PIN (pola .pin-dots/.keypad di akun.css, nama sendiri) ===== */
+
+.auth-pin-dots {
+  display: flex;
+  justify-content: center;
+  gap: 15px;
+  margin: 8px 0 4px;
+}
+.auth-pin-dot {
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  border: 2px solid var(--fg-strong);
+  transition: background 0.15s ease, transform 0.15s var(--ease-out);
+}
+.auth-pin-dot.is-filled { background: var(--fg-strong); transform: scale(1.15); }
+.auth-pin-dots.is-error { animation: authShake 0.4s ease; }
+
+.auth-pin-hint {
+  margin-top: 10px;
+  text-align: center;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.auth-keypad {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  max-width: 280px;
+  margin: 26px auto 0;
+}
+.auth-keypad button {
+  padding: 15px;
+  border-radius: 14px;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--fg-strong);
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+  transition: transform 0.1s var(--ease-out), background 0.1s ease;
+}
+.auth-keypad button:active { transform: scale(0.92); background: var(--surface-2); }
+.auth-keypad .key--fn { background: none; box-shadow: none; }
+.auth-keypad .key--fn:active { background: var(--tint); }
+
+/* ===== Sapaan personal — langkah Buat PIN (Cabang A) ====================
+   Animasi masuk TERPISAH dari .astep.is-in (container) — delay 0,15 dtk
+   supaya terasa "menyambut" sesaat setelah kartu sendiri selesai settle,
+   bukan numpuk barengan jadi satu gerakan. */
+
+.auth-pin-greet {
+  margin: 2px 0 12px;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--fg-strong);
+  opacity: 0;
+  transform: translateY(-8px);
+  animation: authGreetIn 0.5s var(--ease-out) 0.15s forwards;
+}
+.auth-pin-greet:empty { display: none; }
+@keyframes authGreetIn {
+  from { opacity: 0; transform: translateY(-8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ===== Modal peringatan PIN lemah (.auth-modal-*) ========================
+   Primitif SENDIRI (bukan .cmodal generik di style.css) — butuh warna
+   tombol hijau/merah yang tidak ada di skema gold/outline standar dipakai
+   modal lain. Masuk & shake DIGABUNG dalam SATU animasi (bukan transition
+   dasar + animation shake terpisah) supaya keduanya tidak rebutan kendali
+   `transform` di waktu yang sama — animasi menang atas transition kalau
+   dua-duanya menyentuh properti yang sama persis, hasilnya bisa "melompat"
+   kalau dipisah. */
+
+.auth-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 26px;
+  background: rgba(11, 36, 71, 0.55);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.24s ease, visibility 0s linear 0.24s;
+}
+.auth-modal-overlay.is-open {
+  opacity: 1;
+  visibility: visible;
+  transition: opacity 0.24s ease;
+}
+.auth-modal {
+  width: 100%;
+  max-width: 340px;
+  padding: 22px;
+  border-radius: 20px;
+  background: var(--surface);
+  text-align: center;
+  opacity: 0;
+  transform: scale(0.9) translateY(12px);
+}
+.auth-modal-overlay.is-open .auth-modal {
+  animation: authModalIn 0.5s var(--ease-out) forwards;
+}
+@keyframes authModalIn {
+  0%   { opacity: 0; transform: scale(0.9) translateY(12px); }
+  55%  { opacity: 1; transform: scale(1.02) translateY(0); }
+  70%  { transform: scale(1) translateX(-4px); }
+  85%  { transform: scale(1) translateX(3px); }
+  100% { opacity: 1; transform: scale(1) translateX(0); }
+}
+
+.auth-modal__ic {
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  margin: 0 auto 12px;
+  border-radius: 50%;
+  background: var(--cream-bg);
+  color: var(--warn-fg);
+}
+.auth-modal__ic svg { width: 24px; height: 24px; }
+.auth-modal__title { font-size: 16px; font-weight: 800; color: var(--fg-strong); }
+.auth-modal__text {
+  margin-top: 8px;
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: var(--text);
+}
+.auth-modal__actions { display: flex; gap: 10px; margin-top: 18px; }
+.auth-modal__btn {
+  flex: 1;
+  padding: 12px;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 800;
+  color: #fff;
+  transition: transform 0.12s var(--ease-out);
+}
+.auth-modal__btn:active { transform: scale(0.96); }
+.auth-modal__btn--green { background: var(--ok-solid); }
+.auth-modal__btn--red { background: var(--err-solid); }
+
+/* ===== Sukses (pola .tm-check/.tm-success di transfer-member.css) ======== */
+
+.auth-success {
+  text-align: center;
+  padding: 10px 0 4px;
+  animation: authStepIn 0.4s var(--ease-out);
+}
+.auth-check { width: 78px; height: 78px; display: block; margin: 4px auto 10px; }
+.auth-check circle {
+  fill: none;
+  stroke: var(--ok-solid);
+  stroke-width: 5;
+  stroke-linecap: round;
+  stroke-dasharray: 226;
+  stroke-dashoffset: 226;
+  animation: authDraw 0.55s var(--ease-out) forwards;
+}
+.auth-check path {
+  fill: none;
+  stroke: var(--ok-solid);
+  stroke-width: 6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 60;
+  stroke-dashoffset: 60;
+  animation: authDraw 0.4s var(--ease-out) 0.5s forwards;
+}
+@keyframes authDraw { to { stroke-dashoffset: 0; } }
+
+.auth-success__title { font-size: 18px; font-weight: 800; color: var(--fg-strong); }
+.auth-success__desc {
+  margin-top: 6px;
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: var(--text-muted);
+}
+
+/* ===== Indikator langkah pendaftaran (Data Diri → Info Tambahan →
+   Verifikasi → Buat PIN) ===================================================
+   Elemen TUNGGAL di luar rotasi .astep — cuma disembunyikan/diperbarui
+   lewat JS (perbaruiProgress() di auth-flow.js), tidak ikut fade/slide
+   antar step supaya tidak "loncat" posisi tiap kali step berganti. */
+
+.auth-progress { margin-bottom: 18px; }
+.auth-progress__track {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+.auth-progress__dot {
+  flex-shrink: 0;
+  width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--tint);
+  color: var(--text-muted);
+  font-size: 11.5px;
+  font-weight: 800;
+  transition: background 0.28s var(--ease-out), color 0.28s ease, transform 0.28s var(--ease-out);
+}
+.auth-progress__dot.is-active {
+  background: var(--gold-500);
+  color: var(--on-brand);
+  transform: scale(1.12);
+}
+.auth-progress__dot.is-done {
+  background: var(--ok-solid);
+  color: #fff;
+}
+.auth-progress__line {
+  width: 20px;
+  height: 2px;
+  border-radius: 999px;
+  background: var(--border);
+  transition: background 0.28s ease;
+}
+.auth-progress__line.is-done { background: var(--ok-solid); }
+.auth-progress__text {
+  margin-top: 8px;
+  text-align: center;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+/* ===== Cari alamat via GPS — HANYA di form pendaftaran ================
+   Salinan pola `.addr-gps-btn`/`gpsPulse` di akun.css (Alamat Tersimpan),
+   dengan nama sendiri karena auth.html tidak memuat akun.css. */
+.auth-gps-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  width: 100%;
+  margin: -6px 0 22px;
+  padding: 12px;
+  border-radius: 14px;
+  color: var(--fg-strong);
+  background: rgba(255, 201, 60, 0.12);
+  border: 1.5px solid var(--gold-500);
+  font-size: 13px;
+  font-weight: 800;
+  transition: transform 0.12s var(--ease-out), background 0.12s ease;
+}
+.auth-gps-btn:active { transform: scale(0.97); background: rgba(255, 201, 60, 0.2); }
+.auth-gps-btn:disabled { opacity: 0.7; pointer-events: none; }
+.auth-gps-btn__ic {
+  display: grid;
+  place-items: center;
+  color: var(--warn-fg);
+  animation: authGpsPulse 1.8s ease-in-out infinite;
+}
+.auth-gps-btn__ic svg { width: 17px; height: 17px; }
+@keyframes authGpsPulse {
+  0%, 100% { transform: scale(1); opacity: 0.85; }
+  50% { transform: scale(1.18); opacity: 1; }
+}
+/* Selagi mencari lokasi: denyut dipercepat + jelas, jadi terasa "sedang
+   bekerja", bukan sekadar affordance idle seperti kondisi normalnya. */
+.auth-gps-btn.is-loading .auth-gps-btn__ic { animation: authGpsPulse 0.7s ease-in-out infinite; }
+
+/* ===== Field polos (label statis di atas, bukan floating) ===============
+   Dipakai untuk tanggal lahir: <input type="date"> tidak konsisten dengan
+   trik floating-label `:not(:placeholder-shown)` — sebagian browser/WebView
+   menganggap tanggal kosong TETAP "placeholder-shown"-nya false karena
+   date input menampilkan segmen dd/mm/yyyy sendiri, bukan teks placeholder
+   biasa. Daripada berjudi lintas WebView, field ini pakai label statis. */
+
+.auth-field-plain { margin-bottom: 22px; }
+.auth-field-plain__label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+.auth-field-plain__input {
+  width: 100%;
+  padding: 12px 0 10px;
+  border: none;
+  border-bottom: 2px solid var(--border);
+  background: none;
+  font-family: inherit;
+  font-size: 14.5px;
+  font-weight: 600;
+  color: var(--fg-strong);
+  outline: none;
+  transition: border-color 0.22s ease;
+}
+.auth-field-plain__input:focus { border-bottom-color: var(--gold-500); }
+/* `.aff__err` dipakai ulang apa adanya (sama seperti field .aff) —
+   pemicu tampil/animasinya cukup ditambah untuk induk .auth-field-plain. */
+.auth-field-plain.is-error .auth-field-plain__input { border-bottom-color: var(--err-fg); }
+.auth-field-plain.is-error .aff__err { opacity: 1; }
+.auth-field-plain.is-error .auth-gender { box-shadow: 0 0 0 1.5px var(--err-fg); }
+.auth-field-plain.is-shake { animation: authShake 0.4s ease; }
+/* Textarea Alamat memakai .aff__input yang sama (floating-label tetap
+   berfungsi baik untuk textarea), cuma perlu tinggi & wrap disesuaikan. */
+.aff__input--area { resize: none; line-height: 1.5; padding-top: 20px; }
+
+/* ===== Jenis Kelamin — segmented toggle 2 opsi ===========================
+   Salinan visual dari pola `.seg`/`.seg__pill` di margin.css (pill emas
+   yang meluncur di belakang opsi terpilih) dengan nama sendiri — auth.css
+   tidak memuat margin.css. */
+
+.auth-gender {
+  position: relative;
+  display: flex;
+  padding: 4px;
+  border-radius: 14px;
+  background: var(--tint);
+}
+.auth-gender__pill {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  width: calc(50% - 4px);
+  height: calc(100% - 8px);
+  border-radius: 10px;
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+  transition: transform 0.28s var(--ease-out);
+}
+.auth-gender.is-p .auth-gender__pill { transform: translateX(100%); }
+.auth-gender__opt {
+  position: relative;
+  z-index: 1;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 11px 8px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-muted);
+  transition: color 0.22s ease;
+}
+.auth-gender__opt input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  margin: 0;
+  cursor: pointer;
+}
+.auth-gender__opt:has(input:checked) { color: var(--fg-strong); }
+/* Fallback untuk WebView tanpa dukungan :has() — kelas dipasang JS juga. */
+.auth-gender__opt.is-checked { color: var(--fg-strong); }
+
+/* ===== Verifikasi OTP (pendaftaran) =======================================
+   Salinan visual `.otp`/`.otp input`/`.otp-hint` di akun.css (2FA) dengan
+   nama sendiri — auth.html tidak memuat akun.css. */
+
+.auth-otp-icon {
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  margin: 4px auto 12px;
+  border-radius: 50%;
+  background: var(--info-bg);
+  color: var(--fg-strong);
+  animation: authOtpIconIn 0.5s var(--ease-out);
+}
+.auth-otp-icon svg { width: 26px; height: 26px; }
+@keyframes authOtpIconIn {
+  0%   { opacity: 0; transform: scale(0.4) rotate(-8deg); }
+  60%  { opacity: 1; transform: scale(1.12) rotate(3deg); }
+  100% { opacity: 1; transform: scale(1) rotate(0); }
+}
+
+.auth-otp-dummy {
+  margin-bottom: 18px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--cream-bg);
+  color: var(--cream-fg);
+  font-size: 12px;
+  text-align: center;
+}
+.auth-otp-dummy b { font-weight: 800; letter-spacing: 1px; }
+
+.auth-otp { display: flex; justify-content: center; gap: 7px; margin: 4px 0 14px; }
+.auth-otp input {
+  width: 40px;
+  height: 52px;
+  text-align: center;
+  font-family: inherit;
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--fg-strong);
+  border: 2px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+  outline: none;
+  transition: border-color 0.18s ease, transform 0.12s var(--ease-out);
+}
+.auth-otp input:focus { border-color: var(--gold-500); transform: translateY(-2px); }
+.auth-otp.is-error input { border-color: var(--err-fg); }
+.auth-otp.is-error { animation: authShake 0.4s ease; }
+
+.auth-otp-hint { margin-bottom: 16px; text-align: center; font-size: 12px; color: var(--text-muted); }
+.auth-otp-resend {
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--warn-fg);
+  text-decoration: underline;
+}
+.auth-otp-resend[disabled] { opacity: 0.55; pointer-events: none; }
+
+.auth-otp-sukses {
+  padding: 10px 0 4px;
+  text-align: center;
+  animation: authOtpSuksesIn 0.4s var(--ease-out);
+}
+.auth-otp-sukses__text { font-size: 13.5px; font-weight: 700; color: var(--ok-solid); }
+.auth-check--sm { width: 56px; height: 56px; margin: 0 auto 8px; }
+@keyframes authOtpSuksesIn {
+  from { opacity: 0; transform: scale(0.85); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .auth-hero::before,
+  .auth-hero::after,
+  .auth-logo,
+  .abtn__spin,
+  .auth-particle,
+  .auth-splash .auth-logo,
+  .astep.is-in,
+  .auth-avatar,
+  .auth-bio-btn.is-scanning .auth-bio-btn__ic,
+  .auth-success,
+  .auth-check circle,
+  .auth-check path,
+  .auth-pin-greet,
+  .auth-modal-overlay.is-open .auth-modal,
+  .auth-otp-icon,
+  .auth-otp.is-error,
+  .auth-otp-sukses,
+  .auth-gps-btn__ic,
+  .auth-divider,
+  .auth-google-btn {
+    animation: none !important;
+  }
+  .auth-check circle, .auth-check path { stroke-dashoffset: 0; }
+  .auth-pin-greet { opacity: 1; transform: none; }
+  .auth-modal-overlay.is-open .auth-modal { opacity: 1; transform: none; }
+  .auth-otp-sukses { opacity: 1; transform: none; }
+  .auth-gender__pill { transition: none; }
+  .auth-progress__dot,
+  .auth-progress__dot.is-active { transition: none; transform: none; }
+  .auth-divider { opacity: 1; }
+  .auth-google-btn { opacity: 1; transform: none; }
+}

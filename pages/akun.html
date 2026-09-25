@@ -1,0 +1,1016 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="theme-color" content="#0B2447" />
+  <title>DikaPay — Akun</title>
+  <!-- Jaring pengaman galat: PALING ATAS di antara semua skrip, supaya
+       galat di file mana pun (termasuk script di bawah ini) tetap tertangkap
+       dan member tidak pernah melihat layar putih tanpa penjelasan. -->
+  <script src="../scripts/galat-global.js"></script>
+  <!-- Pemeriksa integritas perangkat (aplikasi modifikasi / root).
+       PALING ATAS, sebelum auth.js: layar aplikasi tidak boleh sempat
+       tergambar di perangkat yang bermasalah. -->
+  <script src="../scripts/integritas.js"></script>
+  <script src="../scripts/auth.js"></script>
+  <!-- Popup "Akun Kamu Telah Dibanned" (dipakai bersama oleh PIN transaksi
+       & PIN auto-lock) -- wajib ada SEBELUM auto-lock.js supaya banned 3x
+       salah PIN auto-lock bisa langsung menampilkannya. -->
+  <script src="../scripts/pin-transaksi.js"></script>
+  <!-- Kunci otomatis: minta PIN lagi kalau app ditinggal >= 5 menit. -->
+  <script src="../scripts/auto-lock.js"></script>
+  <link rel="stylesheet" href="../styles/style.css" />
+  <link rel="stylesheet" href="../styles/akun.css" />
+</head>
+<body>
+  <div class="app" id="app">
+
+    <!-- ===== Header profil ===== -->
+    <header class="ahead">
+      <div class="ahead__row">
+        <span class="ahead__avatar" id="avatar" data-avatar aria-hidden="true">BS</span>
+        <div class="ahead__info">
+          <p class="ahead__name">Budi Santoso</p>
+          <p class="ahead__id">ID DikaPay: —</p>
+          <span class="ahead__status" id="statusBadge">
+            <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5L20 7"/></svg>
+            <span data-i18n="acc.status.active">Member Aktif</span>
+          </span>
+        </div>
+      </div>
+    </header>
+
+    <main class="amain">
+
+      <!-- ===== Ringkasan Keuangan (uang masuk/keluar bulan ini) =====
+           Ketuk kartu -> buka diagram (donut) rincian per kategori. Data
+           dari window.DATA.TX (data.js, sama sumber dengan Riwayat &
+           Statistik) — dihitung ulang akun.js begitu DATA.ready selesai. -->
+      <section class="acard acard--cashflow reveal">
+        <button class="cashflow" id="cashflowBtn" type="button" aria-haspopup="dialog">
+          <div class="cashflow__row">
+            <div class="cashflow__col cashflow__col--in">
+              <span class="cashflow__ic cashflow__ic--in" aria-hidden="true">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+              </span>
+              <span class="cashflow__label">Uang Masuk</span>
+              <span class="cashflow__amount" id="cfIn">Rp0</span>
+            </div>
+            <div class="cashflow__div" aria-hidden="true"></div>
+            <div class="cashflow__col cashflow__col--out">
+              <span class="cashflow__ic cashflow__ic--out" aria-hidden="true">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12l7 7 7-7"/></svg>
+              </span>
+              <span class="cashflow__label">Uang Keluar</span>
+              <span class="cashflow__amount" id="cfOut">Rp0</span>
+            </div>
+          </div>
+          <span class="cashflow__hint">Lihat diagram bulan ini <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg></span>
+        </button>
+      </section>
+
+      <!-- ===== Skor Keamanan Akun ===== -->
+      <section class="acard acard--score reveal">
+        <div class="score__head">
+          <h2 class="acard__title" data-i18n="acc.score.title">Skor Keamanan Akun</h2>
+          <span class="score__count" id="scoreCount">0 dari 3 selesai</span>
+        </div>
+        <div class="score__track" id="scoreBar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-label="Skor keamanan akun">
+          <span class="score__fill" id="scoreFill"></span>
+        </div>
+        <ul class="score__list" id="scoreList"><!-- dirender akun.js dari state asli toggle/flow --></ul>
+        <p class="score__msg" id="scoreMsg" role="status"></p>
+      </section>
+
+      <!-- ===== Keamanan ===== -->
+      <section class="acard reveal">
+        <h2 class="acard__title" data-i18n="acc.sec.title">Keamanan Akun</h2>
+
+        <button class="row" type="button" data-act="pin">
+          <span class="row__ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></span>
+          <span class="row__label" id="pinRowLabel">Ubah PIN Transaksi</span>
+          <svg class="row__chev" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="m9 6 6 6-6 6"/></svg>
+        </button>
+
+        <button class="row" type="button" data-act="lupapin">
+          <span class="row__ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></svg></span>
+          <span class="row__label" data-i18n="acc.sec.lupapin">Lupa PIN Transaksi</span>
+          <svg class="row__chev" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="m9 6 6 6-6 6"/></svg>
+        </button>
+
+        <div class="row row--stack">
+          <span class="row__ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><circle cx="12" cy="10" r="2"/><path d="M12 12v3"/></svg></span>
+          <span class="row__main">
+            <span class="row__label" data-i18n="acc.sec.pinEvery">Gunakan PIN Setiap Transaksi</span>
+            <span class="row__sub" data-i18n="acc.sec.pinEvery.sub">Kamu akan diminta memasukkan PIN setiap kali melakukan pembayaran, transfer, atau top up.</span>
+          </span>
+          <label class="switch"><input type="checkbox" id="swPin" checked /><span class="switch__slider" aria-hidden="true"></span></label>
+        </div>
+
+        <div class="row row--stack">
+          <span class="row__ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 11v3a4 4 0 0 1-.9 2.5M5 9a7 7 0 0 1 12-5M4 15a13 13 0 0 0 .5 3M8 19a15 15 0 0 1-1-6 5 5 0 0 1 8-4M12 13a10 10 0 0 0 2 6M17 12a17 17 0 0 1-.3 7"/></svg></span>
+          <span class="row__main">
+            <span class="row__label" data-i18n="acc.sec.bio">Login dengan Biometrik</span>
+            <span class="row__sub" data-i18n="acc.sec.bio.sub">Masuk ke DikaPay lebih cepat tanpa mengetik PIN. Metode yang dipakai (sidik jari atau wajah) ditentukan otomatis oleh HP kamu, sesuai yang sudah kamu daftarkan di Pengaturan Android.</span>
+          </span>
+          <label class="switch"><input type="checkbox" id="swBio" /><span class="switch__slider" aria-hidden="true"></span></label>
+        </div>
+
+        <button class="row" type="button" data-act="tfa">
+          <span class="row__ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12h6M12 9v6"/></svg></span>
+          <span class="row__label" data-i18n="acc.sec.2fa">Verifikasi 2 Langkah (2FA)</span>
+          <span class="row__trail row__trail--muted" id="tfaStatus">Belum Aktif</span>
+          <svg class="row__chev" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="m9 6 6 6-6 6"/></svg>
+        </button>
+
+        <button class="row" type="button" data-act="devices">
+          <span class="row__ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="14" height="10" rx="1"/><path d="M2 18h16"/><rect x="18" y="9" width="4" height="9" rx="1"/></svg></span>
+          <span class="row__label" data-i18n="acc.sec.devices">Perangkat Aktif</span>
+          <svg class="row__chev" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="m9 6 6 6-6 6"/></svg>
+        </button>
+      </section>
+
+      <!-- ===== Akun Saya ===== -->
+      <section class="acard reveal">
+        <h2 class="acard__title" data-i18n="acc.my.title">Akun Saya</h2>
+
+        <button class="row" type="button" data-act="datadiri">
+          <span class="row__ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21a8 8 0 1 0-16 0"/><circle cx="12" cy="7" r="4"/></svg></span>
+          <span class="row__label" data-i18n="acc.my.data">Data Diri</span>
+          <span class="row__trail row__trail--muted" data-i18n="acc.my.data.sub">Nama, email, no. HP</span>
+          <svg class="row__chev" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="m9 6 6 6-6 6"/></svg>
+        </button>
+
+
+        <button class="row" type="button" data-act="alamat">
+          <span class="row__ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-6-7-11a7 7 0 0 1 14 0c0 5-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/></svg></span>
+          <span class="row__label" data-i18n="acc.my.address">Alamat Tersimpan</span>
+          <svg class="row__chev" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="m9 6 6 6-6 6"/></svg>
+        </button>
+      </section>
+
+      <!-- ===== Preferensi ===== -->
+      <section class="acard reveal">
+        <h2 class="acard__title" data-i18n="acc.pref.title">Preferensi</h2>
+
+        <div class="row row--inline">
+          <span class="row__ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M10.3 20.2a2 2 0 0 0 3.4 0"/></svg></span>
+          <span class="row__label" data-i18n="acc.pref.notifTx">Notifikasi Transaksi</span>
+          <label class="switch"><input type="checkbox" id="swNotifTx" checked /><span class="switch__slider" aria-hidden="true"></span></label>
+        </div>
+
+
+        <button class="row" type="button" data-act="lang">
+          <span class="row__ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a15 15 0 0 1 0 18M12 3a15 15 0 0 0 0 18"/></svg></span>
+          <span class="row__label" data-i18n="acc.pref.lang">Bahasa</span>
+          <span class="row__trail" id="langVal">Indonesia</span>
+          <svg class="row__chev" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="m9 6 6 6-6 6"/></svg>
+        </button>
+
+      </section>
+
+      <!-- ===== Bantuan & Lainnya ===== -->
+      <section class="acard reveal">
+        <h2 class="acard__title" data-i18n="acc.help.title">Bantuan &amp; Lainnya</h2>
+
+        <button class="row" type="button" data-act="faq">
+          <span class="row__ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 0 1 4.5 1.5c0 1.5-2 2-2 3M12 17h.01"/></svg></span>
+          <span class="row__label" data-i18n="acc.help.faq">Pusat Bantuan / FAQ</span>
+          <svg class="row__chev" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="m9 6 6 6-6 6"/></svg>
+        </button>
+        <button class="row" type="button" data-act="cs">
+          <span class="row__ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 13a8 8 0 0 1 16 0"/><rect x="2" y="13" width="4" height="7" rx="2"/><rect x="18" y="13" width="4" height="7" rx="2"/><path d="M20 18a3 3 0 0 1-3 3h-3"/></svg></span>
+          <span class="row__label" data-i18n="acc.help.cs">Hubungi Customer Service</span>
+          <svg class="row__chev" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="m9 6 6 6-6 6"/></svg>
+        </button>
+        <button class="row" type="button" data-act="tnc">
+          <span class="row__ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2h9l5 5v15H6z"/><path d="M14 2v6h6M9 13h6M9 17h6"/></svg></span>
+          <span class="row__label" data-i18n="acc.help.tnc">Syarat &amp; Ketentuan</span>
+          <svg class="row__chev" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="m9 6 6 6-6 6"/></svg>
+        </button>
+        <button class="row" type="button" data-act="privacy">
+          <span class="row__ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12h6"/></svg></span>
+          <span class="row__label" data-i18n="acc.help.privacy">Kebijakan Privasi</span>
+          <svg class="row__chev" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="m9 6 6 6-6 6"/></svg>
+        </button>
+        <button class="row" type="button" data-act="about">
+          <span class="row__ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg></span>
+          <span class="row__label" data-i18n="acc.help.about">Tentang DikaPay</span>
+          <span class="row__trail row__trail--muted">v1.0.0</span>
+          <svg class="row__chev" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="m9 6 6 6-6 6"/></svg>
+        </button>
+      </section>
+
+      <button class="logout-btn" type="button" id="logoutBtn">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>
+        <span data-i18n="acc.logout">Keluar</span>
+      </button>
+
+    </main>
+
+    <!-- ===== Bottom navigation ===== -->
+    <nav class="bottom-nav" id="bottomNav">
+      <span class="bottom-nav__indicator" id="navIndicator" aria-hidden="true"></span>
+      <button class="bottom-nav__item" type="button" data-tab="home">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5 12 3l9 6.5V20a1 1 0 0 1-1 1h-5v-6H10v6H4a1 1 0 0 1-1-1z"/></svg>
+        <span data-i18n="nav.home">Beranda</span>
+      </button>
+      <button class="bottom-nav__item" type="button" data-tab="transaction">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>
+        <span data-i18n="nav.transaction">Transaksi</span>
+      </button>
+      <button class="bottom-nav__item" type="button" data-tab="margin">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 5 5 19"/><circle cx="6.5" cy="6.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/></svg>
+        <span data-i18n="nav.margin">Margin</span>
+      </button>
+      <button class="bottom-nav__item is-active" type="button" data-tab="account">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21a8 8 0 1 0-16 0"/><circle cx="12" cy="7" r="4"/></svg>
+        <span data-i18n="nav.account">Akun</span>
+      </button>
+    </nav>
+
+    <!-- ===== Toast ===== -->
+    <div class="atoast" id="atoast" role="status"></div>
+
+    <!-- ===== Modal konfirmasi logout ===== -->
+    <div class="cmodal-overlay" id="logoutOverlay">
+      <div class="cmodal" role="dialog" aria-modal="true" aria-labelledby="loTitle">
+        <h3 class="cmodal__title" id="loTitle">Keluar dari Akun?</h3>
+        <p class="cmodal__text">Yakin ingin keluar dari akun DikaPay? Kamu perlu login lagi untuk masuk.</p>
+        <div class="cmodal__actions">
+          <button class="cmodal__btn cmodal__btn--outline" type="button" id="loCancel">Batal</button>
+          <button class="cmodal__btn cmodal__btn--danger" type="button" id="loOk">Ya, Keluar</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== Popup "Nama Sedang Terkunci" (masa tunggu 7 hari) ===== -->
+    <div class="namalock-overlay" id="namalockOverlay" role="dialog" aria-modal="true" aria-labelledby="namalockTitle">
+      <div class="namalock-modal">
+        <div class="namalock-modal__img-wrap">
+          <img class="namalock-modal__img" src="../assets/images/nama-terkunci.png" alt="" />
+        </div>
+        <h3 class="namalock-modal__title" id="namalockTitle">Nama Kamu Sedang Terkunci</h3>
+        <p class="namalock-modal__text">Demi keamanan akunmu, perubahan nama dibatasi maksimal 1 kali setiap 7 hari. Setelah masa tunggu ini selesai, kamu bisa mengubah namamu lagi seperti biasa.</p>
+        <div class="namalock-modal__countdown">
+          <span class="namalock-modal__countdown-label">Bisa diubah lagi dalam</span>
+          <span class="namalock-modal__countdown-value" id="namalockCountdown">—</span>
+        </div>
+        <button class="namalock-modal__btn" type="button" id="namalockBtn">Oke, Mengerti</button>
+      </div>
+    </div>
+
+    <!-- ===== Flow: Ubah PIN ===== -->
+    <div class="aflow" id="pinFlow" role="dialog" aria-modal="true" aria-label="Ubah PIN Transaksi">
+      <div class="aflow__head">
+        <button class="aflow__back" type="button" data-flowback aria-label="Kembali">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+        </button>
+        <span class="aflow__title">Ubah PIN Transaksi</span>
+      </div>
+      <div class="aflow__body pin-body">
+        <p class="pin-hint" id="pinHint">Masukkan PIN lama kamu</p>
+        <div class="pin-dots" id="pinDots">
+          <span class="pin-dot"></span><span class="pin-dot"></span><span class="pin-dot"></span>
+          <span class="pin-dot"></span><span class="pin-dot"></span><span class="pin-dot"></span>
+        </div>
+        <div class="keypad" id="pinKeypad">
+          <button type="button" data-k="1">1</button><button type="button" data-k="2">2</button><button type="button" data-k="3">3</button>
+          <button type="button" data-k="4">4</button><button type="button" data-k="5">5</button><button type="button" data-k="6">6</button>
+          <button type="button" data-k="7">7</button><button type="button" data-k="8">8</button><button type="button" data-k="9">9</button>
+          <span></span><button type="button" data-k="0">0</button>
+          <button type="button" class="key--fn" data-k="del" aria-label="Hapus">
+            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 5H8l-5 7 5 7h13a1 1 0 0 0 1-1V6a1 1 0 0 0-1-1z"/><path d="m13 9 4 6M17 9l-4 6"/></svg>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== Flow: Lupa PIN Transaksi ===== -->
+    <div class="aflow" id="lupaPinFlow" role="dialog" aria-modal="true" aria-label="Lupa PIN Transaksi">
+      <div class="aflow__head">
+        <button class="aflow__back" type="button" data-flowback aria-label="Kembali">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+        </button>
+        <span class="aflow__title">Lupa PIN Transaksi</span>
+      </div>
+      <div class="aflow__body">
+
+        <div class="tfa-step" data-step="method">
+          <p class="tfa-lead">Tenang, ini bisa terjadi kok! Pilih salah satu cara di bawah untuk verifikasi ulang identitasmu.</p>
+          <button class="tfa-opt" type="button" data-lupapin-method="hp">
+            <span class="tfa-opt__ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="2" width="10" height="20" rx="2"/><path d="M11 18h2"/></svg></span>
+            <span class="tfa-opt__txt"><b>Kirim OTP via Nomor HP</b><span id="lupaPinHpPreview">Nomor terdaftar</span></span>
+            <svg class="row__chev" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="m9 6 6 6-6 6"/></svg>
+          </button>
+          <button class="tfa-opt" type="button" data-lupapin-method="email">
+            <span class="tfa-opt__ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg></span>
+            <span class="tfa-opt__txt"><b>Kirim OTP via Email</b><span id="lupaPinEmailPreview">Email terdaftar</span></span>
+            <svg class="row__chev" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="m9 6 6 6-6 6"/></svg>
+          </button>
+          <p class="lupapin-note">Kode verifikasi akan dikirim ke kontak yang sudah kamu daftarkan — pastikan itu masih bisa kamu akses, ya.</p>
+        </div>
+
+        <div class="tfa-step tfa-step--center" data-step="sending" hidden>
+          <span class="tfa-spinner" aria-hidden="true"></span>
+          <p class="tfa-lead">Mengirim kode verifikasi…</p>
+        </div>
+
+        <div class="tfa-step" data-step="otp" hidden>
+          <span class="lupapin-otp-icon" id="lupaPinOtpIcon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H8l-5 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          </span>
+          <p class="tfa-lead" id="lupaPinOtpLead" style="text-align:center">Kode verifikasi sudah dikirim.</p>
+          <div class="lupapin-otp-dummy">Kode dummy untuk testing: <b id="lupaPinDummyCode">123456</b></div>
+          <p class="lupapin-err" id="lupaPinErrText" hidden></p>
+          <div class="otp" id="lupaPinOtpBoxes">
+            <input type="text" inputmode="numeric" maxlength="1" />
+            <input type="text" inputmode="numeric" maxlength="1" />
+            <input type="text" inputmode="numeric" maxlength="1" />
+            <input type="text" inputmode="numeric" maxlength="1" />
+            <input type="text" inputmode="numeric" maxlength="1" />
+            <input type="text" inputmode="numeric" maxlength="1" />
+          </div>
+          <p class="otp-hint">Belum menerima kode? <b id="lupaPinResendBtn">Kirim ulang</b></p>
+          <button class="apply-btn" type="button" id="lupaPinVerifyBtn">Verifikasi</button>
+        </div>
+
+        <div class="tfa-step tfa-step--center" data-step="sukses" hidden>
+          <svg class="check-anim check-anim--sm" viewBox="0 0 80 80" fill="none" aria-hidden="true">
+            <circle cx="40" cy="40" r="36" stroke="#1E9C56" stroke-width="5" stroke-linecap="round"/>
+            <path d="M24 41l11 11 21-23" stroke="#1E9C56" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <p class="tfa-done-title">Kode Terverifikasi!</p>
+          <p class="tfa-lead">Sebentar lagi kamu akan diarahkan untuk membuat PIN baru.</p>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ===== Flow: 2FA ===== -->
+    <div class="aflow" id="tfaFlow" role="dialog" aria-modal="true" aria-label="Verifikasi 2 Langkah">
+      <div class="aflow__head">
+        <button class="aflow__back" type="button" data-flowback aria-label="Kembali">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+        </button>
+        <span class="aflow__title">Verifikasi 2 Langkah</span>
+      </div>
+      <div class="aflow__body">
+
+        <div class="tfa-step" data-step="method">
+          <p class="tfa-lead">Pilih metode untuk menerima kode verifikasi kamu.</p>
+          <button class="tfa-opt" type="button" data-method="sms">
+            <span class="tfa-opt__ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H8l-5 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></span>
+            <span class="tfa-opt__txt"><b>SMS</b><span>Kode dikirim ke nomor HP kamu</span></span>
+            <svg class="row__chev" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="m9 6 6 6-6 6"/></svg>
+          </button>
+          <button class="tfa-opt" type="button" data-method="email">
+            <span class="tfa-opt__ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg></span>
+            <span class="tfa-opt__txt"><b>Email</b><span>Kode dikirim ke email kamu</span></span>
+            <svg class="row__chev" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="m9 6 6 6-6 6"/></svg>
+          </button>
+        </div>
+
+        <div class="tfa-step" data-step="contact" hidden>
+          <p class="tfa-lead" id="tfaContactLead">Masukkan nomor HP kamu</p>
+          <input class="tfa-input" id="tfaContact" type="text" inputmode="tel" placeholder="08xxxxxxxxxx" autocomplete="off" />
+          <button class="apply-btn" type="button" id="tfaSendBtn">Kirim Kode</button>
+        </div>
+
+        <div class="tfa-step tfa-step--center" data-step="sending" hidden>
+          <span class="tfa-spinner" aria-hidden="true"></span>
+          <p class="tfa-lead">Mengirim kode verifikasi…</p>
+        </div>
+
+        <div class="tfa-step" data-step="otp" hidden>
+          <p class="tfa-lead" id="tfaOtpLead">Masukkan 6 digit kode yang kami kirim</p>
+          <div class="otp" id="otpBoxes">
+            <input type="text" inputmode="numeric" maxlength="1" />
+            <input type="text" inputmode="numeric" maxlength="1" />
+            <input type="text" inputmode="numeric" maxlength="1" />
+            <input type="text" inputmode="numeric" maxlength="1" />
+            <input type="text" inputmode="numeric" maxlength="1" />
+            <input type="text" inputmode="numeric" maxlength="1" />
+          </div>
+          <p class="otp-hint" id="otpHint">Belum menerima kode? <b>Kirim ulang</b></p>
+          <button class="apply-btn" type="button" id="tfaVerifyBtn">Verifikasi</button>
+        </div>
+
+        <div class="tfa-step tfa-step--center" data-step="done" hidden>
+          <div class="confetti" id="confetti" aria-hidden="true"></div>
+          <svg class="check-anim" viewBox="0 0 80 80" fill="none" aria-hidden="true">
+            <circle cx="40" cy="40" r="36" stroke="#1E9C56" stroke-width="5" stroke-linecap="round"/>
+            <path d="M24 41l11 11 21-23" stroke="#1E9C56" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <p class="tfa-done-title">2FA Berhasil Diaktifkan!</p>
+          <p class="tfa-lead">Akun kamu sekarang lebih aman dengan verifikasi 2 langkah.</p>
+          <button class="apply-btn" type="button" data-flowdone>Selesai</button>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ===== Flow: Verifikasi OTP (SIMULASI) untuk ganti nomor/email =====
+         Kodenya DITAMPILKAN DI LAYAR dan diberi label "(simulasi)" yang
+         jelas — tidak ada SMS/email sungguhan yang dikirim. Pola & markup
+         OTP-nya menyalin langkah `otp` di #tfaFlow di atas, dengan id
+         sendiri supaya kedua alur tidak saling menimpa state. -->
+    <div class="aflow" id="otpSimFlow" role="dialog" aria-modal="true" aria-label="Verifikasi Kode">
+      <div class="aflow__head">
+        <button class="aflow__back" type="button" data-flowback aria-label="Kembali">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+        </button>
+        <span class="aflow__title" id="otpSimTitle">Verifikasi Kode</span>
+      </div>
+      <div class="aflow__body">
+        <div class="otpsim-step" data-step="kirim">
+          <span class="tfa-spinner" aria-hidden="true"></span>
+          <p class="tfa-lead" id="otpSimKirimLead">Mengirim kode verifikasi…</p>
+        </div>
+
+        <div class="otpsim-step" data-step="isi" hidden>
+          <p class="tfa-lead" id="otpSimLead">Masukkan 6 digit kode verifikasi.</p>
+
+          <!-- Kotak kode simulasi. WAJIB tetap ada labelnya: tanpa itu
+               member (dan penguji) bisa mengira SMS-nya benar-benar dikirim. -->
+          <div class="otpsim-kode" id="otpSimKode">
+            <span class="otpsim-kode__label">Kode kamu <b>(simulasi)</b></span>
+            <span class="otpsim-kode__nilai" id="otpSimNilai">------</span>
+            <span class="otpsim-kode__catatan">
+              Belum ada SMS/email sungguhan yang dikirim — kodenya ditampilkan
+              di sini dulu selama tahap pengembangan.
+            </span>
+          </div>
+
+          <div class="otp" id="otpSimBoxes">
+            <input type="text" inputmode="numeric" maxlength="1" />
+            <input type="text" inputmode="numeric" maxlength="1" />
+            <input type="text" inputmode="numeric" maxlength="1" />
+            <input type="text" inputmode="numeric" maxlength="1" />
+            <input type="text" inputmode="numeric" maxlength="1" />
+            <input type="text" inputmode="numeric" maxlength="1" />
+          </div>
+          <p class="otp-hint" id="otpSimHint">Belum menerima kode? <b id="otpSimUlang">Kirim ulang</b></p>
+          <button class="apply-btn" type="button" id="otpSimVerifyBtn">Verifikasi</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== Flow: Perangkat Aktif ===== -->
+    <div class="aflow" id="devFlow" role="dialog" aria-modal="true" aria-label="Perangkat Aktif">
+      <div class="aflow__head">
+        <button class="aflow__back" type="button" data-flowback aria-label="Kembali">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+        </button>
+        <span class="aflow__title">Perangkat Aktif</span>
+      </div>
+      <div class="aflow__body">
+        <p class="tfa-lead">Perangkat yang saat ini masuk ke akun DikaPay kamu.</p>
+        <ul class="dev-list" id="devList"></ul>
+      </div>
+    </div>
+
+    <!-- ===== Flow: Diagram Uang Masuk/Keluar ===== -->
+    <div class="aflow" id="cashflowFlow" role="dialog" aria-modal="true" aria-label="Diagram Keuangan">
+      <div class="aflow__head">
+        <button class="aflow__back" type="button" data-flowback aria-label="Kembali">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+        </button>
+        <span class="aflow__title">Diagram Keuangan</span>
+      </div>
+      <div class="aflow__body">
+        <p class="tfa-lead" id="cfMonthLabel">Ringkasan bulan ini</p>
+
+        <div class="cfchart" id="cfChart">
+          <svg class="cfchart__donut" viewBox="0 0 120 120" aria-hidden="true">
+            <circle class="cfchart__track" cx="60" cy="60" r="50" />
+            <circle class="cfchart__seg cfchart__seg--in" id="cfSegIn" cx="60" cy="60" r="50" pathLength="100" />
+            <circle class="cfchart__seg cfchart__seg--out" id="cfSegOut" cx="60" cy="60" r="50" pathLength="100" />
+          </svg>
+          <div class="cfchart__mid">
+            <span class="cfchart__mid-label">Total</span>
+            <span class="cfchart__mid-val" id="cfMidVal">Rp0</span>
+          </div>
+        </div>
+
+        <ul class="cflegend" id="cfLegend">
+          <li class="cflegend__item cflegend__item--in">
+            <span class="cflegend__dot" aria-hidden="true"></span>
+            <span class="cflegend__label">Uang Masuk</span>
+            <span class="cflegend__val" id="cfLegIn">Rp0</span>
+            <span class="cflegend__pct" id="cfPctIn">0%</span>
+          </li>
+          <li class="cflegend__item cflegend__item--out">
+            <span class="cflegend__dot" aria-hidden="true"></span>
+            <span class="cflegend__label">Uang Keluar</span>
+            <span class="cflegend__val" id="cfLegOut">Rp0</span>
+            <span class="cflegend__pct" id="cfPctOut">0%</span>
+          </li>
+        </ul>
+
+        <div class="cfcats" id="cfCatsWrap" hidden>
+          <p class="cfcats__title">Rincian pengeluaran per kategori</p>
+          <ul class="cfcats__list" id="cfCatsList"></ul>
+        </div>
+
+        <p class="cfempty" id="cfEmpty" hidden>Belum ada transaksi bulan ini.</p>
+      </div>
+    </div>
+
+    <!-- ===== Flow: Pusat Bantuan / FAQ ===== -->
+    <div class="aflow" id="faqFlow" role="dialog" aria-modal="true" aria-label="Pusat Bantuan">
+      <div class="aflow__head">
+        <button class="aflow__back" type="button" data-flowback aria-label="Kembali">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+        </button>
+        <span class="aflow__title">Pusat Bantuan / FAQ</span>
+      </div>
+      <div class="aflow__body">
+        <p class="tfa-lead">Jawaban atas pertanyaan yang sering diajukan pengguna DikaPay.</p>
+        <div class="faq-list" id="faqList">
+          <div class="faq-item">
+            <button class="faq-q" type="button">Bagaimana cara top up saldo?<svg class="faq-q__chev" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="m6 9 6 6 6-6"/></svg></button>
+            <div class="faq-a"><p>Buka menu Top Up di halaman utama, pilih nominal dan metode pembayaran (transfer bank, virtual account, atau gerai retail), lalu selesaikan pembayaran sesuai instruksi. Saldo akan bertambah otomatis setelah pembayaran terverifikasi.</p></div>
+          </div>
+          <div class="faq-item">
+            <button class="faq-q" type="button">Transaksi saya gagal tetapi saldo terpotong. Apa yang harus dilakukan?<svg class="faq-q__chev" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="m6 9 6 6 6-6"/></svg></button>
+            <div class="faq-a"><p>Dana pada transaksi yang gagal akan dikembalikan otomatis ke saldo Anda paling lambat 1x24 jam. Apabila setelah periode tersebut dana belum diterima, hubungi Customer Service dan sertakan ID transaksi yang tercantum pada halaman Riwayat Transaksi.</p></div>
+          </div>
+          <div class="faq-item">
+            <button class="faq-q" type="button">Berapa lama proses transaksi selesai?<svg class="faq-q__chev" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="m6 9 6 6 6-6"/></svg></button>
+            <div class="faq-a"><p>Sebagian besar transaksi seperti pulsa, paket data, dan token listrik selesai dalam waktu kurang dari 1 menit. Pada kondisi tertentu, misalnya gangguan pada sistem operator atau penyedia layanan, proses dapat memakan waktu hingga 1x24 jam.</p></div>
+          </div>
+          <div class="faq-item">
+            <button class="faq-q" type="button">Bagaimana cara mengubah PIN transaksi?<svg class="faq-q__chev" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="m6 9 6 6 6-6"/></svg></button>
+            <div class="faq-a"><p>Masuk ke menu Akun, pilih Keamanan Akun, lalu pilih Ubah PIN Transaksi. Anda akan diminta memasukkan PIN lama, kemudian membuat dan mengonfirmasi PIN baru berupa 6 digit angka.</p></div>
+          </div>
+          <div class="faq-item">
+            <button class="faq-q" type="button">Apakah transaksi yang sudah berhasil dapat dibatalkan?<svg class="faq-q__chev" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="m6 9 6 6 6-6"/></svg></button>
+            <div class="faq-a"><p>Transaksi yang telah berhasil diproses tidak dapat dibatalkan atau dikembalikan. Pastikan nomor tujuan, nominal, dan detail lainnya sudah benar sebelum menyelesaikan pembayaran.</p></div>
+          </div>
+          <div class="faq-item">
+            <button class="faq-q" type="button">Apa yang harus dilakukan jika saya lupa PIN transaksi?<svg class="faq-q__chev" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="m6 9 6 6 6-6"/></svg></button>
+            <div class="faq-a"><p>Pilih opsi Lupa PIN pada halaman verifikasi PIN. Sistem akan memandu Anda melalui proses verifikasi identitas sebelum Anda dapat mengatur ulang PIN transaksi.</p></div>
+          </div>
+          <div class="faq-item">
+            <button class="faq-q" type="button">Apakah dikenakan biaya admin untuk setiap transaksi?<svg class="faq-q__chev" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="m6 9 6 6 6-6"/></svg></button>
+            <div class="faq-a"><p>Beberapa jenis transaksi, seperti pembayaran tagihan dan token listrik, dikenakan biaya admin sesuai ketentuan penyedia layanan. Rincian biaya admin selalu ditampilkan sebelum Anda menyelesaikan transaksi.</p></div>
+          </div>
+          <div class="faq-item">
+            <button class="faq-q" type="button">Bagaimana cara menjaga keamanan akun saya?<svg class="faq-q__chev" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="m6 9 6 6 6-6"/></svg></button>
+            <div class="faq-a"><p>Jangan pernah membagikan PIN, kata sandi, atau kode OTP kepada siapa pun, termasuk pihak yang mengaku sebagai petugas DikaPay. Aktifkan Verifikasi 2 Langkah dan gunakan penguncian layar pada perangkat Anda.</p></div>
+          </div>
+          <div class="faq-item">
+            <button class="faq-q" type="button">Di mana saya dapat melihat riwayat transaksi?<svg class="faq-q__chev" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="m6 9 6 6 6-6"/></svg></button>
+            <div class="faq-a"><p>Buka tab Transaksi pada menu navigasi di bagian bawah. Anda dapat menyaring riwayat berdasarkan kategori, mencari transaksi tertentu, serta membuka struk detail untuk setiap transaksi.</p></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== Flow: Hubungi Customer Service ===== -->
+    <div class="aflow" id="csFlow" role="dialog" aria-modal="true" aria-label="Hubungi Customer Service">
+      <div class="aflow__head">
+        <button class="aflow__back" type="button" data-flowback aria-label="Kembali">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+        </button>
+        <span class="aflow__title">Hubungi Customer Service</span>
+      </div>
+      <div class="aflow__body">
+        <div class="cs-hours">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+          <span>Jam operasional: <b>Setiap hari, 08.00&ndash;21.00 WIB</b></span>
+        </div>
+        <p class="tfa-lead" style="margin-bottom:12px">Pilih salah satu saluran berikut untuk menghubungi tim layanan pelanggan DikaPay.</p>
+        <button class="cs-opt" type="button">
+          <span class="cs-opt__ic cs-opt__ic--wa"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.5 8.5 0 0 1-12.5 7.5L3 21l2-5.5A8.5 8.5 0 1 1 21 11.5z"/><path d="M9 10c0 3 2 5 5 5"/></svg></span>
+          <span class="cs-opt__txt"><b>Chat via WhatsApp</b><span>+62 812-0000-0000</span></span>
+          <svg class="row__chev" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="m9 6 6 6-6 6"/></svg>
+        </button>
+        <button class="cs-opt" type="button">
+          <span class="cs-opt__ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg></span>
+          <span class="cs-opt__txt"><b>Kirim Email</b><span>cs@dikapay.id</span></span>
+          <svg class="row__chev" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="m9 6 6 6-6 6"/></svg>
+        </button>
+        <button class="cs-opt" type="button">
+          <span class="cs-opt__ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h5l2 5-3 2a12 12 0 0 0 5 5l2-3 5 2v5a2 2 0 0 1-2 2A17 17 0 0 1 2 6a2 2 0 0 1 2-2z"/></svg></span>
+          <span class="cs-opt__txt"><b>Telepon Layanan</b><span>1500-123 (tarif normal)</span></span>
+          <svg class="row__chev" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="m9 6 6 6-6 6"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- ===== Flow: Syarat & Ketentuan ===== -->
+    <div class="aflow" id="tncFlow" role="dialog" aria-modal="true" aria-label="Syarat dan Ketentuan">
+      <div class="aflow__head">
+        <button class="aflow__back" type="button" data-flowback aria-label="Kembali">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+        </button>
+        <span class="aflow__title">Syarat &amp; Ketentuan</span>
+      </div>
+      <div class="aflow__body doc">
+        <p class="doc__meta">Terakhir diperbarui: 1 Agustus 2026</p>
+        <p>Dengan mengunduh, mengakses, atau menggunakan aplikasi DikaPay ("Aplikasi"), Anda dianggap telah membaca, memahami, dan menyetujui seluruh Syarat &amp; Ketentuan ini. Apabila Anda tidak menyetujui, mohon untuk tidak menggunakan Aplikasi.</p>
+
+        <h3>1. Definisi</h3>
+        <p>"DikaPay" adalah aplikasi yang menyediakan layanan pembelian produk digital dan pembayaran tagihan (Payment Point Online Bank/PPOB), termasuk namun tidak terbatas pada pulsa, paket data, token listrik, serta pembayaran tagihan. "Pengguna" adalah pihak yang menggunakan Aplikasi. "Saldo" adalah dana yang disimpan pada akun Pengguna untuk digunakan bertransaksi di dalam Aplikasi.</p>
+
+        <h3>2. Penggunaan Layanan</h3>
+        <p>Pengguna wajib berusia minimal 17 tahun atau telah memiliki kartu identitas yang sah. Pengguna setuju untuk menggunakan Aplikasi hanya untuk tujuan yang sah dan tidak melanggar peraturan perundang-undangan yang berlaku di Republik Indonesia.</p>
+
+        <h3>3. Akun Pengguna</h3>
+        <p>Pengguna wajib memberikan data yang benar, akurat, dan terkini saat mendaftar. Satu Pengguna hanya diperbolehkan memiliki satu akun. DikaPay berhak menolak pendaftaran atau menonaktifkan akun yang terindikasi menggunakan data palsu.</p>
+
+        <h3>4. Kewajiban Pengguna</h3>
+        <p>Pengguna bertanggung jawab penuh atas seluruh aktivitas yang terjadi pada akunnya. Pengguna wajib memeriksa kembali seluruh detail transaksi (nomor tujuan, nominal, jenis produk) sebelum melakukan konfirmasi pembayaran.</p>
+
+        <h3>5. Transaksi dan Pembayaran</h3>
+        <p>Transaksi yang telah berhasil diproses bersifat final dan tidak dapat dibatalkan, ditukar, atau dikembalikan. Kesalahan input data oleh Pengguna yang mengakibatkan transaksi terkirim ke tujuan yang salah bukan merupakan tanggung jawab DikaPay. Dana pada transaksi yang gagal akan dikembalikan ke Saldo Pengguna paling lambat 1x24 jam.</p>
+
+        <h3>6. Biaya Layanan</h3>
+        <p>Sebagian layanan dikenakan biaya admin yang besarnya ditampilkan secara transparan sebelum Pengguna menyelesaikan transaksi. DikaPay dapat mengubah skema biaya dari waktu ke waktu dengan pemberitahuan yang wajar melalui Aplikasi.</p>
+
+        <h3>7. Kerahasiaan Akun dan Keamanan</h3>
+        <p>Pengguna wajib menjaga kerahasiaan PIN, kata sandi, kode OTP, dan informasi akun lainnya. DikaPay tidak pernah meminta PIN atau OTP melalui telepon, pesan, maupun saluran lainnya. Segala kerugian yang timbul akibat kelalaian Pengguna menjaga kerahasiaan akun menjadi tanggung jawab Pengguna.</p>
+
+        <h3>8. Batasan Tanggung Jawab</h3>
+        <p>DikaPay menyediakan layanan "sebagaimana adanya". DikaPay tidak bertanggung jawab atas keterlambatan atau kegagalan layanan yang disebabkan oleh gangguan jaringan, sistem operator, penyedia produk, atau keadaan kahar (force majeure) di luar kendali DikaPay.</p>
+
+        <h3>9. Penutupan atau Pemblokiran Akun</h3>
+        <p>DikaPay berhak membatasi, menangguhkan, atau menutup akun Pengguna apabila ditemukan indikasi kecurangan, penyalahgunaan layanan, pelanggaran Syarat &amp; Ketentuan, atau permintaan dari pihak berwenang.</p>
+
+        <h3>10. Perubahan Syarat &amp; Ketentuan</h3>
+        <p>DikaPay dapat memperbarui Syarat &amp; Ketentuan ini sewaktu-waktu. Perubahan akan berlaku sejak dipublikasikan di dalam Aplikasi. Penggunaan Aplikasi secara berkelanjutan setelah perubahan berarti Pengguna menyetujui ketentuan yang telah diperbarui.</p>
+
+        <h3>11. Hukum yang Berlaku</h3>
+        <p>Syarat &amp; Ketentuan ini tunduk pada dan ditafsirkan berdasarkan hukum Republik Indonesia.</p>
+
+        <h3>12. Kontak</h3>
+        <p>Pertanyaan mengenai Syarat &amp; Ketentuan ini dapat disampaikan melalui email ke <b>cs@dikapay.id</b> atau melalui menu Hubungi Customer Service pada Aplikasi.</p>
+      </div>
+    </div>
+
+    <!-- ===== Flow: Kebijakan Privasi ===== -->
+    <div class="aflow" id="privacyFlow" role="dialog" aria-modal="true" aria-label="Kebijakan Privasi">
+      <div class="aflow__head">
+        <button class="aflow__back" type="button" data-flowback aria-label="Kembali">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+        </button>
+        <span class="aflow__title">Kebijakan Privasi</span>
+      </div>
+      <div class="aflow__body doc">
+        <p class="doc__meta">Terakhir diperbarui: 1 Agustus 2026</p>
+        <p>Kebijakan Privasi ini menjelaskan bagaimana DikaPay mengumpulkan, menggunakan, menyimpan, dan melindungi data pribadi Anda saat menggunakan Aplikasi. Kami berkomitmen mengelola data Anda secara bertanggung jawab dan sesuai peraturan perlindungan data pribadi yang berlaku di Indonesia.</p>
+
+        <h3>1. Data yang Kami Kumpulkan</h3>
+        <p>Kami mengumpulkan data yang Anda berikan secara langsung, yaitu nama, alamat email, dan nomor telepon. Kami juga mengumpulkan data yang terbentuk dari penggunaan Aplikasi, yaitu riwayat transaksi, informasi perangkat (jenis perangkat dan sistem operasi), serta data teknis untuk keamanan.</p>
+
+        <h3>2. Tujuan Penggunaan Data</h3>
+        <p>Data Anda digunakan untuk: memproses dan menyelesaikan transaksi; memverifikasi identitas dan mencegah penipuan; memberikan dukungan pelanggan; mengirim notifikasi terkait transaksi dan layanan; serta meningkatkan kualitas dan keamanan Aplikasi.</p>
+
+        <h3>3. Dasar Pemrosesan</h3>
+        <p>Pemrosesan data pribadi Anda dilakukan berdasarkan persetujuan yang Anda berikan saat menggunakan Aplikasi, serta untuk pelaksanaan layanan yang Anda minta.</p>
+
+        <h3>4. Pembagian Data dengan Pihak Ketiga</h3>
+        <p>Kami membagikan data seperlunya kepada mitra yang membantu penyediaan layanan, antara lain penyedia produk PPOB dan operator, mitra pemroses pembayaran, serta penyedia infrastruktur teknologi. Mitra tersebut hanya boleh menggunakan data untuk keperluan pelaksanaan layanan dan wajib menjaga kerahasiaannya. Kami juga dapat mengungkapkan data apabila diwajibkan oleh hukum atau permintaan pihak berwenang.</p>
+
+        <h3>5. Penyimpanan dan Perlindungan Data</h3>
+        <p>Data disimpan pada sistem yang dilindungi dengan langkah pengamanan teknis dan organisasi yang wajar, termasuk enkripsi data sensitif dan pembatasan akses. Meski demikian, tidak ada metode penyimpanan atau transmisi data yang sepenuhnya bebas risiko.</p>
+
+        <h3>6. Hak Anda atas Data Pribadi</h3>
+        <p>Anda berhak untuk mengakses data pribadi Anda, meminta koreksi atas data yang tidak akurat, meminta penghapusan data, serta menarik persetujuan pemrosesan data. Sebagian permintaan dapat berdampak pada ketersediaan layanan bagi Anda.</p>
+
+        <h3>7. Retensi Data</h3>
+        <p>Kami menyimpan data pribadi Anda selama akun Anda aktif dan selama diperlukan untuk memenuhi kewajiban hukum, penyelesaian sengketa, dan penegakan perjanjian.</p>
+
+        <h3>8. Perubahan Kebijakan</h3>
+        <p>Kebijakan Privasi ini dapat diperbarui dari waktu ke waktu. Perubahan material akan diberitahukan melalui Aplikasi sebelum berlaku.</p>
+
+        <h3>9. Kontak</h3>
+        <p>Pertanyaan atau permintaan terkait data pribadi Anda dapat disampaikan melalui email ke <b>privacy@dikapay.id</b>.</p>
+      </div>
+    </div>
+
+    <!-- ===== Flow: Tentang DikaPay ===== -->
+    <div class="aflow" id="aboutFlow" role="dialog" aria-modal="true" aria-label="Tentang DikaPay">
+      <div class="aflow__head">
+        <button class="aflow__back" type="button" data-flowback aria-label="Kembali">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+        </button>
+        <span class="aflow__title">Tentang DikaPay</span>
+      </div>
+      <div class="aflow__body about">
+        <span class="about__logo" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 8V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/><path d="M21 11.5a2 2 0 0 0-2-2h-4a2 2 0 0 0 0 4h4a2 2 0 0 0 2-2z"/><path d="M3.5 9h11"/></svg>
+        </span>
+        <p class="about__name">DikaPay</p>
+        <p class="about__ver">Versi 1.0.0</p>
+        <p class="about__desc">DikaPay adalah aplikasi pembayaran dan pembelian produk digital (PPOB) untuk kebutuhan sehari-hari, seperti pulsa, paket data, token listrik, dan pembayaran tagihan. Aplikasi ini dirancang agar transaksi Anda lebih mudah dan cepat melalui antarmuka yang sederhana. DikaPay saat ini masih dalam tahap pengembangan awal dan akan terus disempurnakan.</p>
+        <p class="about__copy">&copy; 2026 DikaPay. Seluruh hak cipta dilindungi.</p>
+      </div>
+    </div>
+
+    <!-- ===== Flow: Edit Profil ===== -->
+    <div class="aflow" id="editFlow" role="dialog" aria-modal="true" aria-label="Data Diri">
+      <div class="aflow__head">
+        <button class="aflow__back" type="button" data-flowback aria-label="Kembali">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+        </button>
+        <span class="aflow__title">Data Diri</span>
+      </div>
+      <div class="aflow__body">
+
+        <div class="dd-list">
+          <button class="row dd-row" type="button" id="ddNameRow" data-editfield="name">
+            <span class="row__ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21a8 8 0 1 0-16 0"/><circle cx="12" cy="7" r="4"/></svg></span>
+            <span class="row__label">Nama Lengkap</span>
+            <span class="row__trail row__trail--muted" id="ddName">—</span>
+            <svg class="row__chev" id="ddNameChev" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="m9 6 6 6-6 6"/></svg>
+          </button>
+
+          <button class="row dd-row" type="button" id="ddPhotoRow">
+            <span class="row__ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7 9.5 4.5h5L16 7"/><circle cx="12" cy="13" r="3.4"/></svg></span>
+            <span class="row__label">Ganti Gambar Profil</span>
+            <!-- Pratinjau foto yang SEDANG berlaku, tepat di tempat member
+                 menggantinya. `data-avatar` membuatnya ikut digambar
+                 DikaProfilFoto.pasangSemua() — fungsi yang sama dengan
+                 avatar header & Beranda, jadi tidak ada halaman yang bisa
+                 tertinggal saat aturannya berubah. -->
+            <span class="dd-foto" id="ddFoto" data-avatar aria-hidden="true">DT</span>
+            <svg class="row__chev" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="m9 6 6 6-6 6"/></svg>
+          </button>
+
+          <button class="row dd-row" type="button" data-editfield="username">
+            <span class="row__ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M16 12v1.5a2.5 2.5 0 0 0 5 0V12a9 9 0 1 0-4 7.5"/></svg></span>
+            <span class="row__label">Username</span>
+            <span class="row__trail" id="ddUsername">Pasang</span>
+            <svg class="row__chev" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="m9 6 6 6-6 6"/></svg>
+          </button>
+
+          <button class="row dd-row" type="button" data-editfield="phone">
+            <span class="row__ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="2" width="10" height="20" rx="2"/><path d="M11 18h2"/></svg></span>
+            <span class="row__label">Ubah Nomor Ponsel</span>
+            <span class="row__trail row__trail--muted" id="ddPhone">—</span>
+            <svg class="row__chev" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="m9 6 6 6-6 6"/></svg>
+          </button>
+
+          <button class="row dd-row" type="button" data-editfield="email">
+            <span class="row__ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg></span>
+            <span class="row__label">Alamat Email</span>
+            <span class="row__trail row__trail--muted" id="ddEmail">—</span>
+            <svg class="row__chev" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="m9 6 6 6-6 6"/></svg>
+          </button>
+        </div>
+
+        <p class="dd-note">Data ini membantu kami menjaga keamanan akunmu. Yuk lengkapi kalau masih ada yang kosong!</p>
+
+      </div>
+    </div>
+
+    <!-- ===== Flow: sub-editor SATU FIELD (Username / Nomor Ponsel / Email) =====
+         Ditumpuk di atas #editFlow (openFlowStacked), bukan flow terpisah yang
+         berdiri sendiri — dipakai ULANG untuk ketiganya lewat editFieldState.kind,
+         supaya tidak menulis 3 sub-halaman hampir identik. -->
+    <div class="aflow" id="editFieldFlow" role="dialog" aria-modal="true" aria-label="Ubah data">
+      <div class="aflow__head">
+        <button class="aflow__back" type="button" data-flowback aria-label="Kembali">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+        </button>
+        <span class="aflow__title" id="efTitle">Ubah data</span>
+      </div>
+      <div class="aflow__body">
+        <div class="ep-form ep-form--field">
+          <div class="ff" id="efField">
+            <input class="ff__input" id="efInput" type="text" placeholder=" " autocomplete="off" />
+            <label class="ff__label" id="efLabel" for="efInput">Data</label>
+            <span class="ff__badge" id="efBadge" hidden>
+              <svg viewBox="0 0 24 24" width="10" height="10" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5L20 7"/></svg>
+              Terverifikasi
+            </span>
+            <span class="ff__err"></span>
+          </div>
+          <p class="dd-hint" id="efHint"></p>
+          <button class="apply-btn" type="button" id="efSaveBtn">
+            <span class="apply-btn__label">Simpan Perubahan</span>
+            <span class="apply-btn__spin" aria-hidden="true"></span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== Flow: Info ID (Nomor Ponsel / Alamat Email) =====
+         Layar PERANTARA sebelum editor. Fungsinya tidak berubah — yang
+         berubah TAMPILANNYA: ilustrasi di atas, judul besar, kartu info
+         berisi nilai saat ini + badge "Terverifikasi", tombol outline
+         untuk mengganti, lalu daftar aturan di bawah.
+
+         Polanya mengikuti contoh yang diberikan, TAPI warnanya memakai
+         token DikaPay (navy + gold) — bukan identitas visual aplikasi
+         lain. Isinya dirender akun.js (openIdInfo). -->
+    <div class="aflow" id="idInfoFlow" role="dialog" aria-modal="true" aria-labelledby="idInfoTitle">
+      <div class="aflow__head">
+        <button class="aflow__back" type="button" data-flowback aria-label="Kembali">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+        </button>
+        <span class="aflow__title" id="idInfoHead">Detail</span>
+      </div>
+      <div class="aflow__body">
+        <div class="idinfo">
+          <div class="idinfo__art" id="idInfoArt" aria-hidden="true"></div>
+          <h2 class="idinfo__title" id="idInfoTitle">&nbsp;</h2>
+          <p class="idinfo__sub" id="idInfoSub">&nbsp;</p>
+
+          <div class="idinfo__card">
+            <span class="idinfo__label" id="idInfoLabel">Nilai</span>
+            <span class="idinfo__value" id="idInfoValue">—</span>
+            <span class="idinfo__badge" id="idInfoBadge" hidden>
+              <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5L20 7"/></svg>
+              Terverifikasi
+            </span>
+          </div>
+
+          <p class="idinfo__last" id="idInfoLast"></p>
+
+          <button class="idinfo__btn" type="button" id="idInfoBtn">Ganti</button>
+
+          <div class="idinfo__rules">
+            <p class="idinfo__rules-title">Yang perlu kamu tahu</p>
+            <ul class="idinfo__list" id="idInfoRules"></ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== Popup: nomor ponsel / alamat email terkunci 90 hari =====
+         SATU markup dipakai KEDUA field — judul & subjeknya diisi akun.js
+         dari tabel UBAH_LOCK. Pola visualnya sama dengan #namalockOverlay
+         (aturan Nama 1x/7 hari), yang sengaja tetap terpisah karena
+         durasi & nadanya berbeda. -->
+    <div class="namalock-overlay" id="phonelockOverlay" role="dialog" aria-modal="true" aria-labelledby="phonelockTitle">
+      <div class="namalock-modal">
+        <div class="namalock-art" aria-hidden="true">
+          <img src="../assets/images/nama-terkunci.png" alt="" />
+        </div>
+        <h3 class="namalock-title" id="phonelockTitle">Nomor Ponsel Sedang Terkunci</h3>
+        <p class="namalock-text">
+          <span id="phonelockApa">Nomor ponsel</span> cuma bisa diganti <b>1x dalam 90 hari</b> demi keamanan akun kamu.
+          Kamu bisa menggantinya lagi dalam <b id="phonelockCountdown">beberapa saat</b>.
+        </p>
+        <button class="namalock-btn" type="button" id="phonelockBtn">Oke, Mengerti</button>
+      </div>
+    </div>
+
+    <!-- ===== Flow: Alamat Tersimpan (daftar) ===== -->
+    <div class="aflow" id="addrFlow" role="dialog" aria-modal="true" aria-label="Alamat Tersimpan">
+      <div class="aflow__head">
+        <button class="aflow__back" type="button" data-flowback aria-label="Kembali">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+        </button>
+        <span class="aflow__title">Alamat Tersimpan</span>
+      </div>
+      <div class="aflow__body">
+        <button class="addr-gps-btn" type="button" id="addrGpsBtn">
+          <span class="addr-gps-btn__ic" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-6-7-11a7 7 0 0 1 14 0c0 5-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/></svg>
+          </span>
+          Gunakan Lokasi Saat Ini
+        </button>
+        <button class="addr-add-btn" type="button" id="addrAddBtn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+          Tambah Alamat Baru
+        </button>
+        <ul class="addr-list" id="addrList"></ul>
+        <p class="addr-empty" id="addrEmpty" hidden>Belum ada alamat tersimpan.</p>
+      </div>
+    </div>
+
+    <!-- ===== Flow: Tambah / Konfirmasi Alamat ===== -->
+    <div class="aflow" id="addrFormFlow" role="dialog" aria-modal="true" aria-label="Tambah Alamat">
+      <div class="aflow__head">
+        <button class="aflow__back" type="button" data-flowback aria-label="Kembali">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+        </button>
+        <span class="aflow__title" id="addrFormTitle">Tambah Alamat</span>
+      </div>
+      <div class="aflow__body">
+
+        <div class="addr-state" id="addrLoading" hidden>
+          <span class="tfa-spinner" aria-hidden="true"></span>
+          <p class="tfa-lead">Mencari lokasi kamu&hellip;</p>
+        </div>
+
+        <div class="addr-state addr-errbox" id="addrErrState" hidden>
+          <span class="addr-errbox__ic" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="34" height="34" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4"/><path d="M12 17h.01"/><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z"/></svg>
+          </span>
+          <h3 class="addr-errbox__title">Lokasi Tidak Tersedia</h3>
+          <p class="addr-errbox__text" id="addrErrText">Kami tidak bisa mengakses lokasi kamu. Pastikan izin lokasi diaktifkan untuk browser ini, atau tambahkan alamat secara manual.</p>
+          <div class="addr-errbox__actions">
+            <button class="cmodal__btn cmodal__btn--outline" type="button" id="addrErrManual">Isi Manual</button>
+            <button class="cmodal__btn cmodal__btn--gold" type="button" id="addrErrRetry">Coba Lagi</button>
+          </div>
+        </div>
+
+        <div class="addr-state" id="addrFormState" hidden>
+          <p class="addr-intro" id="addrIntro"></p>
+          <div class="ff">
+            <textarea class="ff__input ff__input--area" id="addrText" placeholder=" " rows="3"></textarea>
+            <label class="ff__label" for="addrText">Alamat Lengkap</label>
+            <span class="ff__err"></span>
+          </div>
+          <div class="ff">
+            <input class="ff__input" id="addrLabel" type="text" placeholder=" " autocomplete="off" />
+            <label class="ff__label" for="addrLabel">Label Alamat (contoh: Rumah, Kantor)</label>
+            <span class="ff__err"></span>
+          </div>
+          <button class="apply-btn" type="button" id="addrSaveBtn">
+            <span class="apply-btn__label">Simpan Alamat Ini</span>
+            <span class="apply-btn__spin" aria-hidden="true"></span>
+          </button>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ===== Bottom sheet: pilih sumber foto ===== -->
+  <!-- Pemilih berkas untuk foto profil. `@capacitor/camera` belum terpasang,
+       jadi memakai input file biasa — di Android WebView ini sudah memunculkan
+       pilihan Kamera/Galeri lewat dialog sistem. -->
+  <input type="file" id="fotoInput" accept="image/jpeg,image/png" hidden />
+
+  <div class="picker-overlay" id="photoPicker">
+    <div class="picker-sheet" role="dialog" aria-modal="true" aria-label="Ubah foto profil">
+      <span class="picker-sheet__handle" aria-hidden="true"></span>
+      <button class="picker-opt" type="button" data-photo="camera">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7 9.5 4.5h5L16 7"/><circle cx="12" cy="13" r="3.4"/></svg>
+        Ambil Foto
+      </button>
+      <button class="picker-opt" type="button" data-photo="gallery">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="m5 19 5-5 4 3 3-3 4 4"/></svg>
+        Pilih dari Galeri
+      </button>
+    </div>
+  </div>
+
+  <!-- ===== Bottom sheet: pilih bahasa ===== -->
+  <div class="picker-overlay" id="langSheet">
+    <div class="picker-sheet" role="dialog" aria-modal="true" aria-labelledby="langSheetTitle">
+      <span class="picker-sheet__handle" aria-hidden="true"></span>
+      <h3 class="choice-sheet__title" id="langSheetTitle" data-i18n="lang.sheet.title">Pilih Bahasa</h3>
+      <button class="choice-opt" type="button" data-lang="id">
+        <span class="choice-opt__ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a15 15 0 0 1 0 18M12 3a15 15 0 0 0 0 18"/></svg></span>
+        <span class="choice-opt__label" data-i18n="lang.id">Bahasa Indonesia</span>
+        <span class="choice-radio" aria-hidden="true"><span class="choice-radio__check">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5L20 7"/></svg>
+        </span></span>
+      </button>
+      <button class="choice-opt" type="button" data-lang="en">
+        <span class="choice-opt__ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a15 15 0 0 1 0 18M12 3a15 15 0 0 0 0 18"/></svg></span>
+        <span class="choice-opt__label" data-i18n="lang.en">English</span>
+        <span class="choice-radio" aria-hidden="true"><span class="choice-radio__check">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5L20 7"/></svg>
+        </span></span>
+      </button>
+    </div>
+  </div>
+
+  <!-- ===== Toast sukses (dari atas) ===== -->
+  <div class="top-toast" id="topToast" role="status"></div>
+
+  <script src="../scripts/illustrations.js"></script>
+  <script src="../scripts/paymodal.js"></script>
+  <script src="../scripts/bottomnav.js"></script>
+  <script src="../scripts/translations.js"></script>
+  <!-- Daftar Perangkat Aktif memakai identitas perangkat ASLI. -->
+  <script src="../scripts/perangkat.js"></script>
+  <!-- Toggle "Login dengan Biometrik" butuh sensor asli untuk dinyalakan. -->
+  <script src="../scripts/biometrik.js"></script>
+  <script src="../scripts/api.js"></script>
+  <script src="../scripts/member-sync.js"></script>
+  <!-- Sumber data transaksi (uang masuk/keluar untuk kartu Ringkasan
+       Keuangan) — pola sama seperti riwayat.js/statistik.js: DATA.TX diisi
+       async, akun.js menunggu DATA.ready sebelum menghitung ringkasan.
+       WAJIB setelah api.js/member-sync.js, SEBELUM akun.js. -->
+  <script src="../scripts/data.js"></script>
+  <!-- SATU tempat menghitung ringkasan uang masuk/keluar per bulan — SAMA
+       yang dipakai kartu "Bulan Ini" (riwayat.js) & Statistik, supaya
+       kartu Ringkasan Keuangan di sini tidak pernah menampilkan angka
+       berbeda untuk periode yang sama. Lihat catatan di tx-ringkas.js;
+       JANGAN menghitung ulang sendiri di akun.js. -->
+  <script src="../scripts/tx-ringkas.js"></script>
+  <!-- Foto profil (validasi + unggah + render avatar) — WAJIB sebelum
+       akun.js, yang memanggilnya saat header digambar. -->
+  <script src="../scripts/profil-foto.js"></script>
+  <!-- Panel diagnostik sementara (tekan-tahan versi app di Tentang DikaPay)
+       — WAJIB sebelum akun.js, yang memasang pemicunya. Boleh dihapus nanti
+       kalau sudah tidak diperlukan; lihat catatan di dalam file itu. -->
+  <script src="../scripts/debug-panel.js"></script>
+  <script src="../scripts/akun.js"></script>
+    <!-- Kotak masuk notifikasi + pendengar ketukan notifikasi sistem. -->
+    <script src="../scripts/notif-store.js"></script>
+    <script src="../scripts/notif-hp.js"></script>
+  </body>
+</html>

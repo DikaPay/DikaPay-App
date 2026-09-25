@@ -1,0 +1,26 @@
+{
+  "name": "dikapay",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "build": "node build-www.js",
+    "sync": "node build-www.js && npx cap sync",
+    "rebuild-apk": "node rebuild-apk.js",
+    "verify": "node verify-build.js"
+  },
+  "dependencies": {
+    "@aparajita/capacitor-biometric-auth": "^10.0.0",
+    "@capacitor-community/contacts": "^8.0.0",
+    "@capacitor-community/speech-recognition": "^7.0.1",
+    "@capacitor-mlkit/barcode-scanning": "^8.1.1",
+    "@capacitor/android": "^8.5.1",
+    "@capacitor/app": "^8.1.1",
+    "@capacitor/camera": "^8.2.4",
+    "@capacitor/cli": "^8.5.1",
+    "@capacitor/core": "^8.5.1",
+    "@capacitor/device": "^8.0.3",
+    "@capacitor/geolocation": "^8.2.2",
+    "@capacitor/local-notifications": "^8.3.1",
+    "@southdevs/capacitor-google-auth": "^7.0.0"
+  }
+}

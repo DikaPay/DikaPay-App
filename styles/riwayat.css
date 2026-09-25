@@ -1,0 +1,650 @@
+/* ===========================================================================
+   DikaPay — riwayat.css
+   Halaman Riwayat Transaksi. Memakai token & utilitas dari style.css
+   (:root, .press, .reveal, .bottom-nav, dll).
+   =========================================================================== */
+
+.rmain {
+  flex: 1;
+  padding: 16px 16px calc(var(--nav-height) + 28px);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* ===== Header =========================================================== */
+
+.rhead {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  padding: 14px 16px 16px;
+  background: linear-gradient(160deg, var(--navy-700) -20%, var(--navy-900) 70%);
+  color: var(--white);
+  border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+}
+
+.rhead__bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.rhead__title {
+  font-size: 17px;
+  font-weight: 700;
+}
+
+/* ===== Search bar ===================================================== */
+
+.rsearch {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 14px;
+  padding: 0 6px 0 12px;
+  height: 42px;
+  border-radius: 12px;
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+}
+
+.rsearch__icon {
+  flex-shrink: 0;
+  color: var(--text-muted);
+}
+
+.rsearch__input {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  border: none;
+  outline: none;
+  background: none;
+  font-family: inherit;
+  font-size: 13.5px;
+  color: var(--text);
+}
+.rsearch__input::placeholder { color: var(--text-muted); }
+/* buang tombol clear bawaan search di webkit */
+.rsearch__input::-webkit-search-decoration,
+.rsearch__input::-webkit-search-cancel-button { -webkit-appearance: none; }
+
+.rsearch__sort {
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+  color: var(--fg-strong);
+  background: var(--tint);
+  transition: transform 0.14s var(--ease-out), background 0.14s ease, color 0.14s ease;
+}
+.rsearch__sort:active { transform: scale(0.9); }
+.rsearch__sort.is-asc {
+  color: var(--fg-strong);
+  background: var(--gold-500);
+}
+
+/* ===== Ringkasan bulanan ============================================= */
+
+.summary {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 18px;
+  border-radius: var(--radius);
+  background: linear-gradient(120deg, var(--navy-800), var(--navy-900));
+  color: var(--white);
+  box-shadow: var(--shadow-md);
+  text-align: left;
+  transition: transform 0.14s var(--ease-out);
+}
+.summary:active { transform: scale(0.985); }
+
+/* Lingkaran dekoratif — pulse "breathing" pelan, di belakang teks */
+.summary__glow {
+  position: absolute;
+  z-index: 0;
+  width: 160px;
+  height: 160px;
+  right: -50px;
+  top: -60px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 30% 30%, rgba(255, 201, 60, 0.35), transparent 70%);
+  animation: summaryGlow 7s ease-in-out infinite;
+}
+@keyframes summaryGlow {
+  0%, 100% { transform: scale(1); opacity: 0.7; }
+  50% { transform: scale(1.18); opacity: 1; }
+}
+
+.summary__info {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 3px;
+}
+.summary__label { font-size: 12px; color: rgba(255, 255, 255, 0.7); }
+
+/* Nominal — shimmer satu kali setelah count-up selesai */
+.summary__total {
+  position: relative;
+  overflow: hidden;
+  padding: 3px 3px 4px;
+  font-size: 23px;
+  font-weight: 800;
+  line-height: 1.3;
+  letter-spacing: 0.3px;
+}
+.summary__total::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  transform: translateX(-160%);
+  background: linear-gradient(100deg, transparent 20%, rgba(255, 255, 255, 0.55) 50%, transparent 80%);
+}
+.summary__total.is-shimmer::after {
+  animation: totalShimmer 0.9s ease-out forwards;
+}
+@keyframes totalShimmer {
+  from { transform: translateX(-160%); }
+  to { transform: translateX(160%); }
+}
+
+/* Teks kecil — fade-in setelah count-up */
+.summary__hint {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.55);
+  opacity: 0;
+  transform: translateY(3px);
+  transition: opacity 0.45s ease, transform 0.45s var(--ease-out);
+}
+.summary__hint.is-in { opacity: 1; transform: none; }
+
+/* Panah — isyarat "bisa diklik", nudge horizontal pelan */
+.summary__arrow {
+  position: relative;
+  z-index: 1;
+  flex-shrink: 0;
+  color: var(--gold-500);
+  animation: arrowNudge 1.5s ease-in-out infinite;
+}
+@keyframes arrowNudge {
+  0%, 100% { transform: translateX(0); }
+  50% { transform: translateX(3px); }
+}
+
+/* ===== Filter chips ================================================= */
+
+.chips {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+  scrollbar-width: none;
+}
+.chips::-webkit-scrollbar { display: none; }
+
+.chip {
+  flex-shrink: 0;
+  padding: 7px 14px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  transition: color 0.25s ease, background-color 0.25s ease, border-color 0.25s ease, transform 0.12s var(--ease-out);
+}
+.chip:active { transform: scale(0.94); }
+.chip.is-active {
+  color: var(--fg-strong);
+  background: var(--gold-500);
+  border-color: var(--gold-500);
+}
+
+/* ===== List & grup bulan =========================================== */
+
+.txlist { display: flex; flex-direction: column; }
+
+.txgroup__label {
+  margin: 12px 2px 8px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+.txlist > .txgroup:first-child .txgroup__label { margin-top: 2px; }
+
+/* ===== Item transaksi ============================================= */
+
+.tx {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 12px 14px;
+  text-align: left;
+  background: var(--surface);
+  border-radius: 14px;
+  margin-bottom: 8px;
+  box-shadow: var(--shadow-sm);
+  animation: txIn 0.4s var(--ease-out) backwards;
+  transition: transform 0.12s var(--ease-out), background-color 0.12s ease;
+}
+.tx:active {
+  transform: scale(0.985);
+  background-color: var(--tint);
+}
+
+@keyframes txIn {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.tx__icon {
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  animation: iconPop 0.35s var(--ease-out) both;
+}
+.tx__icon svg { width: 21px; height: 21px; }
+
+@keyframes iconPop {
+  0% { transform: scale(0.3); opacity: 0; }
+  60% { transform: scale(1.12); opacity: 1; }
+  100% { transform: scale(1); }
+}
+
+/* Kolom kiri: nama (baris 1) + tanggal (baris 2) — selalu 2 baris terpisah */
+.tx__body {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  overflow: hidden;
+}
+.tx__name {
+  display: block;
+  max-width: 100%;
+  padding-right: 10px;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.tx__date {
+  display: block;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+/* Kolom kanan: lebar tetap, tidak pernah tergeser */
+.tx__right {
+  flex: 0 0 96px;
+  width: 96px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+}
+.tx__amount { font-size: 13px; font-weight: 800; white-space: nowrap; }
+.tx__amount--out { color: var(--err-fg); }
+.tx__amount--in { color: var(--ok-fg); }
+
+.badge {
+  font-size: 9.5px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 999px;
+  letter-spacing: 0.2px;
+  white-space: nowrap;
+}
+.badge--ok { color: var(--ok-fg); background: var(--ok-bg); }
+.badge--pending { color: var(--warn-fg); background: var(--warn-bg); }
+.badge--fail { color: var(--err-fg); background: var(--err-bg); }
+
+.tx__go {
+  flex-shrink: 0;
+  color: var(--text-muted);
+}
+
+/* ===== Empty state ============================================== */
+
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 40px 24px;
+  animation: emptyFade 0.6s ease forwards;
+}
+.empty[hidden] { display: none; }
+@keyframes emptyFade {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.empty__art { width: 116px; height: 116px; margin-bottom: 14px; }
+.empty__title { font-size: 15px; font-weight: 700; color: var(--text); }
+.empty__sub { font-size: 12.5px; color: var(--text-muted); margin-top: 4px; max-width: 220px; }
+
+/* ===== Memuat / gagal (api-riwayat.php) ============================
+   Dipakai bergantian dengan #txList/#emptyState lewat atribut `hidden` —
+   riwayat.js yang mengatur mana yang tampil sesuai DATA.status. */
+
+.rstate {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 40px 24px;
+  animation: emptyFade 0.6s ease forwards;
+}
+.rstate[hidden] { display: none; }
+
+/* Loading DikaPay: 3 titik gold berdenyut naik-turun (gaya DANA) — dipakai
+   saat memuat riwayat dari server / jaringan lambat, GANTI dari cincin
+   berputar (`rSpin`). Markup tetap satu `<span>` kosong: elemen ini jadi
+   titik tengah, `::before`/`::after` jadi titik kiri-kanan. */
+.rstate__spin {
+  position: relative;
+  display: block;
+  width: 8px;
+  height: 8px;
+  margin: 0 auto 12px;
+  border-radius: 50%;
+  background: var(--gold-500);
+  animation: rDot 0.9s ease-in-out infinite;
+}
+.rstate__spin::before, .rstate__spin::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--gold-500);
+  animation: rDot 0.9s ease-in-out infinite;
+}
+.rstate__spin::before { left: -14px; animation-delay: -0.3s; }
+.rstate__spin::after  { left: 14px;  animation-delay: 0.3s; }
+@keyframes rDot {
+  0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; }
+  40%           { transform: scale(1);   opacity: 1; }
+}
+
+.rstate__art { color: var(--text-muted); margin-bottom: 10px; }
+.rstate__text { font-size: 12.5px; color: var(--text-muted); max-width: 240px; line-height: 1.5; }
+
+.rstate__retry {
+  margin-top: 14px;
+  padding: 9px 20px;
+  border-radius: 12px;
+  background: var(--gold-500);
+  color: var(--on-brand);
+  font-size: 12.5px;
+  font-weight: 700;
+  transition: transform 0.1s var(--ease-out);
+}
+.rstate__retry:active { transform: scale(0.96); }
+
+/* ===== Muat halaman berikutnya (pagination) ========================= */
+
+.rmore {
+  display: block;
+  width: 100%;
+  margin: 4px 0 8px;
+  padding: 12px;
+  border-radius: 14px;
+  background: var(--surface);
+  color: var(--navy-700);
+  font-size: 13px;
+  font-weight: 700;
+  text-align: center;
+  box-shadow: var(--shadow-sm);
+  transition: transform 0.1s var(--ease-out), opacity 0.15s ease;
+}
+.rmore:active { transform: scale(0.98); }
+.rmore[hidden] { display: none; }
+.rmore.is-loading { opacity: 0.6; pointer-events: none; }
+
+/* ===========================================================================
+   Struk detail transaksi (panel geser)
+   =========================================================================== */
+
+.rc {
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  z-index: 60;
+  width: 100%;
+  max-width: var(--content-max);
+  margin-left: calc(-1 * min(50vw, var(--content-max) / 2));
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+  transform: translateX(100%);
+  visibility: hidden;
+  transition: transform 0.32s var(--ease-out), visibility 0s linear 0.32s;
+}
+.rc.is-open {
+  transform: translateX(0);
+  visibility: visible;
+  transition: transform 0.32s var(--ease-out), visibility 0s;
+}
+
+.rc__head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 16px;
+  background: linear-gradient(160deg, var(--navy-700) -20%, var(--navy-900) 70%);
+  color: var(--white);
+}
+.rc__back {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  margin-left: -6px;
+  border-radius: 50%;
+  color: var(--white);
+  background: rgba(255, 255, 255, 0.1);
+  transition: transform 0.12s var(--ease-out), background 0.12s ease;
+}
+.rc__back:active { transform: scale(0.9); background: rgba(255, 255, 255, 0.2); }
+.rc__head-title { font-size: 16px; font-weight: 700; }
+
+.rc__scroll {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 20px 16px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Hero: ikon kategori + waktu + id */
+.rc__hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding-bottom: 4px;
+}
+.rc__cat {
+  display: grid;
+  place-items: center;
+  width: 64px;
+  height: 64px;
+  border-radius: 20px;
+  margin-bottom: 4px;
+}
+.rc__cat svg { width: 32px; height: 32px; }
+.rc__when { font-size: 12.5px; color: var(--text-muted); }
+.rc__trxid { font-size: 12px; font-weight: 700; color: var(--fg-strong); letter-spacing: 0.3px; }
+
+/* Badge status besar */
+.rc__status {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 11px 14px;
+  border-radius: 14px;
+  font-size: 14px;
+  font-weight: 800;
+}
+.rc__status-ic {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+}
+.rc__status-ic svg { width: 14px; height: 14px; }
+.rc__status--ok { color: var(--ok-fg); background: var(--ok-bg); }
+.rc__status--ok .rc__status-ic { background: var(--ok-solid); color: #fff; }
+.rc__status--pending { color: var(--warn-fg); background: var(--warn-bg); }
+.rc__status--pending .rc__status-ic { background: var(--warn-solid); color: #fff; }
+.rc__status--fail { color: var(--err-fg); background: var(--err-bg); }
+.rc__status--fail .rc__status-ic { background: var(--err-solid); color: #fff; }
+
+.rc__desc {
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text);
+  text-align: center;
+  padding: 0 6px;
+}
+
+/* Kartu putih generik */
+.rc__card {
+  background: var(--surface);
+  border-radius: 14px;
+  box-shadow: var(--shadow-sm);
+}
+
+.rc__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 13px 15px;
+  font-size: 12.5px;
+}
+.rc__row > span:first-child { color: var(--text-muted); }
+.rc__row > span:last-child { font-weight: 700; color: var(--text); text-align: right; }
+
+.rc__line {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 12px;
+}
+.rc__line > span:first-child { color: var(--text-muted); }
+.rc__line > span:last-child { color: var(--text); font-weight: 600; text-align: right; word-break: break-word; }
+
+/* Accordion generik (Total Bayar, Detail Transaksi, Detail Penerima) */
+.acc {
+  background: var(--surface);
+  border-radius: 14px;
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+}
+.acc__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  padding: 13px 15px;
+  text-align: left;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--text);
+}
+.acc__chev {
+  flex-shrink: 0;
+  color: var(--text-muted);
+  transition: transform 0.3s var(--ease-out);
+}
+.acc.is-open .acc__chev { transform: rotate(180deg); }
+
+.acc__body {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.3s var(--ease-out);
+}
+.acc.is-open .acc__body { max-height: 210px; }
+.acc__inner {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  padding: 2px 15px 14px;
+}
+
+/* Varian Total Bayar */
+.acc--total .acc__head { align-items: flex-start; padding: 15px; }
+.rc__total-main { display: flex; flex-direction: column; gap: 3px; }
+.rc__total-main > span { font-size: 11.5px; font-weight: 600; color: var(--text-muted); }
+.rc__total-main > strong { font-size: 20px; font-weight: 800; color: var(--fg-strong); }
+.acc--total { background: var(--surface-2); box-shadow: none; }
+.acc--total .acc__inner { border-top: 1px solid var(--border); padding-top: 12px; }
+
+/* Tombol aksi */
+.rc__actions {
+  display: flex;
+  gap: 10px;
+  padding: 12px 16px calc(12px + env(safe-area-inset-bottom, 0px));
+  background: var(--surface);
+  box-shadow: 0 -4px 16px var(--tint);
+}
+.rc__btn {
+  flex: 1;
+  padding: 12px;
+  border-radius: 12px;
+  font-size: 13.5px;
+  font-weight: 800;
+  transition: transform 0.12s var(--ease-out), filter 0.12s ease;
+}
+.rc__btn:active { transform: scale(0.96); }
+.rc__btn--gold { background: var(--gold-500); color: var(--fg-strong); }
+.rc__btn--outline {
+  background: transparent;
+  color: var(--fg-strong);
+  border: 1.5px solid var(--fg-strong);
+}
+
+/* ===== Reduced motion ========================================== */
+
+@media (prefers-reduced-motion: reduce) {
+  .tx, .empty { opacity: 1 !important; transform: none !important; }
+  .tx__icon { opacity: 1 !important; transform: none !important; }
+  .summary__hint { opacity: 1 !important; transform: none !important; }
+  .summary__total::after { display: none; }
+  .rc { transition: visibility 0s; }
+  .rstate { animation: none; opacity: 1; transform: none; }
+  .rstate__spin { animation-duration: 1.4s; }
+}
+
+/* Teks di atas gold / putih-pill — selalu navy, di semua tema */
+.chip.is-active,
+.rsearch__sort.is-asc,
+.rc__btn--gold { color: var(--on-brand); }
