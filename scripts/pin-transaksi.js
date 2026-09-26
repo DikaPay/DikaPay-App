@@ -296,8 +296,18 @@
          kebenaran "PIN ini benar atau tidak" yang berpindah. */
       if (aktif.verifikasi) {
         var verif = aktif.verifikasi;
+        var keypad = q(".pintx__keypad");
+        var tombolTutup = q(".pintx__close");
+        keypad.classList.add("is-loading");
+        keypad.setAttribute("aria-busy", "true");
+        tombolTutup.disabled = true;
+        hint("Memverifikasi PIN transaksi…", false);
+
         verif(masuk).then(function (hasil) {
           if (!aktif) return;
+          keypad.classList.remove("is-loading");
+          keypad.removeAttribute("aria-busy");
+          tombolTutup.disabled = false;
           hasil = hasil || {};
           if (hasil.ok) { tutup("ok", hasil); return; }
 
@@ -342,6 +352,9 @@
         }).catch(function (e) {
           console.error("pin-transaksi: verifikasi remote gagal:", e);
           if (!aktif) return;
+          keypad.classList.remove("is-loading");
+          keypad.removeAttribute("aria-busy");
+          tombolTutup.disabled = false;
           buf = "";
           renderDots();
           goyang();
