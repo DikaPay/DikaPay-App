@@ -158,11 +158,24 @@
         <span data-i18n="nav.margin">Margin</span>
       </button>
       <button class="bottom-nav__item" type="button" data-tab="account">
-        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21a8 8 0 1 0-16 0"/><circle cx="12" cy="7" r="4"/></svg>
+        <span class="bottom-nav__avatar" data-avatar aria-hidden="true"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21a8 8 0 1 0-16 0"/><circle cx="12" cy="7" r="4"/></svg></span>
         <span data-i18n="nav.account">Akun</span>
       </button>
     </nav>
 
+  </div>
+
+  <div class="offline-product-overlay" id="offlineProductOverlay" hidden aria-hidden="true">
+    <section class="offline-product-modal" role="dialog" aria-modal="true" aria-labelledby="offlineProductTitle">
+      <span class="offline-product-modal__icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M2 8.8a15.5 15.5 0 0 1 20 0M5 12a10.8 10.8 0 0 1 14 0m-10.8 3.2a5.5 5.5 0 0 1 7.6 0M12 19h.01"/><path d="m3 3 18 18"/>
+        </svg>
+      </span>
+      <h2 class="offline-product-modal__title" id="offlineProductTitle">Koneksi internet belum tersedia</h2>
+      <p class="offline-product-modal__text">Menu produk perlu koneksi untuk memastikan transaksi kamu aman. Coba lagi setelah internet tersambung, ya.</p>
+      <button class="cmodal__btn cmodal__btn--gold press" type="button" id="offlineProductClose">Oke, Mengerti</button>
+    </section>
   </div>
 
   <!-- Popup "amankan akun" — HANYA muncul sekali, tepat setelah member baru

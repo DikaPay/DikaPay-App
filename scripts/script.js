@@ -392,12 +392,50 @@ const ROUTES = {
 };
 
 function handleAction(id) {
+  const isProductRoute = (id.startsWith("menu:") || id.startsWith("svc:")) &&
+    Object.prototype.hasOwnProperty.call(ROUTES, id);
+  const online = window.DikaNetwork && typeof window.DikaNetwork.isOnline === "function"
+    ? window.DikaNetwork.isOnline()
+    : navigator.onLine !== false;
+  if (isProductRoute && !online) {
+    showOfflineProductNotice();
+    return;
+  }
   if (ROUTES[id]) {
     window.location.href = ROUTES[id];
     return;
   }
   // TODO: navigasi / buka halaman terkait lainnya
   console.log("Aksi:", id);
+}
+
+let offlineProductPushed = false;
+let offlineProductCloseTimer = 0;
+
+function closeOfflineProductNotice(fromPop) {
+  const overlay = document.getElementById("offlineProductOverlay");
+  if (!overlay || overlay.hidden || !overlay.classList.contains("is-open")) return;
+  overlay.classList.remove("is-open");
+  overlay.setAttribute("aria-hidden", "true");
+  window.clearTimeout(offlineProductCloseTimer);
+  offlineProductCloseTimer = window.setTimeout(() => { overlay.hidden = true; }, 240);
+  const pushed = offlineProductPushed;
+  offlineProductPushed = false;
+  if (!fromPop && pushed) { try { history.back(); } catch (e) {} }
+}
+
+function showOfflineProductNotice() {
+  const overlay = document.getElementById("offlineProductOverlay");
+  if (!overlay || overlay.classList.contains("is-open")) return;
+  window.clearTimeout(offlineProductCloseTimer);
+  overlay.hidden = false;
+  overlay.setAttribute("aria-hidden", "false");
+  void overlay.offsetWidth;
+  overlay.classList.add("is-open");
+  try { history.pushState({ dikaOfflineProduct: 1 }, ""); offlineProductPushed = true; }
+  catch (e) { offlineProductPushed = false; }
+  const close = document.getElementById("offlineProductClose");
+  if (close) close.focus({ preventScroll: true });
 }
 
 function flashClass(el, cls, ms) {
@@ -987,6 +1025,19 @@ function init() {
     balanceToggle.addEventListener("click", onToggleBalance);
 
     menuGrid = document.getElementById("menuGrid");
+    const offlineProductOverlay = document.getElementById("offlineProductOverlay");
+    const offlineProductClose = document.getElementById("offlineProductClose");
+    if (offlineProductOverlay) {
+      offlineProductOverlay.addEventListener("click", (e) => {
+        if (e.target === offlineProductOverlay) closeOfflineProductNotice();
+      });
+      window.addEventListener("keydown", (e) => {
+        if (e.key === "Escape") closeOfflineProductNotice();
+      });
+      window.addEventListener("popstate", () => closeOfflineProductNotice(true));
+      window.addEventListener("online", () => closeOfflineProductNotice());
+    }
+    if (offlineProductClose) offlineProductClose.addEventListener("click", () => closeOfflineProductNotice());
     menuGrid.addEventListener("pointerdown", spawnRipple);
     menuGrid.addEventListener("click", (e) => {
       const btn = e.target.closest(".menu-item");

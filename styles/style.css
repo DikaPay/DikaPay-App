@@ -858,11 +858,24 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
   font-size: 10.5px;
   font-weight: 600;
 }
-.bottom-nav__item svg {
+.bottom-nav__item > svg,
+.bottom-nav__avatar {
   transition: transform 0.28s var(--ease-out), stroke 0.2s ease;
 }
+.bottom-nav__avatar {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  flex: 0 0 22px;
+  border-radius: 50%;
+  overflow: hidden;
+}
+.bottom-nav__avatar svg { display: block; }
 .bottom-nav__item.is-active { color: var(--fg-strong); }
-.bottom-nav__item.is-active svg {
+.bottom-nav__item.is-active > svg,
+.bottom-nav__item.is-active .bottom-nav__avatar {
   stroke: var(--fg-strong);
   transform: translateY(-1px) scale(1.18);
 }
@@ -1202,6 +1215,62 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .cmodal__btn--gold { position: relative; background: var(--gold-500); color: var(--on-brand); }
 .cmodal__btn--danger { background: var(--err-solid); color: #fff; }
 .cmodal__btn[disabled] { opacity: 0.7; pointer-events: none; }
+
+.offline-product-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(11, 36, 71, 0.52);
+  opacity: 0;
+  transition: opacity 0.22s ease;
+}
+.offline-product-overlay[hidden] { display: none; }
+.offline-product-overlay.is-open { opacity: 1; }
+.offline-product-modal {
+  width: min(100%, 350px);
+  padding: 24px 22px 20px;
+  border-radius: 18px;
+  background: var(--surface);
+  box-shadow: var(--shadow-md);
+  text-align: center;
+  opacity: 0;
+  transform: scale(0.92) translateY(10px);
+}
+.offline-product-overlay.is-open .offline-product-modal {
+  animation: offlineProductIn 0.34s var(--ease-out) forwards;
+}
+.offline-product-modal__icon {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  margin: 0 auto 14px;
+  border-radius: 50%;
+  background: var(--tint);
+  color: var(--navy-700);
+  animation: offlineIconPulse 2.4s ease-in-out infinite;
+}
+.offline-product-modal__icon svg { width: 25px; height: 25px; }
+.offline-product-modal__title { font-size: 16px; font-weight: 800; color: var(--fg-strong); }
+.offline-product-modal__text { margin: 8px 0 18px; font-size: 12.5px; line-height: 1.6; color: var(--text); }
+.offline-product-modal > .cmodal__btn { width: 100%; }
+@keyframes offlineProductIn {
+  from { opacity: 0; transform: scale(0.92) translateY(10px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+@keyframes offlineIconPulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.07); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .offline-product-overlay,
+  .offline-product-overlay.is-open .offline-product-modal,
+  .offline-product-modal__icon { animation: none; transition: none; }
+  .offline-product-overlay.is-open .offline-product-modal { opacity: 1; transform: none; }
+}
 
 /* ===== Reduced motion ==================================== */
 

@@ -103,6 +103,15 @@
     return "TRX-" + d.getFullYear() + pad(d.getMonth() + 1) + pad(d.getDate()) +
       "-" + String(Math.floor(1000 + Math.random() * 9000));
   }
+  function makePaymentRefId() {
+    try {
+      if (window.crypto && typeof window.crypto.randomUUID === "function") {
+        return window.crypto.randomUUID();
+      }
+    } catch (e) {}
+    return "DP-" + Date.now().toString(36) + "-" +
+      Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2);
+  }
   function nowDt(d) {
     return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate()) +
       "T" + pad(d.getHours()) + ":" + pad(d.getMinutes());
@@ -739,7 +748,7 @@
     /* ref_id dibuat SEKALI di sini dan dipakai ulang untuk seluruh
        percobaan PIN transaksi ini. Kalau dibuat ulang tiap ketukan,
        perlindungan kiriman-ganda di server jadi tidak berarti. */
-    var refId = makeTxId(new Date());
+    var refId = makePaymentRefId();
     o.refId = refId;
     penentuHasil = penentuHasilServer;
 
@@ -762,6 +771,7 @@
           raw: res.raw,
           saldoBaru: res.saldoBaru,
           transaksiId: res.transaksiId,
+          duplikat: res.duplikat === true,
         });
         o.transaksiId = res.transaksiId;
         /* PIN-nya BENAR (server menerima permintaan), apa pun status
