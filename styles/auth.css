@@ -679,6 +679,13 @@ body { overflow-x: hidden; }
 .auth-modal-overlay.is-open .auth-modal {
   animation: authModalIn 0.5s var(--ease-out) forwards;
 }
+.auth-modal-overlay.is-open .auth-google-modal {
+  animation: authGoogleModalIn 0.32s var(--ease-out) forwards;
+}
+@keyframes authGoogleModalIn {
+  from { opacity: 0; transform: scale(0.94) translateY(8px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
 @keyframes authModalIn {
   0%   { opacity: 0; transform: scale(0.9) translateY(12px); }
   55%  { opacity: 1; transform: scale(1.02) translateY(0); }
@@ -718,6 +725,8 @@ body { overflow-x: hidden; }
 .auth-modal__btn:active { transform: scale(0.96); }
 .auth-modal__btn--green { background: var(--ok-solid); }
 .auth-modal__btn--red { background: var(--err-solid); }
+.auth-modal__btn--primary { background: var(--gold-500); color: var(--on-brand); }
+.auth-google-modal__ic { background: var(--tint); color: var(--navy-700); }
 
 /* ===== Sukses (pola .tm-check/.tm-success di transfer-member.css) ======== */
 
@@ -1028,6 +1037,7 @@ body { overflow-x: hidden; }
   .auth-check circle, .auth-check path { stroke-dashoffset: 0; }
   .auth-pin-greet { opacity: 1; transform: none; }
   .auth-modal-overlay.is-open .auth-modal { opacity: 1; transform: none; }
+  .auth-modal-overlay.is-open .auth-google-modal { animation: none; }
   .auth-otp-sukses { opacity: 1; transform: none; }
   .auth-gender__pill { transition: none; }
   .auth-progress__dot,

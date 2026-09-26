@@ -106,7 +106,7 @@
     if (!statusUI) return;
     var siapTampil = state.id.length >= MIN_DIGITS;
     if (status === "gagal") { statusUI.gagal(pesanGagal, function () { muat(true); }); return; }
-    if (status === "memuat") { if (siapTampil) statusUI.memuat(5); else statusUI.sembunyi(); return; }
+    if (status === "memuat") { statusUI.memuat(5); return; }
     if (status === "siap" && siapTampil && !PRODUK.length) {
       statusUI.kosong("Produk Gas Prabayar sedang belum tersedia. Segera hadir!");
       return;

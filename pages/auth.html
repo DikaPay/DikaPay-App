@@ -417,6 +417,21 @@
     </div>
   </div>
 
+  <div class="auth-modal-overlay" id="googleDevOverlay">
+    <div class="auth-modal auth-google-modal" role="dialog" aria-modal="true" aria-labelledby="googleDevTitle">
+      <div class="auth-modal__ic auth-google-modal__ic" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/>
+        </svg>
+      </div>
+      <h2 class="auth-modal__title" id="googleDevTitle">Login Google dalam pengembangan</h2>
+      <p class="auth-modal__text">Fitur login dengan Google belum bisa digunakan saat ini. Silakan lanjutkan dengan nomor HP.</p>
+      <div class="auth-modal__actions">
+        <button class="auth-modal__btn auth-modal__btn--primary press" type="button" id="googleDevClose">Oke, Mengerti</button>
+      </div>
+    </div>
+  </div>
+
   <!-- auth.js di-link di <head> seperti halaman lain. Auto-guard-nya sengaja
        DILEWATI di auth.html (dicek dari nama file di auth.js) supaya tidak
        looping ke dirinya sendiri — jadi auth-flow.js cukup pakai

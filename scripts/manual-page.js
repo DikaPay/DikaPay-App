@@ -144,7 +144,10 @@
     var els = {};
     var modal = null;
     var picker = null;   /* popup pemilih biller (CHOICES) — UI.createPicker() */
-    var state = { id: "", choice: null, nominal: 0, opKey: null, tagihan: null };
+    var state = {
+      id: "", choice: null, nominal: 0, opKey: null, tagihan: null,
+      cekBusy: false, cekSeq: 0,
+    };
 
     /* ---- Input nominal: format ribuan sambil mempertahankan caret ----
        Tanpa penjagaan caret, mengetik/menyunting di TENGAH angka bikin
@@ -351,6 +354,8 @@
        tidak melewati file ini sama sekali. */
 
     function resetTagihan() {
+      state.cekBusy = false;
+      state.cekSeq++;
       state.tagihan = null;
       state.nominal = 0;
       if (els.tagihan) { els.tagihan.hidden = true; els.tagihan.innerHTML = ""; }
@@ -373,16 +378,18 @@
 
     function cekTagihan() {
       try {
-        if (!isReady()) return;
+        if (state.cekBusy || !isReady()) return;
         if (!window.DikaInquiry) {
           console.error("manual-page: inquiry-pasca.js belum di-link");
           showErr("Cek tagihan belum tersedia di halaman ini.");
           return;
         }
         hideErr();
+        state.cekBusy = true;
         els.submit.classList.add("is-loading");
         els.submit.disabled = true;
 
+        var requestSeq = ++state.cekSeq;
         var slug = config.slug || "";
         var idSaatItu = state.id;
         var admin = adminAktif();
@@ -395,13 +402,15 @@
         window.DikaInquiry.cek(slug, idSaatItu, admin, sku).then(function (t) {
           /* Member bisa mengubah nomornya selagi menunggu — hasil untuk
              nomor lama harus dibuang, bukan ditampilkan. */
-          if (idSaatItu !== state.id) return;
+          if (requestSeq !== state.cekSeq || idSaatItu !== state.id) return;
+          state.cekBusy = false;
           state.tagihan = t;
           state.nominal = t.nominal;
           renderTagihan(t);
           setTombol("bayar");
         }).catch(function (e) {
-          if (idSaatItu !== state.id) return;
+          if (requestSeq !== state.cekSeq || idSaatItu !== state.id) return;
+          state.cekBusy = false;
           console.error("manual-page: cek tagihan gagal:", e && (e.rc ? "rc=" + e.rc + " " : "") + (e.message || e));
           setTombol("cek");
           showErr((e && e.pesanMember) ||
@@ -409,6 +418,7 @@
         });
       } catch (err) {
         console.error("manual-page: cek tagihan error:", err);
+        state.cekBusy = false;
         setTombol("cek");
       }
     }

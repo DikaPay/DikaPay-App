@@ -125,6 +125,7 @@
 
   var el = null;
   var state = null;
+  var pembayaranAktif = false;
 
   function build() {
     if (el) return el;
@@ -369,6 +370,7 @@
 
   function tampilkanHasil(res, o) {
     var hasil = res.status;
+    pembayaranAktif = false;
     q(".payflow__stage--proses").hidden = true;
     var box = q(".payflow__stage--hasil");
     box.hidden = false;
@@ -742,6 +744,11 @@
     penentuHasil = penentuHasilServer;
 
     return function (pinMasuk) {
+      var jaringan = window.DikaNetwork;
+      var menungguKoneksi = jaringan && !jaringan.isOnline();
+      if (menungguKoneksi && typeof jaringan.setTransactionWait === "function") {
+        jaringan.setTransactionWait("produk", true);
+      }
       return DikaApi.transaksiProduk(token, {
         ref_id: refId,
         kode_produk: kode,
@@ -773,12 +780,17 @@
         var pinSalah = /^pin salah/i.test(pesan);
         console.error("payment-flow: transaksi produk ditolak:", (err && err.sebab) || pesan);
         return { ok: false, pesan: pesan, pinSalah: pinSalah };
+      }).finally(function () {
+        if (menungguKoneksi && jaringan && typeof jaringan.setTransactionWait === "function") {
+          jaringan.setTransactionWait("produk", false);
+        }
       });
     };
   }
 
   function bayar(opts) {
     try {
+      if (pembayaranAktif) return false;
       var o = opts || {};
       o.amount = Math.max(0, Math.round(Number(o.amount) || 0));
       o.nama = o.nama || "Transaksi";
@@ -811,6 +823,7 @@
       var verifikasi = siapkanVerifikasiProduk(o);
       if (!verifikasi) return false;
 
+      pembayaranAktif = true;
       window.DikaPinTransaksi.minta({
         nama: o.nama,
         nominal: o.amount,
@@ -818,6 +831,7 @@
       })
         .then(function (r) {
           if (r && r.ok) { mulaiProses(o); return; }
+          pembayaranAktif = false;
           /* Dibatalkan sendiri = diam saja, member tahu apa yang dia lakukan.
              "banned" (salah 3x) TIDAK ditangani di sini sama sekali —
              pin-transaksi.js SUDAH menampilkan popup "Akun Kamu Telah
@@ -826,10 +840,12 @@
         })
         .catch(function (e) {
           console.error("payment-flow: konfirmasi PIN gagal:", e);
+          pembayaranAktif = false;
         });
       return true;
     } catch (e) {
       console.error("payment-flow: gagal memulai pembayaran:", e);
+      pembayaranAktif = false;
       return false;
     }
   }

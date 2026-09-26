@@ -2295,8 +2295,8 @@ function init() {
     const F = window.DikaProfilFoto;
     if (!F) { showTopToast("Fitur foto belum siap di versi ini.", true); return; }
 
-    const av = $("avatar");
-    if (av) av.classList.add("is-unggah");
+    const avatars = document.querySelectorAll("[data-avatar]");
+    avatars.forEach((avatar) => avatar.classList.add("is-unggah"));
     showTopToast("Mengunggah foto…");
 
     F.unggah(masukan)
@@ -2309,7 +2309,7 @@ function init() {
         showTopToast((err && err.pesanMember) || "Foto gagal diunggah. Coba lagi, ya.", true);
       })
       .finally(() => {
-        if (av) av.classList.remove("is-unggah");
+        avatars.forEach((avatar) => avatar.classList.remove("is-unggah"));
       });
   }
 

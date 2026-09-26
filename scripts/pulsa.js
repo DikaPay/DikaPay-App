@@ -202,12 +202,10 @@
       return;
     }
     if (status === "memuat") {
-      /* Skeleton hanya saat produknya memang sedang ditunggu — sebelum
-         nomor cukup panjang, halaman sudah punya penjelasannya sendiri
-         (#pEmpty "masukkan minimal 4 digit"), jadi menambah spinner di
-         situ cuma bising. */
+      /* Katalog tetap memberi umpan balik saat halaman baru dibuka, sebelum
+        nomor cukup panjang untuk menentukan daftar operator. */
       if (choiceUI) choiceUI.render([]);
-      if (opKey) statusUI.memuat(6); else statusUI.sembunyi();
+      statusUI.memuat(6);
       return;
     }
 

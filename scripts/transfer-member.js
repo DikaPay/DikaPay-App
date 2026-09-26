@@ -255,6 +255,7 @@
     var lookupToken = 0;   // buang hasil pencarian basi (nomor sudah berubah lagi)
     var modalOpen = false;
     var modalPushed = false;
+    var transferBusy = false;
 
     /* ---- Nomor HP tujuan ---------------------------------------------- */
 
@@ -442,7 +443,7 @@
        bukan membuka sheet "Segera Hadir". */
 
     function openConfirm() {
-      if (modalOpen || !state.member) return;
+      if (modalOpen || transferBusy || !state.member) return;
 
       var note = (els.noteInput.value || "").trim();
       var rows = [
@@ -500,6 +501,11 @@
        berpindah — lihat komentar di pin-transaksi.js (`periksa()`). */
     function verifikasiPinBackend(pinMasuk) {
       var pengirim = normPhone(getProfilePhone());
+      var jaringan = window.DikaNetwork;
+      var menungguKoneksi = jaringan && !jaringan.isOnline();
+      if (menungguKoneksi && typeof jaringan.setTransactionWait === "function") {
+        jaringan.setTransactionWait("transfer", true);
+      }
       return DikaApi.transfer({
         nomor_hp_pengirim: pengirim,
         pin: pinMasuk,
@@ -519,6 +525,10 @@
            pesannya ditampilkan di form, bukan menahan member di keypad. */
         var pinSalah = /^pin salah/i.test(pesan);
         return { ok: false, pesan: pesan, pinSalah: pinSalah };
+      }).finally(function () {
+        if (menungguKoneksi && jaringan && typeof jaringan.setTransactionWait === "function") {
+          jaringan.setTransactionWait("transfer", false);
+        }
       });
     }
 
@@ -583,7 +593,7 @@
     }
 
     els.cmPay.addEventListener("click", function () {
-      if (!modalOpen || els.cmPay.disabled) return;
+      if (!modalOpen || transferBusy || els.cmPay.disabled) return;
 
       /* ===== KONFIRMASI PIN — WAJIB, sama seperti transaksi produk ======
          Halaman ini TIDAK memakai payment-flow.js (transfer bukan produk
@@ -603,6 +613,7 @@
         return;
       }
 
+      transferBusy = true;
       els.cmPay.classList.add("is-loading");
       els.cmPay.disabled = true;
 
@@ -614,6 +625,7 @@
         })
         .then(function (r) {
           if (r && r.ok) { prosesTransfer(r); return; }
+          transferBusy = false;
           els.cmPay.classList.remove("is-loading");
           els.cmPay.disabled = false;
           /* Dibatalkan sendiri ("batal") / belum punya PIN ("tanpa-pin") =
@@ -642,6 +654,7 @@
         })
         .catch(function (e) {
           console.error("transfer-member: konfirmasi PIN gagal:", e);
+          transferBusy = false;
           els.cmPay.classList.remove("is-loading");
           els.cmPay.disabled = false;
         });
@@ -654,13 +667,12 @@
           result = finalisasiSukses(hasilPin);
         } catch (e) {
           console.error("transfer-member: gagal menuntaskan transfer:", e);
-          els.cmPay.classList.remove("is-loading");
-          els.cmPay.disabled = false;
           closeConfirm();
           showAmountErr("Transfer berhasil di server, tapi tampilannya gagal diperbarui. Cek saldo & riwayat kamu, ya.");
           return;
         }
         closeConfirm();
+        transferBusy = false;
         window.setTimeout(function () { showSuccess(result); }, RM ? 0 : 240);
       }, RM ? 0 : 850);
     }
