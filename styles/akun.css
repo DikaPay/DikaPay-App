@@ -194,6 +194,9 @@ body { overflow-x: hidden; }
   animation: skeletonShimmer 1.2s linear infinite;
 }
 .cashflow__div { align-self: stretch; width: 1px; margin: 2px 14px; background: var(--surface-2); }
+.cashflow__error { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 0 10px 8px; padding: 8px 10px; border: 1px solid var(--border); border-radius: 10px; color: var(--text-muted); font-size: 11px; }
+.cashflow__error[hidden] { display: none; }
+.cashflow__error button, .cfempty button { flex: 0 0 30px; width: 30px; height: 30px; border-radius: 50%; background: var(--gold-500); color: var(--on-brand); font-size: 19px; line-height: 1; }
 
 /* ===== Skor Keamanan Akun =================================== */
 .acard--score {
@@ -297,7 +300,7 @@ body { overflow-x: hidden; }
 .cfcats__name { flex: 1; min-width: 0; color: var(--text); font-size: 12px; font-weight: 600; overflow-wrap: anywhere; }
 .cfcats__amt { flex: 0 0 auto; color: var(--fg-strong); font-size: 12px; font-weight: 800; font-variant-numeric: tabular-nums; }
 
-.cfempty { padding: 30px 10px; text-align: center; font-size: 12.5px; color: var(--text-muted); }
+.cfempty { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 30px 10px; text-align: center; font-size: 12.5px; color: var(--text-muted); }
 .cfempty[hidden] { display: none; }
 /* SHIMMER — sapuan cahaya melintasi bagian yang SUDAH terisi: menyapu
    ±1,25 dtk lalu diam di luar frame sampai siklus 2,8 dtk berikutnya.

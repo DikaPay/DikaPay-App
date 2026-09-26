@@ -222,6 +222,12 @@
     var node = null;
     var keadaan = "sembunyi";
     var onRetry = null;
+    var lepasRetryOnline = null;
+
+    function bersihkanRetryOnline() {
+      if (lepasRetryOnline) lepasRetryOnline();
+      lepasRetryOnline = null;
+    }
 
     function build() {
       if (node) return node;
@@ -249,10 +255,6 @@
       node.hidden = false;
     }
 
-    var IC_GAGAL =
-      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" ' +
-      'stroke-linecap="round" stroke-linejoin="round">' +
-      '<path d="M12 3.5 2.5 20h19L12 3.5z"/><path d="M12 10v4M12 17.4h.01"/></svg>';
     var IC_KOSONG =
       '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" ' +
       'stroke-linecap="round" stroke-linejoin="round">' +
@@ -260,6 +262,8 @@
 
     return {
       memuat: function (jml) {
+        bersihkanRetryOnline();
+        onRetry = null;
         keadaan = "memuat";
         var n = Number(jml) > 0 ? Number(jml) : 6;
         var kartu = "";
@@ -277,15 +281,18 @@
       gagal: function (pesan, fn) {
         keadaan = "gagal";
         onRetry = fn || null;
+        bersihkanRetryOnline();
+        if (onRetry && window.DikaNetwork) {
+          lepasRetryOnline = window.DikaNetwork.retryOnReconnect("produk-status", onRetry);
+        }
         tampil(
-          '<span class="pstatus__ic" aria-hidden="true">' + IC_GAGAL + "</span>" +
-          '<p class="pstatus__title">Gagal memuat produk</p>' +
-          '<p class="pstatus__text">' + esc(pesan || "Coba lagi sebentar lagi, ya.") + "</p>" +
-          (fn ? '<button class="pstatus__retry" type="button">Coba Lagi</button>' : ""),
+          '<p class="pstatus__text">' + esc(pesan || "Gagal memuat, coba lagi.") + "</p>" +
+          (fn ? '<button class="pstatus__retry" type="button" aria-label="Coba muat ulang produk">↻</button>' : ""),
           "pstatus--gagal"
         );
       },
       kosong: function (pesan) {
+        bersihkanRetryOnline();
         keadaan = "kosong";
         onRetry = null;
         tampil(
@@ -295,6 +302,7 @@
         );
       },
       sembunyi: function () {
+        bersihkanRetryOnline();
         keadaan = "sembunyi";
         onRetry = null;
         if (node) { node.hidden = true; node.innerHTML = ""; }

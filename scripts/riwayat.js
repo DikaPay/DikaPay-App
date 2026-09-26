@@ -727,6 +727,11 @@ function init() {
       try { renderSummary(); renderList(); }
       catch (err) { console.error("[riwayat] render setelah data siap gagal:", err); }
     });
+    window.addEventListener("dika:data-ready", () => {
+      try { renderSummary(); renderList(); }
+      catch (err) { console.error("[riwayat] render setelah retry gagal:", err); }
+    });
+    window.addEventListener("dika:data-loading", renderList);
   } catch (err) {
     console.error("[riwayat] init/render gagal:", err);
   }

@@ -331,6 +331,11 @@ function setListState(kind, text) {
   if (clearBtn) clearBtn.hidden = true;
 }
 
+function gagalNotifHtml(pesan) {
+  return '<li class="notif-list__error" role="status"><span>' + escapeHtml(pesan) +
+    '</span><button class="notif-list__retry" type="button" aria-label="Coba muat ulang">↻</button></li>';
+}
+
 /* ---- Navigasi ---------------------------------------------- */
 
 function navBack() {
@@ -417,7 +422,35 @@ function init() {
     window.setTimeout(() => render(daftarMentah), REDUCED_MOTION ? 0 : 220);
   }
 
+  function muatNotifikasiServer() {
+    if (!phone || !window.DikaApi || typeof DikaApi.notifikasi !== "function") return Promise.resolve();
+    if (window.DikaNetwork) window.DikaNetwork.removeRetry("notifikasi-server");
+    setListState("loading", "Memuat notifikasi…");
+    return DikaApi.notifikasi(phone).then(function (data) {
+      daftarMentah = Array.isArray(data) ? data : [];
+      if (window.DikaNotifServer) window.DikaNotifServer.pasangBaseline(phone, daftarMentah);
+      render(daftarMentah);
+      sorotDariUrl();
+    }).catch(function (err) {
+      console.error("[notifikasi] gagal memuat dari server:", err);
+      if (window.DikaNetwork) {
+        window.DikaNetwork.retryOnReconnect("notifikasi-server", muatNotifikasiServer);
+      }
+      if (entriLokal().length) {
+        render([]);
+        sorotDariUrl();
+      } else {
+        setListState("error", "Gagal memuat notifikasi.");
+        list.innerHTML = gagalNotifHtml("Gagal memuat notifikasi.");
+      }
+    });
+  }
+
   list.addEventListener("click", (event) => {
+    if (event.target.closest(".notif-list__retry")) {
+      muatNotifikasiServer();
+      return;
+    }
     const card = event.target.closest(".notif");
     if (!card) return;
     if (event.target.closest(".notif__del")) { hapusKartu(card); return; }
@@ -456,28 +489,7 @@ function init() {
     render([]);
     sorotDariUrl();
   } else {
-    DikaApi.notifikasi(phone)
-      .then(function (data) {
-        daftarMentah = Array.isArray(data) ? data : [];
-        /* Baseline dipasang SEBELUM render: kunjungan pertama akun ini di
-           perangkat ini mencatat ID tertinggi saat itu, sehingga siaran
-           lama tidak pernah sempat tampil walau sekejap. */
-        if (window.DikaNotifServer) window.DikaNotifServer.pasangBaseline(phone, daftarMentah);
-        render(daftarMentah);
-        sorotDariUrl();
-      })
-      .catch(function (err) {
-        console.error("[notifikasi] gagal memuat dari server:", err);
-        /* Siaran server gagal diambil BUKAN alasan menyembunyikan notifikasi
-           transaksi yang sudah ada di perangkat — apalagi kalau member baru
-           saja sampai di sini dari ketukan notifikasi. */
-        if (entriLokal().length) {
-          render([]);
-          sorotDariUrl();
-        } else {
-          setListState("error", "Notifikasi belum bisa dimuat. Coba lagi nanti.");
-        }
-      });
+    muatNotifikasiServer();
   }
 
   /* Dibuka dari ketukan notifikasi saat app SUDAH di halaman ini. */

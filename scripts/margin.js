@@ -389,6 +389,9 @@ let katalogStatus = "memuat";   /* "memuat" | "siap" | "gagal" */
    sub-brand, dst); masing-masing mendaftarkan jumlah produk ke
    DikaKatalogJumlah setelah katalog selesai dimuat. */
 function refreshCoverageFromBackend() {
+  if (window.DikaNetwork) window.DikaNetwork.removeRetry("margin-katalog");
+  const networkError = document.getElementById("marginNetworkError");
+  if (networkError) networkError.hidden = true;
   const loaders = [
     "DikaPulsa", "DikaPaketData", "DikaListrik", "DikaGasPrabayar",
     "DikaMasaAktif", "DikaPerdana", "DikaSmsTelpon", "DikaGames",
@@ -422,8 +425,9 @@ function refreshCoverageFromBackend() {
     }
   });
 
-  permintaan
+  return permintaan
     .then(function () {
+      if (window.DikaNetwork) window.DikaNetwork.removeRetry("margin-katalog");
       katalogStatus = "siap";
       /* setTimeout 0: beri kesempatan callback `.then` milik ke-12 modul
          (yang mendaftar SEBELUM callback ini) selesai menulis jumlahnya
@@ -448,8 +452,8 @@ function refreshCoverageFromBackend() {
       katalogStatus = "gagal";
       console.warn("[margin] katalog backend belum tersedia:", err);
       renderChkList();
-      showTopMsg((err && err.pesanMember) ||
-        "Jumlah produk belum bisa dimuat. Cek koneksi lalu buka ulang halaman ini, ya.", true);
+      if (networkError) networkError.hidden = false;
+      if (window.DikaNetwork) window.DikaNetwork.retryOnReconnect("margin-katalog", refreshCoverageFromBackend);
     });
 }
 
@@ -467,7 +471,7 @@ function renderChkList() {
       <input type="checkbox" data-cat="${c.id}" />
       <span class="chk__box" aria-hidden="true"></span>
       <span class="chk__label">${c.label}</span>
-      <span class="chk__count" data-jumlah="${n == null ? "" : n}">${awal}</span>
+      <span class="chk__count${n == null && katalogStatus === "memuat" ? " chk__count--loading" : ""}" data-jumlah="${n == null ? "" : n}">${awal}</span>
     </label>`;
   }).join("");
 
@@ -731,6 +735,8 @@ function init() {
     setInput();
     refreshSim(false);
     refreshCoverageFromBackend();
+    const retryKatalog = document.getElementById("marginNetworkRetry");
+    if (retryKatalog) retryKatalog.addEventListener("click", refreshCoverageFromBackend);
 
     const marginAktif = window.DikaMargin ? window.DikaMargin.aktif() : true;
     swMarginAktif.checked = marginAktif;

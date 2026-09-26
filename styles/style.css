@@ -80,6 +80,30 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .press { transition: transform 0.12s var(--ease-out), filter 0.12s var(--ease-out); }
 .press:active { transform: scale(0.93); filter: brightness(0.97); }
 
+.network-banner {
+  position: fixed;
+  left: 50%;
+  bottom: calc(14px + env(safe-area-inset-bottom, 0px));
+  z-index: 90;
+  width: min(calc(100% - 28px), 440px);
+  padding: 11px 16px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 12px;
+  background: rgba(185, 45, 45, 0.96);
+  box-shadow: 0 8px 24px rgba(76, 16, 16, 0.24);
+  color: #fff;
+  font-size: 12.5px;
+  font-weight: 700;
+  text-align: center;
+  transform: translate(-50%, 12px);
+  opacity: 0;
+  transition: opacity 0.2s ease, transform 0.2s var(--ease-out);
+  pointer-events: none;
+}
+.network-banner:not([hidden]) { transform: translate(-50%, 0); opacity: 1; }
+.network-banner--above-nav { bottom: calc(var(--nav-height) + 22px + env(safe-area-inset-bottom, 0px)); }
+.network-banner[hidden] { display: none; }
+
 @keyframes skeletonShimmer {
   to { background-position: -200% 0; }
 }
@@ -788,17 +812,24 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .bottom-nav {
   position: fixed;
   left: 50%;
-  bottom: 0;
+  bottom: calc(10px + env(safe-area-inset-bottom, 0px));
   transform: translateX(-50%);
-  width: 100%;
-  max-width: var(--content-max);
-  height: calc(var(--nav-height) + env(safe-area-inset-bottom, 0px));
-  padding-bottom: env(safe-area-inset-bottom, 0px);
+  width: min(calc(100% - 24px), calc(var(--content-max) - 24px));
+  height: var(--nav-height);
   display: flex;
   align-items: stretch;
-  background: var(--surface);
-  box-shadow: var(--shadow-nav);
+  border: 1px solid rgba(255, 255, 255, 0.72);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.84);
+  box-shadow: 0 10px 30px rgba(11, 36, 71, 0.16), 0 2px 8px rgba(11, 36, 71, 0.08);
+  -webkit-backdrop-filter: blur(20px) saturate(1.5);
+  backdrop-filter: blur(20px) saturate(1.5);
   z-index: 20;
+  overflow: hidden;
+}
+
+@supports not ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
+  .bottom-nav { background: rgba(255, 255, 255, 0.96); }
 }
 
 .bottom-nav__indicator {

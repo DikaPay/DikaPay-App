@@ -426,16 +426,23 @@
     window.DATA.adaLagi = window.DATA.page < window.DATA.totalHalaman;
     window.DATA.status = window.DATA.TX.length ? "siap" : "kosong";
     window.DATA.error = "";
+    if (window.DikaNetwork) window.DikaNetwork.removeRetry("riwayat-data");
+    window.dispatchEvent(new CustomEvent("dika:data-ready", { detail: { status: window.DATA.status } }));
   }
 
   function tanganiGagal(err) {
     window.DATA.status = "gagal";
     window.DATA.error = (err && err.pesanMember) || PESAN_GAGAL_DEFAULT;
+    if (window.DikaNetwork) {
+      window.DikaNetwork.retryOnReconnect("riwayat-data", function () { return muatUlang(); });
+    }
+    window.dispatchEvent(new CustomEvent("dika:data-ready", { detail: { status: "gagal" } }));
     console.error("data.js: gagal memuat riwayat:", err && (err.sebab || err.message || err));
   }
 
   function muatUlang() {
     window.DATA.status = "memuat";
+    window.dispatchEvent(new CustomEvent("dika:data-loading"));
     return ambilDenganRetry(1, false).then(
       function (hasil) { terapkanHasil(hasil, true); },
       tanganiGagal

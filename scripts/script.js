@@ -754,8 +754,10 @@ function renderNotif() {
 
   if (!phone || !window.DikaApi || typeof DikaApi.notifikasi !== "function") return;
 
-  DikaApi.notifikasi(phone)
+  if (window.DikaNetwork) window.DikaNetwork.removeRetry("home-notifikasi");
+  return DikaApi.notifikasi(phone)
     .then(function (items) {
+      if (window.DikaNetwork) window.DikaNetwork.removeRetry("home-notifikasi");
       /* Penentuan "ada yang belum dibaca" dipegang DikaNotifServer —
          modul yang SAMA dipakai halaman Notifikasi untuk menyusun
          daftarnya. Dulu di sini ada salinan aturannya sendiri, dan itu
@@ -777,6 +779,9 @@ function renderNotif() {
     })
     .catch(function (err) {
       console.error("[home] gagal memuat unread notifikasi:", err);
+      if (window.DikaNetwork) {
+        window.DikaNetwork.retryOnReconnect("home-notifikasi", renderNotif);
+      }
     });
 }
 
