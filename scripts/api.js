@@ -944,30 +944,34 @@
      preflight OPTIONS. */
 
   function fetchJsonStatus(url, opts) {
-    var o = opts || {};
-    var ctrl = null, timer = 0, timeout = false;
-    try {
-      ctrl = new AbortController();
-      timer = window.setTimeout(function () {
-        timeout = true;
-        try { ctrl.abort(); } catch (e) {}
-      }, TIMEOUT_MS);
-    } catch (e) { ctrl = null; }
-    o.headers = o.headers || {};
-    o.headers.Accept = "application/json";
-    if (ctrl) o.signal = ctrl.signal;
-    return fetch(url, o)
-      .then(function (r) {
-        if (timer) { window.clearTimeout(timer); timer = 0; }
-        return r.json().then(
-          function (json) { return { status: r.status, json: json }; },
-          function () { return { status: r.status, json: null }; }
-        );
-      })
-      .catch(function (err) {
-        if (timer) { window.clearTimeout(timer); timer = 0; }
-        throw galatTransport(err, timeout, url);
-      });
+    var tunggu = window.DikaNetwork && typeof window.DikaNetwork.waitUntilOnline === "function"
+      ? window.DikaNetwork.waitUntilOnline()
+      : Promise.resolve();
+    return tunggu.then(function () {
+      var o = Object.assign({}, opts || {});
+      var ctrl = null, timer = 0, timeout = false;
+      try {
+        ctrl = new AbortController();
+        timer = window.setTimeout(function () {
+          timeout = true;
+          try { ctrl.abort(); } catch (e) {}
+        }, TIMEOUT_MS);
+      } catch (e) { ctrl = null; }
+      o.headers = Object.assign({}, o.headers || {}, { Accept: "application/json" });
+      if (ctrl) o.signal = ctrl.signal;
+      return fetch(url, o)
+        .then(function (r) {
+          if (timer) { window.clearTimeout(timer); timer = 0; }
+          return r.json().then(
+            function (json) { return { status: r.status, json: json }; },
+            function () { return { status: r.status, json: null }; }
+          );
+        })
+        .catch(function (err) {
+          if (timer) { window.clearTimeout(timer); timer = 0; }
+          throw galatTransport(err, timeout, url);
+        });
+    });
   }
 
   /* ======================= TRANSAKSI PRODUK — backend LIVE ==============

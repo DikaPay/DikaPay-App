@@ -197,10 +197,10 @@
         return;
       }
       if (status === "memuat") {
-        /* Skeleton grid produk hanya masuk akal untuk halaman berbiller-
-           banyak (pemilih memang menampilkan daftar). Single-biller cukup
-           menunggu diam — dataSiap() menahan tombol, #pEmpty menjelaskan. */
-        if (!SINGLE) statusUI.memuat(4); else statusUI.sembunyi();
+        /* Multi-biller menunggu daftar provider; single-biller tetap
+          menunggu data server di atas nominal/cek tagihan. Keduanya perlu
+          placeholder agar form tidak terlihat kosong saat jaringan lambat. */
+        statusUI.memuat(SINGLE ? 3 : 4);
         return;
       }
       if (status === "siap" && !RECORDS.length) {

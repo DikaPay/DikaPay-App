@@ -1475,6 +1475,15 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
   font-weight: 700;
   transition: transform 0.1s var(--ease-out), background 0.14s ease;
 }
+.pintx__keypad.is-loading { pointer-events: none; }
+.pintx__keypad.is-loading .pintx__key {
+  color: transparent;
+  background: linear-gradient(90deg, var(--surface-2) 25%, #fff 50%, var(--surface-2) 75%);
+  background-size: 200% 100%;
+  animation: skeletonShimmer 1.1s linear infinite;
+}
+.pintx__keypad.is-loading .pintx__key svg { opacity: 0; }
+.pintx__close:disabled { opacity: 0.4; pointer-events: none; }
 .pintx__key:active { transform: scale(0.93); background: var(--tint); }
 .pintx__key--fn { background: none; }
 .pintx__key--fn:active { background: var(--tint); }
@@ -1502,6 +1511,7 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 @media (prefers-reduced-motion: reduce) {
   .pintx__card { transform: none; }
   .pintx__dots.is-error { animation: none; }
+  .pintx__keypad.is-loading .pintx__key { animation: none; }
 }
 
 /* ===========================================================================

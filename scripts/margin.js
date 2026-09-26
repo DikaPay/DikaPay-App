@@ -465,13 +465,14 @@ function renderChkList() {
        Kalau angkanya belum terdaftar (lihat jumlahProduk): "Memuat…" selagi
        katalog diunduh, strip datar "—" kalau unduhannya memang gagal —
        jangan "0 Produk", itu angka yang menyesatkan. */
-    var awal = n == null ? (katalogStatus === "memuat" ? "Memuat…" : "—") : "0 Produk";
+    var sedangMemuat = katalogStatus === "memuat";
+    var awal = sedangMemuat ? "" : (n == null ? "—" : "0 Produk");
     return `
     <label class="chk">
       <input type="checkbox" data-cat="${c.id}" />
       <span class="chk__box" aria-hidden="true"></span>
       <span class="chk__label">${c.label}</span>
-      <span class="chk__count${n == null && katalogStatus === "memuat" ? " chk__count--loading" : ""}" data-jumlah="${n == null ? "" : n}">${awal}</span>
+      <span class="chk__count${sedangMemuat ? " chk__count--loading" : ""}" data-jumlah="${sedangMemuat || n == null ? "" : n}">${awal}</span>
     </label>`;
   }).join("");
 
