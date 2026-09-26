@@ -1356,7 +1356,8 @@ body { overflow-x: hidden; }
   box-shadow: var(--shadow-sm);
   animation: warnIn 0.32s var(--ease-out);
 }
-.pstatus--gagal, .pstatus--kosong { text-align: center; padding: 22px 18px; }
+.pstatus--gagal { display: flex; align-items: center; gap: 10px; margin: 4px 0 12px; padding: 9px 11px; border: 1px solid var(--border); border-radius: 12px; box-shadow: none; animation: none; }
+.pstatus--kosong { text-align: center; padding: 22px 18px; }
 
 .pstatus__lead {
   margin-bottom: 12px;
@@ -1364,6 +1365,7 @@ body { overflow-x: hidden; }
   font-weight: 700;
   color: var(--text-muted);
 }
+.pstatus--memuat .pstatus__lead { display: none; }
 .pstatus__ic {
   display: grid;
   place-items: center;
@@ -1395,6 +1397,8 @@ body { overflow-x: hidden; }
   font-weight: 800;
   transition: transform 0.12s var(--ease-out);
 }
+.pstatus--gagal .pstatus__text { flex: 1; min-width: 0; margin: 0; font-size: 11.5px; }
+.pstatus--gagal .pstatus__retry { flex: 0 0 30px; width: 30px; height: 30px; margin: 0; padding: 0; border-radius: 50%; font-size: 19px; line-height: 1; }
 .pstatus__retry:active { transform: scale(0.96); }
 
 /* Skeleton meniru bentuk .prod-grid (2 kolom) supaya pergantian

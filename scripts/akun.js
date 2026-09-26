@@ -1960,6 +1960,18 @@ function refreshCashflow() {
       console.error("[akun] tx-ringkas.js belum di-link — ringkasan keuangan tidak bisa dihitung.");
       return;
     }
+    if (window.DATA && window.DATA.status === "gagal") {
+      $("cfIn").textContent = "—";
+      $("cfOut").textContent = "—";
+      $("cfIn").classList.remove("is-loading");
+      $("cfOut").classList.remove("is-loading");
+      $("cashflowBtn").setAttribute("aria-busy", "false");
+      $("cashflowError").hidden = false;
+      cfLoaded = false;
+      if ($("cashflowFlow").classList.contains("is-open")) buildCashflowDiagram();
+      return;
+    }
+    $("cashflowError").hidden = true;
     const src = (window.DATA && Array.isArray(window.DATA.TX)) ? window.DATA.TX : [];
     cfMonth = window.DikaTxRingkas.ringkas(src, window.DikaTxRingkas.kunciSekarang());
     $("cfIn").textContent = fmtRpCf(cfMonth.masuk);
@@ -1984,12 +1996,22 @@ function buildCashflowDiagram() {
       catsWrap = $("cfCatsWrap"), empty = $("cfEmpty"), loading = $("cfLoading");
     const ringkasanBulan = cfMonth;
 
+    if (!cfLoaded && window.DATA && window.DATA.status === "gagal") {
+      loading.hidden = true;
+      chart.hidden = true; summary.hidden = true; catsWrap.hidden = true;
+      empty.hidden = false;
+      $("cfEmptyText").textContent = "Arus kas belum bisa dimuat.";
+      $("cfFlowRetry").hidden = false;
+      return;
+    }
     if (!cfLoaded) {
       loading.hidden = false;
       chart.hidden = true; summary.hidden = true; catsWrap.hidden = true; empty.hidden = true;
       return;
     }
     loading.hidden = true;
+    $("cfFlowRetry").hidden = true;
+    $("cfEmptyText").textContent = "Belum ada transaksi bulan ini.";
 
     if (!ringkasanBulan || (ringkasanBulan.masuk <= 0 && ringkasanBulan.keluar <= 0)) {
       chart.hidden = true; summary.hidden = true; catsWrap.hidden = true;
@@ -2120,10 +2142,26 @@ function init() {
       ? window.DATA.ready
       : Promise.resolve();
     cfReady.then(refreshCashflow).catch((err) => console.error("[akun] DATA.ready (cashflow):", err));
+    window.addEventListener("dika:data-ready", refreshCashflow);
+    window.addEventListener("dika:data-loading", () => {
+      $("cashflowError").hidden = true;
+      $("cfIn").textContent = "Rp0";
+      $("cfOut").textContent = "Rp0";
+      $("cfIn").classList.add("is-loading");
+      $("cfOut").classList.add("is-loading");
+      $("cashflowBtn").setAttribute("aria-busy", "true");
+      cfLoaded = false;
+      if ($("cashflowFlow").classList.contains("is-open")) buildCashflowDiagram();
+    });
     $("cashflowBtn").addEventListener("click", () => {
       showFlow("cashflowFlow");
       buildCashflowDiagram();
     });
+    const retryCashflow = () => {
+      if (window.DATA && typeof window.DATA.muatUlang === "function") window.DATA.muatUlang();
+    };
+    $("cashflowRetry").addEventListener("click", retryCashflow);
+    $("cfFlowRetry").addEventListener("click", retryCashflow);
   } catch (err) {
     console.error("[akun] wiring cashflow gagal:", err);
   }

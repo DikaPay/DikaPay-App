@@ -56,6 +56,75 @@
   var memori = {};                      /* jenis -> { ts, data } */
   var inflight = {};                    /* jenis -> Promise */
 
+  /* Util koneksi bersama. Semua halaman pemakai API memakai helper yang
+     sama untuk banner offline, request yang menunggu reconnect, dan retry
+     data yang habis sebelum browser memicu event offline. */
+  var retryOnReconnect = Object.create(null);
+  var onlineWaiters = [];
+  var networkBanner = null;
+
+  function online() {
+    try { return navigator.onLine !== false; } catch (e) { return true; }
+  }
+
+  function buatBanner() {
+    if (networkBanner || !document.body) return;
+    networkBanner = document.createElement("div");
+    networkBanner.className = "network-banner";
+    networkBanner.setAttribute("role", "status");
+    networkBanner.setAttribute("aria-live", "polite");
+    networkBanner.textContent = "Koneksi internetmu terputus nih";
+    networkBanner.hidden = true;
+    if (document.querySelector(".bottom-nav")) networkBanner.classList.add("network-banner--above-nav");
+    document.body.appendChild(networkBanner);
+  }
+
+  function sinkronBanner() {
+    buatBanner();
+    if (networkBanner) networkBanner.hidden = online();
+  }
+
+  function tungguOnline() {
+    if (online()) return Promise.resolve();
+    return new Promise(function (resolve) { onlineWaiters.push(resolve); });
+  }
+
+  function pulihOnline() {
+    if (!online()) return;
+    sinkronBanner();
+    onlineWaiters.splice(0).forEach(function (resolve) { resolve(); });
+    Object.keys(retryOnReconnect).forEach(function (key) {
+      var retry = retryOnReconnect[key];
+      if (!retry || retry.running) return;
+      retry.running = true;
+      Promise.resolve().then(function () {
+        if (retryOnReconnect[key] !== retry) return;
+        return retry.fn();
+      }).catch(function (err) {
+        console.warn("DikaNetwork: retry setelah reconnect gagal (" + key + "):", err);
+      }).then(function () { retry.running = false; });
+    });
+  }
+
+  window.DikaNetwork = {
+    isOnline: online,
+    waitUntilOnline: tungguOnline,
+    retryOnReconnect: function (key, fn) {
+      if (!key || typeof fn !== "function") return function () {};
+      retryOnReconnect[key] = { fn: fn, running: false };
+      return function () { delete retryOnReconnect[key]; };
+    },
+    removeRetry: function (key) { delete retryOnReconnect[key]; },
+  };
+
+  window.addEventListener("offline", sinkronBanner);
+  window.addEventListener("online", pulihOnline);
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", sinkronBanner, { once: true });
+  } else {
+    sinkronBanner();
+  }
+
   /* ===================== PESAN GAGAL — JANGAN ASAL MENYALAHKAN KONEKSI ====
      Pesan yang SAMPAI KE MEMBER, bukan pesan teknis. Detail teknisnya
      tetap dicatat ke console lewat console.error di pemanggilnya.
@@ -70,8 +139,8 @@
      memperbaiki sesuatu yang tidak rusak — dan penyebab aslinya tidak
      pernah ketahuan.
 
-     Sekarang koneksi hanya disalahkan kalau perangkat MEMANG melaporkan
-     dirinya offline (`navigator.onLine === false`). Selebihnya pesannya
+    Sekarang koneksi hanya disalahkan kalau helper bersama mendeteksi
+    perangkat offline. Selebihnya pesannya
      netral dan jujur: "gagal terhubung", tanpa menuding. */
   var PESAN = {
     offline: "Perangkatmu sedang tidak terhubung ke internet. Nyalakan data/Wi-Fi lalu coba lagi, ya.",
@@ -92,8 +161,7 @@
     if (timeout || (err && err.name === "AbortError")) {
       e = galat(PESAN.lambat, "timeout " + TIMEOUT_MS + "ms");
     } else {
-      var offline = false;
-      try { offline = navigator.onLine === false; } catch (x) {}
+      var offline = !!(window.DikaNetwork && !window.DikaNetwork.isOnline());
       e = galat(offline ? PESAN.offline : PESAN.jaringan,
         (sebabDasar ? sebabDasar + ": " : "") + ((err && err.message) || "fetch gagal"));
       /* Perangkat yang jelas-jelas offline tidak akan sembuh dalam 2 detik;
@@ -136,7 +204,14 @@
 
   function denganUlang(buat, label) {
     function coba(sisa, jedaKe) {
-      return buat().catch(function (err) {
+      var tunggu = window.DikaNetwork && typeof window.DikaNetwork.waitUntilOnline === "function"
+        ? window.DikaNetwork.waitUntilOnline()
+        : Promise.resolve();
+      return tunggu.then(buat).catch(function (err) {
+        if (window.DikaNetwork && !window.DikaNetwork.isOnline()) {
+          console.info("api: " + label + " menunggu koneksi kembali.");
+          return window.DikaNetwork.waitUntilOnline().then(function () { return coba(sisa, jedaKe); });
+        }
         if (sisa <= 0 || !bolehUlang(err)) throw err;
         var jeda = JEDA_ULANG[jedaKe] || 1600;
         console.warn("api: " + label + " gagal (" + (err.sebab || err.message) +
@@ -312,25 +387,26 @@
      & tagihan harus selalu segar. */
 
   function fetchJson(url, opts) {
-    var ctrl = null, timer = 0, timeout = false;
-    try {
-      ctrl = new AbortController();
-      timer = window.setTimeout(function () { timeout = true; try { ctrl.abort(); } catch (e) {} }, TIMEOUT_MS);
-    } catch (e) { ctrl = null; }
-    var o = opts || {};
-    o.headers = o.headers || {};
-    o.headers.Accept = "application/json";
-    if (ctrl) o.signal = ctrl.signal;
-    return fetch(url, o)
-      .then(function (r) {
-        if (timer) { window.clearTimeout(timer); timer = 0; }
-        if (!r.ok) throw galatStatus(r.status);
-        return r.json();
-      })
-      .catch(function (err) {
-        if (timer) { window.clearTimeout(timer); timer = 0; }
-        throw galatTransport(err, timeout, url);
-      });
+    return denganUlang(function () {
+      var ctrl = null, timer = 0, timeout = false;
+      try {
+        ctrl = new AbortController();
+        timer = window.setTimeout(function () { timeout = true; try { ctrl.abort(); } catch (e) {} }, TIMEOUT_MS);
+      } catch (e) { ctrl = null; }
+      var o = Object.assign({}, opts || {});
+      o.headers = Object.assign({}, o.headers || {}, { Accept: "application/json" });
+      if (ctrl) o.signal = ctrl.signal;
+      return fetch(url, o)
+        .then(function (r) {
+          if (timer) { window.clearTimeout(timer); timer = 0; }
+          if (!r.ok) throw galatStatus(r.status);
+          return r.json();
+        })
+        .catch(function (err) {
+          if (timer) { window.clearTimeout(timer); timer = 0; }
+          throw galatTransport(err, timeout, url);
+        });
+    }, url);
   }
 
   function inquiryPln(customerNo) {

@@ -81,10 +81,9 @@
       </div>
 
       <!-- ===== Gagal memuat ===== -->
-      <div class="rstate" id="errorState" hidden>
-        <svg class="rstate__art" viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg>
+      <div class="rstate rstate--error" id="errorState" hidden role="status">
         <p class="rstate__text" id="errorText">Gagal memuat riwayat transaksi. Coba lagi, ya.</p>
-        <button class="rstate__retry" type="button" id="retryBtn">Coba Lagi</button>
+        <button class="rstate__retry" type="button" id="retryBtn">↻</button>
       </div>
 
       <!-- ===== Empty state (belum ada transaksi SAMA SEKALI, atau hasil filter kosong) ===== -->

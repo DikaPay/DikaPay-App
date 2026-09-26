@@ -473,7 +473,9 @@ function tampilkanState(kind, pesan) {
     statContent.hidden = false;
     return;
   }
-  statContent.hidden = true;
+  statState.classList.toggle("sstate--error", kind === "gagal");
+  statState.classList.toggle("sstate--loading", kind === "memuat");
+  statContent.hidden = kind !== "gagal";
   statState.hidden = false;
   if (statSpin) statSpin.hidden = kind !== "memuat";
   if (statRetryBtn) statRetryBtn.hidden = kind !== "gagal";
@@ -491,6 +493,10 @@ function tampilkanState(kind, pesan) {
 function siapkanTampilan() {
   try {
     refreshMonthly();
+    if ((!window.DATA || window.DATA.status === "memuat") && MONTHLY.length === 0) {
+      tampilkanState("memuat");
+      return;
+    }
     if (MONTHLY.length === 0) {
       const status = (window.DATA && window.DATA.status) || "kosong";
       tampilkanState(status === "gagal" ? "gagal" : "kosong", window.DATA && window.DATA.error);
@@ -512,6 +518,8 @@ function init() {
     ? window.DATA.ready
     : Promise.resolve();
   ready.then(siapkanTampilan);
+  window.addEventListener("dika:data-ready", siapkanTampilan);
+  window.addEventListener("dika:data-loading", siapkanTampilan);
 
   if (statRetryBtn) {
     statRetryBtn.addEventListener("click", () => {

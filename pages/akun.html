@@ -67,6 +67,10 @@
             </div>
           </div>
         </button>
+        <div class="cashflow__error" id="cashflowError" hidden role="status">
+          <span>Ringkasan belum bisa dimuat.</span>
+          <button type="button" id="cashflowRetry" aria-label="Coba muat ulang ringkasan">↻</button>
+        </div>
       </section>
 
       <!-- ===== Skor Keamanan Akun ===== -->
@@ -522,7 +526,10 @@
           </section>
         </div>
 
-        <p class="cfempty" id="cfEmpty" hidden>Belum ada transaksi bulan ini.</p>
+        <div class="cfempty" id="cfEmpty" hidden>
+          <span id="cfEmptyText">Belum ada transaksi bulan ini.</span>
+          <button type="button" id="cfFlowRetry" hidden aria-label="Coba muat ulang arus kas">↻</button>
+        </div>
       </div>
     </div>
 
