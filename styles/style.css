@@ -80,6 +80,10 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .press { transition: transform 0.12s var(--ease-out), filter 0.12s var(--ease-out); }
 .press:active { transform: scale(0.93); filter: brightness(0.97); }
 
+@keyframes skeletonShimmer {
+  to { background-position: -200% 0; }
+}
+
 .reveal {
   opacity: 0;
   transform: translateY(16px);

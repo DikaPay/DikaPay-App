@@ -233,29 +233,18 @@ body { overflow-x: hidden; }
   animation: tmFadeDown 0.24s var(--ease-out);
 }
 .tm-checking[hidden] { display: none; }
-/* Loading DikaPay: 3 titik kecil berdenyut, bukan cincin berputar. */
+/* Placeholder kapsul untuk pencarian member yang sedang berlangsung. */
 .tm-checking__spinner {
   position: relative;
   flex-shrink: 0;
-  width: 5px;
-  height: 5px;
-  margin: 0 8px;
-  border-radius: 50%;
-  background: var(--fg-strong);
-  animation: tmDot 0.9s ease-in-out infinite;
+  width: 34px;
+  height: 8px;
+  margin: 0 3px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--surface-2) 25%, var(--white) 50%, var(--surface-2) 75%);
+  background-size: 200% 100%;
+  animation: skeletonShimmer 1.2s linear infinite;
 }
-.tm-checking__spinner::before, .tm-checking__spinner::after {
-  content: "";
-  position: absolute;
-  top: 0;
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background: var(--fg-strong);
-  animation: tmDot 0.9s ease-in-out infinite;
-}
-.tm-checking__spinner::before { left: -9px; animation-delay: -0.3s; }
-.tm-checking__spinner::after  { left: 9px;  animation-delay: 0.3s; }
 
 .tm-err {
   display: flex;
@@ -507,31 +496,18 @@ body { overflow-x: hidden; }
   position: absolute;
   left: 50%;
   top: 50%;
-  width: 6px;
-  height: 6px;
-  margin: -3px 0 0 -3px;
-  border-radius: 50%;
-  background: var(--fg-strong);
-  opacity: 0;
-  animation: tmDot 0.9s ease-in-out infinite;
+  display: none;
+  width: 42px;
+  height: 8px;
+  margin: -4px 0 0 -21px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, rgba(11, 36, 71, 0.12) 25%, rgba(11, 36, 71, 0.36) 50%, rgba(11, 36, 71, 0.12) 75%);
+  background-size: 200% 100%;
 }
-.tm-spinner::before, .tm-spinner::after {
-  content: "";
-  position: absolute;
-  top: 0;
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--fg-strong);
-  animation: tmDot 0.9s ease-in-out infinite;
-}
-.tm-spinner::before { left: -12px; animation-delay: -0.3s; }
-.tm-spinner::after  { left: 12px;  animation-delay: 0.3s; }
 .tm-modal__btn--gold.is-loading .tm-modal__btn-label { opacity: 0; }
-.tm-modal__btn--gold.is-loading .tm-spinner { opacity: 1; }
-@keyframes tmDot {
-  0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; }
-  40%           { transform: scale(1);   opacity: 1; }
+.tm-modal__btn--gold.is-loading .tm-spinner {
+  display: block;
+  animation: skeletonShimmer 1.2s linear infinite;
 }
 
 /* ===== Sukses ========================================================= */

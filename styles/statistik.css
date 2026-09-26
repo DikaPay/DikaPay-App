@@ -58,33 +58,35 @@ body { overflow-x: hidden; }
 }
 .sstate[hidden] { display: none; }
 
-/* Loading DikaPay: 3 titik gold berdenyut naik-turun (gaya DANA), GANTI
-   dari cincin berputar (`sSpin`) — pola sama dengan `.rstate__spin`. */
-.sstate__spin {
-  position: relative;
+.sstate__skeleton { display: grid; gap: 12px; width: 100%; max-width: 440px; margin: 0 auto 14px; }
+.sstate__sk-card {
+  display: grid;
+  align-content: center;
+  gap: 10px;
+  min-height: 78px;
+  padding: 16px;
+  border-radius: 16px;
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+}
+.sstate__sk-card--summary { min-height: 104px; }
+.sstate__sk-card--chart { min-height: 184px; align-content: end; }
+.sstate__sk-card i {
   display: block;
-  width: 8px;
-  height: 8px;
-  margin: 0 auto 12px;
-  border-radius: 50%;
-  background: var(--gold-500);
-  animation: sDot 0.9s ease-in-out infinite;
+  width: 58%;
+  height: 10px;
+  border-radius: 6px;
+  background: linear-gradient(90deg, var(--surface-2) 25%, #fff 50%, var(--surface-2) 75%);
+  background-size: 200% 100%;
+  animation: skeletonShimmer 1.25s linear infinite;
 }
-.sstate__spin::before, .sstate__spin::after {
-  content: "";
-  position: absolute;
-  top: 0;
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--gold-500);
-  animation: sDot 0.9s ease-in-out infinite;
-}
-.sstate__spin::before { left: -14px; animation-delay: -0.3s; }
-.sstate__spin::after  { left: 14px;  animation-delay: 0.3s; }
-@keyframes sDot {
-  0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; }
-  40%           { transform: scale(1);   opacity: 1; }
+.sstate__sk-card i:last-child { width: 34%; height: 14px; }
+.sstate__sk-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.sstate__sk-pair .sstate__sk-card { min-height: 72px; }
+.sstate__skeleton[hidden] { display: none; }
+.sstate__skeleton + .sstate__text { align-self: center; }
+@media (prefers-reduced-motion: reduce) {
+  .sstate__sk-card i { animation: none; }
 }
 
 .sstate__text { font-size: 12.5px; color: var(--text-muted); max-width: 240px; line-height: 1.5; }
@@ -372,7 +374,6 @@ body { overflow-x: hidden; }
   .seg { transition: none; }
   .cmp, .legend__item, .insight__text { opacity: 1 !important; transform: none !important; }
   .stat-card__total::after { display: none; }
-  .sstate__spin { animation-duration: 1.4s; }
 }
 
 /* Teks di atas gold / putih-pill — selalu navy, di semua tema */

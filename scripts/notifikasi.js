@@ -283,6 +283,7 @@ function render(items) {
   const mapped = entriLokal().concat(mapNotifications(items));
 
   list.classList.remove("notif-list--loading", "notif-list--empty", "notif-list--error");
+  list.setAttribute("aria-busy", "false");
   if (clearBtn) clearBtn.hidden = mapped.length === 0;
 
   if (!mapped.length) {
@@ -311,11 +312,21 @@ function render(items) {
 function setListState(kind, text) {
   const list = document.getElementById("notifList");
   list.className = "notif-list notif-list--" + kind;
+  list.setAttribute("aria-busy", kind === "loading" ? "true" : "false");
   /* "empty" memakai ilustrasi yang sama dengan daftar yang memang kosong
      sejak awal — kalau di sini ditulis teks polos, member yang baru
      menekan "Hapus Semua" akan melihat halaman yang tampak lain sendiri. */
   if (kind === "empty") list.innerHTML = emptyHtml();
-  else list.textContent = text;
+  else if (kind === "loading") {
+    list.innerHTML = Array.from({ length: 3 }, () =>
+      '<li class="notif-skeleton" aria-hidden="true"><span class="notif-skeleton__ic"></span>' +
+      '<span class="notif-skeleton__lines"><i></i><i></i><i></i></span><span class="notif-skeleton__action"></span></li>'
+    ).join("");
+    const status = document.createElement("li");
+    status.className = "notif-skeleton__status";
+    status.textContent = text;
+    list.appendChild(status);
+  } else list.textContent = text;
   const clearBtn = document.getElementById("clearAllBtn");
   if (clearBtn) clearBtn.hidden = true;
 }

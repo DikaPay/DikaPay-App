@@ -356,35 +356,34 @@
 }
 .rstate[hidden] { display: none; }
 
-/* Loading DikaPay: 3 titik gold berdenyut naik-turun (gaya DANA) — dipakai
-   saat memuat riwayat dari server / jaringan lambat, GANTI dari cincin
-   berputar (`rSpin`). Markup tetap satu `<span>` kosong: elemen ini jadi
-   titik tengah, `::before`/`::after` jadi titik kiri-kanan. */
-.rstate__spin {
-  position: relative;
+.rstate--loading { align-items: stretch; text-align: left; padding: 22px 8px; }
+.rstate__skeleton { display: grid; gap: 9px; width: 100%; margin-bottom: 12px; }
+.rstate__row {
+  display: grid;
+  grid-template-columns: 36px minmax(0, 1fr) 58px;
+  align-items: center;
+  gap: 10px;
+  min-height: 62px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+}
+.rstate__icon, .rstate__lines i, .rstate__sum {
   display: block;
-  width: 8px;
-  height: 8px;
-  margin: 0 auto 12px;
-  border-radius: 50%;
-  background: var(--gold-500);
-  animation: rDot 0.9s ease-in-out infinite;
+  background: linear-gradient(90deg, var(--surface-2) 25%, #fff 50%, var(--surface-2) 75%);
+  background-size: 200% 100%;
+  animation: skeletonShimmer 1.25s linear infinite;
 }
-.rstate__spin::before, .rstate__spin::after {
-  content: "";
-  position: absolute;
-  top: 0;
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--gold-500);
-  animation: rDot 0.9s ease-in-out infinite;
-}
-.rstate__spin::before { left: -14px; animation-delay: -0.3s; }
-.rstate__spin::after  { left: 14px;  animation-delay: 0.3s; }
-@keyframes rDot {
-  0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; }
-  40%           { transform: scale(1);   opacity: 1; }
+.rstate__icon { width: 34px; height: 34px; border-radius: 50%; }
+.rstate__lines { display: grid; gap: 8px; }
+.rstate__lines i { height: 9px; border-radius: 6px; }
+.rstate__lines i:first-child { width: 78%; }
+.rstate__lines i:last-child { width: 48%; }
+.rstate__sum { justify-self: end; width: 52px; height: 12px; border-radius: 6px; }
+.rstate--loading .rstate__text { align-self: center; }
+@media (prefers-reduced-motion: reduce) {
+  .rstate__icon, .rstate__lines i, .rstate__sum { animation: none; }
 }
 
 .rstate__art { color: var(--text-muted); margin-bottom: 10px; }
@@ -420,7 +419,13 @@
 }
 .rmore:active { transform: scale(0.98); }
 .rmore[hidden] { display: none; }
-.rmore.is-loading { opacity: 0.6; pointer-events: none; }
+.rmore.is-loading {
+  color: transparent;
+  pointer-events: none;
+  background: linear-gradient(90deg, var(--surface-2) 25%, #fff 50%, var(--surface-2) 75%);
+  background-size: 200% 100%;
+  animation: skeletonShimmer 1.2s linear infinite;
+}
 
 /* ===========================================================================
    Struk detail transaksi (panel geser)
@@ -641,7 +646,6 @@
   .summary__total::after { display: none; }
   .rc { transition: visibility 0s; }
   .rstate { animation: none; opacity: 1; transform: none; }
-  .rstate__spin { animation-duration: 1.4s; }
 }
 
 /* Teks di atas gold / putih-pill — selalu navy, di semua tema */

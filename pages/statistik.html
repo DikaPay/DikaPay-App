@@ -42,7 +42,11 @@
 
       <!-- ===== Memuat / gagal / belum ada pengeluaran ===== -->
       <div class="sstate" id="statState" hidden>
-        <span class="sstate__spin" id="statSpin" aria-hidden="true"></span>
+        <div class="sstate__skeleton" id="statSpin" aria-hidden="true">
+          <div class="sstate__sk-card sstate__sk-card--summary"><i></i><i></i></div>
+          <div class="sstate__sk-card sstate__sk-card--chart"><i></i><i></i><i></i></div>
+          <div class="sstate__sk-pair"><div class="sstate__sk-card"><i></i><i></i></div><div class="sstate__sk-card"><i></i><i></i></div></div>
+        </div>
         <p class="sstate__text" id="statStateText">Memuat statistik…</p>
         <button class="sstate__retry" type="button" id="statRetryBtn" hidden>Coba Lagi</button>
       </div>

@@ -507,41 +507,23 @@ body { overflow-x: hidden; }
 }
 .cmodal__btn[disabled] { opacity: 0.7; pointer-events: none; }
 
-/* Loading DikaPay: 3 titik berdenyut naik-turun bergantian (gaya DANA),
-   BUKAN lagi cincin berputar. Satu elemen `.spinner` + `::before`/`::after`
-   jadi 3 titik — markup tidak berubah sama sekali. */
+/* Tombol menampilkan satu shimmer kapsul hanya selama proses. */
 .spinner {
   position: absolute;
   left: 50%;
   top: 50%;
-  width: 30px;
+  display: none;
+  width: 42px;
   height: 8px;
-  margin: -4px 0 0 -15px;
-  opacity: 0;
+  margin: -4px 0 0 -21px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, rgba(11, 36, 71, 0.12) 25%, rgba(11, 36, 71, 0.36) 50%, rgba(11, 36, 71, 0.12) 75%);
+  background-size: 200% 100%;
 }
-.spinner, .spinner::before, .spinner::after {
-  border-radius: 50%;
-  background: var(--fg-strong);
-}
-.spinner {
-  width: 6px; height: 6px; margin: -3px 0 0 -3px;
-  animation: dikaDot 0.9s ease-in-out infinite;
-}
-.spinner::before, .spinner::after {
-  content: "";
-  position: absolute;
-  top: 0;
-  width: 6px;
-  height: 6px;
-  animation: dikaDot 0.9s ease-in-out infinite;
-}
-.spinner::before { left: -12px; animation-delay: -0.3s; }
-.spinner::after  { left: 12px;  animation-delay: 0.3s; }
 .cmodal__btn--gold.is-loading .cmodal__btn-label { opacity: 0; }
-.cmodal__btn--gold.is-loading .spinner { opacity: 1; }
-@keyframes dikaDot {
-  0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; }
-  40%           { transform: scale(1);   opacity: 1; }
+.cmodal__btn--gold.is-loading .spinner {
+  display: block;
+  animation: skeletonShimmer 1.2s linear infinite;
 }
 
 /* ===== Toast sukses (slide dari atas) =================== */
