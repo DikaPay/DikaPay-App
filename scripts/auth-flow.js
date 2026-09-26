@@ -763,105 +763,43 @@
       );
     }
 
-    /* ===== "Lanjutkan dengan Google" — auth-google-btn ====================
-       Google Sign-In native (google-auth.js) mengembalikan idToken + profil
-       dasar (nama/email/foto). Dari situ ada DUA jalur:
-         - api-google-login.php SUDAH mengenal email ini (pernah dikaitkan
-           saat daftar) -> Langkah B: PIN transaksi DikaPay TETAP wajib
-           diminta (reuse enterLoginBranch/loginPin, verifikasi ke
-           api-login.php) SEBELUM sesi dibuka. api-google-login.php di sini
-           HANYA mengonfirmasi identitas Google + menemukan nomor HP-nya —
-           BUKAN bukti kepemilikan akun DikaPay (id_token bisa
-           dicuri/diputar ulang dari perangkat lain), jadi TIDAK PERNAH
-           cukup untuk activateSession() sendirian.
-         - belum dikenal (404 "belum-terhubung") -> Langkah C: nomor HP
-           diminta lewat stepGooglePhone (bukan formulir nama/email dari
-           nol — itu sudah terverifikasi Google), lihat enterGooglePhoneStep
-           di bawah.
-         - gagal karena sebab lain (jaringan/timeout/api.js belum siap) ->
-           fallback lama: alur manual biasa (nama/email diisi ulang),
-           idToken & profil tetap tersimpan untuk prefill. */
+    /* Login Google sementara dinonaktifkan; tombol hanya membuka informasi.
+       Alur login/daftar melalui nomor HP tetap menjadi jalur aktif. */
     var googleBtn = $("googleBtn");
-    var googleNote = $("googleNote");
+    var googleDevOverlay = $("googleDevOverlay");
+    var googleDevPushed = false;
 
-    function setGoogleBusy(on) {
-      if (!googleBtn) return;
-      googleBtn.classList.toggle("is-loading", !!on);
-      googleBtn.disabled = !!on;
-    }
-    function showGoogleNote(msg) {
-      if (!googleNote) return;
-      googleNote.textContent = msg || "";
-      googleNote.hidden = !msg;
-    }
-    function lanjutkanTanpaBackendGoogle() {
-      var nama = (state.googleProfile && state.googleProfile.nama) || "akun Google";
-      showGoogleNote("Masuk sebagai " + nama + ". Masukkan nomor HP kamu untuk melanjutkan.");
-      try { phoneInput.focus(); } catch (e) {}
+    function closeGoogleInfo(fromPop) {
+      if (!googleDevOverlay || !googleDevOverlay.classList.contains("is-open")) return;
+      googleDevOverlay.classList.remove("is-open");
+      document.documentElement.style.overflow = "";
+      var didPush = googleDevPushed;
+      googleDevPushed = false;
+      if (!fromPop && didPush) { try { history.back(); } catch (e) {} }
     }
 
-    if (googleBtn) googleBtn.addEventListener("click", function () {
-      if (!window.DikaGoogleAuth) {
-        showGoogleNote("Modul Google Sign-In belum siap. Muat ulang halaman, ya.");
-        return;
-      }
-      showGoogleNote("");
-      setGoogleBusy(true);
+    function openGoogleInfo() {
+      if (!googleDevOverlay || googleDevOverlay.classList.contains("is-open")) return;
+      googleDevOverlay.classList.add("is-open");
+      document.documentElement.style.overflow = "hidden";
+      try { history.pushState({ dikaGoogleDev: 1 }, ""); googleDevPushed = true; }
+      catch (e) { googleDevPushed = false; }
+    }
 
-      DikaGoogleAuth.masuk().then(function (r) {
-        if (!r.ok) {
-          setGoogleBusy(false);
-          if (r.kode !== "dibatalkan") showGoogleNote(r.pesan);
-          return;
-        }
-
-        state.googleIdToken = r.idToken;
-        state.googleProfile = { nama: r.nama || "", email: r.email || "" };
-
-        if (!window.DikaApi || typeof DikaApi.masukGoogle !== "function") {
-          setGoogleBusy(false);
-          lanjutkanTanpaBackendGoogle();
-          return;
-        }
-
-        DikaApi.masukGoogle(r.idToken).then(function (member) {
-          setGoogleBusy(false);
-          var digits = normPhone(member && member.id_dikapay);
-          if (!digits) {
-            console.error("auth-flow: masukGoogle sukses tapi tanpa id_dikapay:", member);
-            lanjutkanTanpaBackendGoogle();
-            return;
-          }
-          /* pin:null + backendOnly:true -- SAMA seperti akun-stub cabang
-             login manual (lihat "Sudah terbukti terdaftar di backend..."
-             di atas). Ini yang membuat loginPin.onComplete SELALU jatuh ke
-             jalur backend (DikaApi.masuk), tidak pernah ke "jalur cepat
-             lokal" -- PIN wajib diverifikasi, tidak bisa dilewati. */
-          var account = {
-            name: (member && member.nama) || state.googleProfile.nama || "Member DikaPay",
-            phone: prettyPhone(digits),
-            pin: null,
-            backendOnly: true,
-          };
-          state.phoneDigits = digits;
-          state.account = account;
-          state.googleFlow = "login";
-          enterLoginBranch(account, {
-            googleNote: "Akun Google ini sudah terhubung ke " + account.name +
-              ". Masukkan PIN transaksi DikaPay kamu (bukan PIN akun Google) untuk masuk.",
-          });
-        }).catch(function (err) {
-          setGoogleBusy(false);
-          if (err && err.kode === "belum-terhubung") {
-            enterGooglePhoneStep();
-            return;
-          }
-          console.warn("auth-flow: masukGoogle gagal, lanjut manual:",
-            err && (err.sebab || err.pesanMember));
-          lanjutkanTanpaBackendGoogle();
-        });
+    if (googleBtn) googleBtn.addEventListener("click", openGoogleInfo);
+    if (googleDevOverlay) {
+      var googleDevClose = $("googleDevClose");
+      if (googleDevClose) googleDevClose.addEventListener("click", closeGoogleInfo);
+      googleDevOverlay.addEventListener("click", function (e) {
+        if (e.target === googleDevOverlay) closeGoogleInfo();
       });
-    });
+      window.addEventListener("keydown", function (e) {
+        if (e.key === "Escape" && googleDevOverlay.classList.contains("is-open")) closeGoogleInfo();
+      });
+      window.addEventListener("popstate", function () {
+        if (googleDevOverlay.classList.contains("is-open")) closeGoogleInfo(true);
+      });
+    }
 
     /* ===== CABANG GOOGLE (C): akun belum terhubung → minta nomor HP ======
        Nama & email dari Google SUDAH terverifikasi -- ditampilkan read-only,

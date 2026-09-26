@@ -100,35 +100,10 @@
         };
       })
       .catch(function (e) {
-        // TEMPORARY DIAGNOSTIC — lihat CLAUDE.md/catatan sesi sebelum menghapus:
-        // dipasang untuk menelusuri kenapa signIn() gagal dengan kode "gagal"
-        // generik di HP sungguhan. Hapus setelah penyebabnya ketemu & diperbaiki.
-        //
-        // DIPERLUAS: error.code/error.message saja tidak cukup -- ApiException
-        // Android asli (dari GoogleSignInClient/GoogleApiClient) sering punya
-        // field LAIN yang lebih spesifik ("status", "statusMessage",
-        // "statusCode", dst) yang tertelan Capacitor saat dijembatani ke JS
-        // sebagai object polos. JSON.stringify(e, Object.getOwnPropertyNames(e))
-        // mengambil SEMUA properti sendiri objeknya (termasuk yang non-
-        // enumerable seperti biasanya dipakai instance Error), bukan cuma
-        // code/message yang kita tebak sebelumnya.
-        var detailLengkap;
-        try {
-          detailLengkap = JSON.stringify(e, Object.getOwnPropertyNames(e || {}), 2);
-        } catch (jsonErr) {
-          detailLengkap = "(gagal di-JSON.stringify: " + jsonErr.message + ") String(e) = " + String(e);
-        }
-        console.error("google-auth: RAW ERROR (lengkap):", e, "\nDETAIL:", detailLengkap);
-        // TEMPORARY DIAGNOSTIC — HAPUS bersamaan dengan blok console.error di
-        // atas begitu penyebabnya ketemu & diperbaiki. JANGAN ikut ke rilis.
-        try {
-          alert("RAW ERROR (LENGKAP)\n\n" + detailLengkap +
-            "\n\n--- ringkasan ---\ncode: " + (e && e.code) + "\nmessage: " + (e && e.message));
-        } catch (alertErr) {}
+        console.error("google-auth: signIn gagal:", e);
         if (kodeBatal(e)) {
           return { ok: false, kode: "dibatalkan", pesan: PESAN.dibatalkan };
         }
-        console.error("google-auth: signIn gagal:", e);
         return { ok: false, kode: "gagal", pesan: PESAN.gagal };
       });
   }

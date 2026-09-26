@@ -305,7 +305,7 @@
       }
       if (status === "memuat") {
         if (choiceUI) choiceUI.render([]);
-        if (opKey) statusUI.memuat(6); else statusUI.sembunyi();
+        statusUI.memuat(6);
         return;
       }
       if (!opKey) {

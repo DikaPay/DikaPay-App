@@ -121,15 +121,14 @@
 
   function segarkanStatusUI() {
     if (!statusUI) return;
-    /* Kartu status katalog hanya relevan SETELAH member menekan "Cek Nama
-       Pelanggan" (saat itulah grid nominal dibuka). */
+    /* Status memuat/gagal menjelaskan fetch katalog sejak halaman dibuka;
+       hasil nominal tetap baru ditampilkan setelah inquiry pelanggan. */
     var siapTampil = state.meter.length >= MIN_DIGITS && state.cekDone;
     if (status === "gagal") {
-      if (siapTampil) statusUI.gagal(pesanGagal, function () { muat(true); });
-      else statusUI.sembunyi();
+      statusUI.gagal(pesanGagal, function () { muat(true); });
       return;
     }
-    if (status === "memuat") { if (siapTampil) statusUI.memuat(6); else statusUI.sembunyi(); return; }
+    if (status === "memuat") { statusUI.memuat(6); return; }
     if (status === "siap" && siapTampil && !PRODUK.length) {
       statusUI.kosong("Belum ada nominal token listrik yang tersedia saat ini.");
       return;

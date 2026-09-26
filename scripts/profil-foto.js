@@ -68,6 +68,13 @@
     } catch (e) { return ""; }
   }
 
+  function namaAktif() {
+    try {
+      var p = JSON.parse(localStorage.getItem("dikapay:profile") || "{}");
+      return String(p.name || "");
+    } catch (e) { return ""; }
+  }
+
   function url() {
     var d = nomorAktif();
     if (!d) return "";
@@ -78,14 +85,30 @@
   function simpan(fotoUrl) {
     var d = nomorAktif();
     if (!d || !fotoUrl) return false;
-    try { localStorage.setItem(PREFIX + d, String(fotoUrl)); return true; }
+    try {
+      localStorage.setItem(PREFIX + d, String(fotoUrl));
+      pasangSemua(namaAktif(), true);
+      return true;
+    }
     catch (e) { console.warn("profil-foto: URL foto tidak tersimpan:", e); return false; }
   }
 
   function hapus() {
     var d = nomorAktif();
     if (!d) return;
-    try { localStorage.removeItem(PREFIX + d); } catch (e) {}
+    try {
+      localStorage.removeItem(PREFIX + d);
+      pasangSemua(namaAktif());
+    } catch (e) {}
+  }
+
+  function versiUrl(fotoUrl) {
+    var urlFoto = String(fotoUrl || "");
+    var fragPos = urlFoto.indexOf("#");
+    var frag = fragPos < 0 ? "" : urlFoto.slice(fragPos);
+    var dasar = fragPos < 0 ? urlFoto : urlFoto.slice(0, fragPos);
+    var pemisah = dasar.indexOf("?") < 0 ? "?" : "&";
+    return dasar + pemisah + "_dika=" + Date.now() + frag;
   }
 
   /* Inisial dipakai saat foto belum ada — salinan kecil initials() yang
@@ -103,19 +126,20 @@
      disimpan sekali di `dataset` supaya bisa dikembalikan saat foto
      dihapus — tanpa itu, sekali foto dipasang ikon aslinya hilang
      selamanya sampai halaman dimuat ulang. */
-  function pasang(el, nama) {
+  function pasang(el, nama, paksaMuatBaru) {
     if (!el) return;
     try {
       if (el.dataset.avatarAsli === undefined) el.dataset.avatarAsli = el.innerHTML;
       var f = url();
       if (f) {
         var img = el.querySelector(".avatar-foto");
-        if (!img) {
-          el.innerHTML = "";
+        if (!img || img.dataset.fotoUrl !== f || paksaMuatBaru) {
+          var lama = img;
           img = document.createElement("img");
           img.className = "avatar-foto";
           img.alt = "";
           img.setAttribute("aria-hidden", "true");
+          img.dataset.fotoUrl = f;
 
           /* ============ GAGAL MUAT: JANGAN HAPUS URL-nya ==================
              BUG YANG DIPERBAIKI: dulu handler ini memanggil hapus(), jadi
@@ -130,6 +154,7 @@
              percobaan berikutnya (halaman dibuka lagi / pageshow) akan
              mencoba memuatnya lagi. */
           img.addEventListener("error", function () {
+            if (!el.contains(img)) return;
             console.error(
               "profil-foto: GAMBAR AVATAR GAGAL DIMUAT.\n" +
               "  URL   : " + f + "\n" +
@@ -143,9 +168,11 @@
                dan supaya CSS bisa membedakannya dari avatar tanpa foto. */
             el.setAttribute("data-avatar-error", f);
             el.classList.remove("has-foto");
-            el.innerHTML = el.dataset.avatarAsli || inisial(nama);
+            var asli = el.dataset.avatarAsli;
+            el.innerHTML = (asli && asli.indexOf("<") !== -1) ? asli : inisial(nama);
           });
           img.addEventListener("load", function () {
+            if (!el.contains(img)) return;
             el.removeAttribute("data-avatar-error");
             console.info("[profil-foto] avatar BERHASIL dimuat", JSON.stringify({
               url: f,
@@ -153,16 +180,15 @@
               ukuran: img.naturalWidth + "x" + img.naturalHeight,
             }));
           });
-          el.appendChild(img);
-        }
-        if (img.getAttribute("src") !== f) {
           /* URL yang BENAR-BENAR dipasang ke <img>. Kalau di chrome://inspect
              tab Network tidak menunjukkan permintaan ke URL ini, berarti
              masalahnya sebelum render (URL tidak tersimpan), bukan di
              pemuatan gambar. */
           console.info("[profil-foto] memasang src avatar:", f,
             "| elemen:", el.id ? "#" + el.id : el.className);
-          img.setAttribute("src", f);
+          if (lama) lama.replaceWith(img);
+          else el.appendChild(img);
+          img.setAttribute("src", paksaMuatBaru ? versiUrl(f) : f);
         }
         el.classList.add("has-foto");
         return;
@@ -178,10 +204,16 @@
     }
   }
 
-  function pasangSemua(nama) {
+  function pasangSemua(nama, paksaMuatBaru) {
     var daftar = document.querySelectorAll("[data-avatar]");
-    for (var i = 0; i < daftar.length; i++) pasang(daftar[i], nama);
+    for (var i = 0; i < daftar.length; i++) pasang(daftar[i], nama, paksaMuatBaru);
   }
+
+  window.addEventListener("storage", function (e) {
+    var fotoKey = PREFIX + nomorAktif();
+    if (e.key === fotoKey) pasangSemua(namaAktif(), true);
+    else if (e.key === "dikapay:profile") pasangSemua(namaAktif());
+  });
 
   /* ---- Ambil dari kamera / galeri lewat plugin ------------------------ */
 
@@ -329,10 +361,14 @@
            ke member adalah bohong — avatarnya tidak akan pernah berubah.
            Jadi URL-nya DICOBA MUAT dulu di sini; baru setelah benar-benar
            termuat ia disimpan dan dianggap berhasil. */
-        return ujiMuat(fotoUrl).then(function () {
+        return ujiMuat(versiUrl(fotoUrl)).then(function () {
           var ok = simpan(fotoUrl);
           console.info("[profil-foto] URL terbukti bisa dimuat & " +
             (ok ? "TERSIMPAN" : "GAGAL DISIMPAN") + " di " + PREFIX + nomorAktif());
+          if (!ok) {
+            throw galat("Foto sudah terkirim, tapi belum bisa disimpan di perangkat ini. Coba lagi, ya.",
+              "URL foto gagal disimpan ke localStorage");
+          }
           if (window.DikaApi && DikaApi.catatDebugFotoUjiMuat) {
             DikaApi.catatDebugFotoUjiMuat(true, null);
           }

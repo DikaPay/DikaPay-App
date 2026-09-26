@@ -62,6 +62,7 @@
   var retryOnReconnect = Object.create(null);
   var onlineWaiters = [];
   var networkBanner = null;
+  var transactionWaits = Object.create(null);
 
   function online() {
     try { return navigator.onLine !== false; } catch (e) { return true; }
@@ -81,7 +82,19 @@
 
   function sinkronBanner() {
     buatBanner();
-    if (networkBanner) networkBanner.hidden = online();
+    if (!networkBanner) return;
+    var transaksiMenunggu = Object.keys(transactionWaits).some(function (key) {
+      return transactionWaits[key];
+    });
+    if (transaksiMenunggu) {
+      networkBanner.textContent = online()
+        ? "Koneksi pulih. Transaksi sedang dikirim…"
+        : "Menunggu koneksi… transaksi akan otomatis dikirim begitu online.";
+      networkBanner.hidden = false;
+    } else {
+      networkBanner.textContent = "Koneksi internetmu terputus nih";
+      networkBanner.hidden = online();
+    }
   }
 
   function tungguOnline() {
@@ -115,6 +128,12 @@
       return function () { delete retryOnReconnect[key]; };
     },
     removeRetry: function (key) { delete retryOnReconnect[key]; },
+    setTransactionWait: function (key, active) {
+      if (!key) return;
+      if (active) transactionWaits[key] = true;
+      else delete transactionWaits[key];
+      sinkronBanner();
+    },
   };
 
   window.addEventListener("offline", sinkronBanner);
