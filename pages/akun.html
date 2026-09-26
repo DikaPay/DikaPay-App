@@ -44,18 +44,18 @@
     <main class="amain">
 
       <!-- ===== Ringkasan Keuangan (uang masuk/keluar bulan ini) =====
-           Ketuk kartu -> buka diagram (donut) rincian per kategori. Data
+         Ketuk kartu -> buka tren harian dan rincian per kategori. Data
            dari window.DATA.TX (data.js, sama sumber dengan Riwayat &
            Statistik) — dihitung ulang akun.js begitu DATA.ready selesai. -->
       <section class="acard acard--cashflow reveal">
-        <button class="cashflow" id="cashflowBtn" type="button" aria-haspopup="dialog">
+        <button class="cashflow" id="cashflowBtn" type="button" aria-haspopup="dialog" aria-busy="true">
           <div class="cashflow__row">
             <div class="cashflow__col cashflow__col--in">
               <span class="cashflow__ic cashflow__ic--in" aria-hidden="true">
                 <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
               </span>
               <span class="cashflow__label">Uang Masuk</span>
-              <span class="cashflow__amount" id="cfIn">Rp0</span>
+              <span class="cashflow__amount is-loading" id="cfIn">Rp0</span>
             </div>
             <div class="cashflow__div" aria-hidden="true"></div>
             <div class="cashflow__col cashflow__col--out">
@@ -63,10 +63,9 @@
                 <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12l7 7 7-7"/></svg>
               </span>
               <span class="cashflow__label">Uang Keluar</span>
-              <span class="cashflow__amount" id="cfOut">Rp0</span>
+              <span class="cashflow__amount is-loading" id="cfOut">Rp0</span>
             </div>
           </div>
-          <span class="cashflow__hint">Lihat diagram bulan ini <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg></span>
         </button>
       </section>
 
@@ -471,47 +470,56 @@
       </div>
     </div>
 
-    <!-- ===== Flow: Diagram Uang Masuk/Keluar ===== -->
-    <div class="aflow" id="cashflowFlow" role="dialog" aria-modal="true" aria-label="Diagram Keuangan">
+    <!-- ===== Flow: Arus Kas ===== -->
+    <div class="aflow" id="cashflowFlow" role="dialog" aria-modal="true" aria-label="Arus Kas">
       <div class="aflow__head">
         <button class="aflow__back" type="button" data-flowback aria-label="Kembali">
           <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
         </button>
-        <span class="aflow__title">Diagram Keuangan</span>
+        <span class="aflow__title">Arus Kas</span>
       </div>
       <div class="aflow__body">
-        <p class="tfa-lead" id="cfMonthLabel">Ringkasan bulan ini</p>
-
-        <div class="cfchart" id="cfChart">
-          <svg class="cfchart__donut" viewBox="0 0 120 120" aria-hidden="true">
-            <circle class="cfchart__track" cx="60" cy="60" r="50" />
-            <circle class="cfchart__seg cfchart__seg--in" id="cfSegIn" cx="60" cy="60" r="50" pathLength="100" />
-            <circle class="cfchart__seg cfchart__seg--out" id="cfSegOut" cx="60" cy="60" r="50" pathLength="100" />
-          </svg>
-          <div class="cfchart__mid">
-            <span class="cfchart__mid-label">Total</span>
-            <span class="cfchart__mid-val" id="cfMidVal">Rp0</span>
-          </div>
+        <div class="cf-period">
+          <h2 class="cf-period__month" id="cfMonthLabel">Ringkasan bulan ini</h2>
+          <p class="cf-period__range" id="cfDateRange"></p>
         </div>
 
-        <ul class="cflegend" id="cfLegend">
-          <li class="cflegend__item cflegend__item--in">
-            <span class="cflegend__dot" aria-hidden="true"></span>
-            <span class="cflegend__label">Uang Masuk</span>
-            <span class="cflegend__val" id="cfLegIn">Rp0</span>
-            <span class="cflegend__pct" id="cfPctIn">0%</span>
-          </li>
-          <li class="cflegend__item cflegend__item--out">
-            <span class="cflegend__dot" aria-hidden="true"></span>
-            <span class="cflegend__label">Uang Keluar</span>
-            <span class="cflegend__val" id="cfLegOut">Rp0</span>
-            <span class="cflegend__pct" id="cfPctOut">0%</span>
-          </li>
-        </ul>
+        <div class="cf-loading" id="cfLoading" hidden aria-label="Memuat arus kas">
+          <div class="cf-loading__chart"></div>
+          <div class="cf-loading__cards"><i></i><i></i></div>
+          <div class="cf-loading__line"></div>
+          <div class="cf-loading__line cf-loading__line--short"></div>
+        </div>
+
+        <div class="cfchart" id="cfChart" role="img" aria-label="Grafik harian uang masuk dan uang keluar">
+          <div class="cfchart__legend">
+            <span><i class="cfchart__key cfchart__key--in"></i>Uang masuk</span>
+            <span><i class="cfchart__key cfchart__key--out"></i>Uang keluar</span>
+          </div>
+          <svg class="cfchart__svg" id="cfChartSvg" viewBox="0 0 360 218" preserveAspectRatio="none" aria-hidden="true"></svg>
+        </div>
+
+        <div class="cfsummary" id="cfSummary" hidden>
+          <article class="cfsummary__card cfsummary__card--in">
+            <span class="cfsummary__label"><i aria-hidden="true"></i>Uang Masuk</span>
+            <strong class="cfsummary__amount" id="cfLegIn">Rp0</strong>
+          </article>
+          <article class="cfsummary__card cfsummary__card--out">
+            <span class="cfsummary__label"><i aria-hidden="true"></i>Uang Keluar</span>
+            <strong class="cfsummary__amount" id="cfLegOut">Rp0</strong>
+          </article>
+        </div>
 
         <div class="cfcats" id="cfCatsWrap" hidden>
-          <p class="cfcats__title">Rincian pengeluaran per kategori</p>
-          <ul class="cfcats__list" id="cfCatsList"></ul>
+          <h3 class="cfcats__title">Rincian Transaksi</h3>
+          <section class="cfcats__group" id="cfIncomeGroup" hidden>
+            <h4>Uang Masuk</h4>
+            <ul class="cfcats__list" id="cfIncomeList"></ul>
+          </section>
+          <section class="cfcats__group" id="cfExpenseGroup" hidden>
+            <h4>Uang Keluar</h4>
+            <ul class="cfcats__list" id="cfExpenseList"></ul>
+          </section>
         </div>
 
         <p class="cfempty" id="cfEmpty" hidden>Belum ada transaksi bulan ini.</p>

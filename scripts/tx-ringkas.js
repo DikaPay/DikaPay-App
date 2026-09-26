@@ -8,6 +8,8 @@
        labelBulan(kunci)     // 202608 -> "September 2026"
        ringkas(TX, kunci)    // ringkasan SATU bulan
        perBulan(TX)          // [ringkasan, ...] semua bulan, urut bulan menaik
+        perHari(TX, kunci)    // nilai masuk/keluar per tanggal dalam satu bulan
+        perKategori(TX, kunci) // nilai masuk/keluar per kategori dalam satu bulan
      }
 
    Bentuk ringkasan:
@@ -127,11 +129,51 @@
       .sort(function (a, b) { return a.kunci - b.kunci; });
   }
 
+  function perHari(TX, kunci) {
+    var tahun = Math.floor(kunci / 100);
+    var bulan = kunci % 100;
+    var jumlahHari = new Date(tahun, bulan + 1, 0).getDate();
+    var hari = Array.from({ length: jumlahHari }, function (tidakDipakai, indeks) {
+      return { tanggal: indeks + 1, masuk: 0, keluar: 0 };
+    });
+    if (!Array.isArray(TX)) return hari;
+
+    TX.forEach(function (tx) {
+      if (!layak(tx) || kunciBulan(tx.dt) !== kunci) return;
+      var tanggal = Number(String(tx.dt).slice(8, 10));
+      if (!isFinite(tanggal) || tanggal < 1 || tanggal > jumlahHari) return;
+      var nominal = Number(tx.amount);
+      if (!isFinite(nominal)) nominal = 0;
+      if (nominal < 0) hari[tanggal - 1].keluar += -nominal;
+      else hari[tanggal - 1].masuk += nominal;
+    });
+    return hari;
+  }
+
+  function perKategori(TX, kunci) {
+    var peta = Object.create(null);
+    if (Array.isArray(TX)) {
+      TX.forEach(function (tx) {
+        if (!layak(tx) || kunciBulan(tx.dt) !== kunci) return;
+        var slug = tx.cat || "lainnya";
+        if (!peta[slug]) peta[slug] = { slug: slug, masuk: 0, keluar: 0, jumlah: 0 };
+        var nominal = Number(tx.amount);
+        if (!isFinite(nominal)) nominal = 0;
+        if (nominal < 0) peta[slug].keluar += -nominal;
+        else peta[slug].masuk += nominal;
+        peta[slug].jumlah += 1;
+      });
+    }
+    return Object.keys(peta).map(function (slug) { return peta[slug]; });
+  }
+
   window.DikaTxRingkas = {
     kunciBulan: kunciBulan,
     kunciSekarang: kunciSekarang,
     labelBulan: labelBulan,
     ringkas: ringkas,
     perBulan: perBulan,
+    perHari: perHari,
+    perKategori: perKategori,
   };
 })();

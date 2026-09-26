@@ -71,8 +71,12 @@
       <div class="txlist" id="txList"><!-- dirender oleh riwayat.js --></div>
 
       <!-- ===== Muat riwayat (pertama kali / pagination) ===== -->
-      <div class="rstate" id="loadingState" hidden>
-        <span class="rstate__spin" aria-hidden="true"></span>
+      <div class="rstate rstate--loading" id="loadingState" hidden>
+        <div class="rstate__skeleton" aria-hidden="true">
+          <div class="rstate__row"><span class="rstate__icon"></span><span class="rstate__lines"><i></i><i></i></span><span class="rstate__sum"></span></div>
+          <div class="rstate__row"><span class="rstate__icon"></span><span class="rstate__lines"><i></i><i></i></span><span class="rstate__sum"></span></div>
+          <div class="rstate__row"><span class="rstate__icon"></span><span class="rstate__lines"><i></i><i></i></span><span class="rstate__sum"></span></div>
+        </div>
         <p class="rstate__text">Memuat riwayat transaksi…</p>
       </div>
 

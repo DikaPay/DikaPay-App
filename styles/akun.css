@@ -159,15 +159,13 @@ body { overflow-x: hidden; }
 
 /* ===== Ringkasan Keuangan (uang masuk/keluar) ================
    Kartu tunggal berisi tombol penuh (`#cashflowBtn`) — seluruh kartu bisa
-   diketuk untuk membuka diagram (`#cashflowFlow`, gaya di bawah, dekat
-   akhir file). Warna hijau/merah pakai token status yang SUDAH ADA
-   (--ok-solid/--err-solid), bukan warna baru. */
+   diketuk untuk membuka diagram (`#cashflowFlow`). */
 .acard--cashflow { padding: 4px; }
 .cashflow {
   display: flex;
   flex-direction: column;
   width: 100%;
-  padding: 14px 12px 10px;
+  padding: 14px 12px;
   border: none;
   background: none;
   cursor: pointer;
@@ -177,98 +175,130 @@ body { overflow-x: hidden; }
 }
 .cashflow:active { transform: scale(0.985); background: var(--tint); }
 .cashflow__row { display: flex; align-items: center; }
-.cashflow__col {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-}
-.cashflow__ic {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
-  margin-bottom: 2px;
-}
-.cashflow__ic--in  { background: var(--ok-bg);  color: var(--ok-solid); }
+.cashflow__col { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.cashflow__ic { display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; border-radius: 50%; margin-bottom: 2px; }
+.cashflow__ic--in { background: var(--ok-bg); color: var(--ok-solid); }
 .cashflow__ic--out { background: var(--err-bg); color: var(--err-solid); }
 .cashflow__label { font-size: 11px; font-weight: 700; color: var(--text-muted); }
-.cashflow__amount {
-  font-size: 16px;
-  font-weight: 800;
-  color: var(--fg-strong);
-  font-variant-numeric: tabular-nums;
-}
+.cashflow__amount { font-size: 16px; font-weight: 800; color: var(--fg-strong); font-variant-numeric: tabular-nums; }
 .cashflow__col--in .cashflow__amount { color: var(--ok-solid); }
 .cashflow__col--out .cashflow__amount { color: var(--err-solid); }
-.cashflow__div {
-  align-self: stretch;
-  width: 1px;
-  margin: 2px 14px;
-  background: var(--surface-2);
+.cashflow__amount.is-loading {
+  width: 100px;
+  height: 18px;
+  margin-top: 2px;
+  border-radius: 7px;
+  color: transparent;
+  background: linear-gradient(90deg, var(--surface-2) 25%, #fff 50%, var(--surface-2) 75%);
+  background-size: 200% 100%;
+  animation: skeletonShimmer 1.2s linear infinite;
 }
-.cashflow__hint {
-  align-self: flex-end;
-  display: flex;
-  align-items: center;
-  gap: 3px;
-  margin-top: 10px;
-  font-size: 10px;
-  font-weight: 600;
-  color: var(--text-muted);
-}
+.cashflow__div { align-self: stretch; width: 1px; margin: 2px 14px; background: var(--surface-2); }
 
 /* ===== Skor Keamanan Akun =================================== */
-
-/* MOTIF LATAR — garis diagonal tipis (1px tiap 10px, navy 4,5%) di atas
-   gradient krem→putih. Keduanya cuma LAYER BACKGROUND di elemen yang sama:
-   tanpa DOM tambahan, tanpa layer compositing baru, dan STATIS (tidak
-   dianimasikan) supaya tidak menambah kerja saat scroll. Sengaja sangat
-   samar — teks & progress bar tetap kontras penuh. */
 .acard--score {
   position: relative;
   padding: 12px 14px 14px;
   border-left: 4px solid var(--gold-500);
-  background:
-    repeating-linear-gradient(135deg,
-      rgba(11, 36, 71, 0.045) 0 1px,
-      rgba(11, 36, 71, 0) 1px 10px),
-    linear-gradient(180deg, var(--cream-bg) 0%, var(--surface) 46%);
+  background: repeating-linear-gradient(135deg, rgba(11, 36, 71, 0.045) 0 1px, rgba(11, 36, 71, 0) 1px 10px), linear-gradient(180deg, var(--cream-bg) 0%, var(--surface) 46%);
 }
-.score__head {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 10px;
-}
+.score__head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
 .acard--score .acard__title { padding: 4px 0 0; }
-.score__count {
-  flex-shrink: 0;
-  font-size: 11px;
-  font-weight: 700;
-  color: var(--text-muted);
-}
-
-.score__track {
-  position: relative;
-  height: 9px;
-  margin: 12px 0 2px;
-  border-radius: 999px;
-  background: var(--surface-2);
-  overflow: hidden;
-}
+.score__count { flex-shrink: 0; font-size: 11px; font-weight: 700; color: var(--text-muted); }
+.score__track { position: relative; height: 9px; margin: 12px 0 2px; border-radius: 999px; background: var(--surface-2); overflow: hidden; }
 .score__fill {
   position: absolute;
   inset: 0 auto 0 0;
   width: 0;
   border-radius: 999px;
-  overflow: hidden;                        /* mengurung sapuan shimmer */
+  overflow: hidden;
   background: linear-gradient(90deg, var(--gold-400), var(--gold-500));
   transition: width 0.4s var(--ease-out);
 }
+
+/* ===== Diagram Uang Masuk/Keluar (#cashflowFlow) ===================== */
+.cf-period { margin-bottom: 12px; }
+.cf-period__month { font-size: 18px; font-weight: 800; color: var(--fg-strong); }
+.cf-period__range { margin-top: 3px; font-size: 11.5px; color: var(--text-muted); }
+.cf-loading { display: grid; gap: 12px; margin-bottom: 16px; }
+.cf-loading[hidden], .cfchart[hidden], .cfsummary[hidden], .cfcats[hidden] { display: none; }
+.cf-loading__chart, .cf-loading__cards i, .cf-loading__line {
+  display: block;
+  border-radius: 14px;
+  background: linear-gradient(90deg, var(--surface-2) 25%, #fff 50%, var(--surface-2) 75%);
+  background-size: 200% 100%;
+  animation: skeletonShimmer 1.25s linear infinite;
+}
+.cf-loading__chart { height: 210px; }
+.cf-loading__cards { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.cf-loading__cards i { height: 82px; }
+.cf-loading__line { height: 48px; }
+.cf-loading__line--short { width: 78%; }
+.cfchart { margin: 4px -4px 14px; }
+.cfchart__legend { display: flex; gap: 18px; margin: 0 8px 6px; }
+.cfchart__legend span { display: inline-flex; align-items: center; gap: 6px; font-size: 10.5px; color: var(--text-muted); }
+.cfchart__key { width: 16px; height: 3px; border-radius: 3px; }
+.cfchart__key--in { background: var(--ok-solid); }
+.cfchart__key--out { background: var(--err-solid); }
+.cfchart__svg { display: block; width: 100%; height: auto; overflow: visible; }
+.cfchart__grid line { stroke: var(--border); stroke-width: 1; }
+.cfchart__grid text { fill: var(--text-muted); font: 9px var(--font); }
+.cfchart__area { opacity: 0; transition: opacity 0.7s ease; }
+.cfchart__area--in { fill: rgba(18, 146, 74, 0.12); }
+.cfchart__area--out { fill: rgba(217, 45, 32, 0.1); }
+.cfchart__line {
+  fill: none;
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  transition: stroke-dashoffset 1.25s var(--ease-out);
+}
+.cfchart__line--in { stroke: var(--ok-solid); }
+.cfchart__line--out { stroke: var(--err-solid); transition-delay: 0.12s; }
+.cfchart.is-in .cfchart__line { stroke-dashoffset: 0; }
+.cfchart.is-in .cfchart__area { opacity: 1; }
+
+.cfsummary { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px; margin: 4px 0 22px; }
+.cfsummary__card {
+  min-width: 0;
+  padding: 14px 12px;
+  border-radius: 14px;
+  opacity: 0;
+  transform: translateY(12px);
+  transition: opacity 0.42s ease, transform 0.42s var(--ease-out);
+}
+.cfsummary__card--in { background: var(--ok-bg); }
+.cfsummary__card--out { background: var(--err-bg); }
+.cfsummary.is-in .cfsummary__card { opacity: 1; transform: none; }
+.cfsummary__label { display: flex; align-items: center; gap: 7px; font-size: 11px; font-weight: 700; color: var(--text-muted); }
+.cfsummary__label i { position: relative; width: 20px; height: 20px; border-radius: 50%; background: var(--surface); }
+.cfsummary__label i::before { content: ""; position: absolute; top: 7px; left: 7px; width: 6px; height: 6px; border-top: 2px solid currentColor; border-right: 2px solid currentColor; transform: rotate(-45deg); }
+.cfsummary__label i::after { content: ""; position: absolute; top: 6px; left: 9px; width: 2px; height: 9px; background: currentColor; }
+.cfsummary__card--in .cfsummary__label i { color: var(--ok-solid); }
+.cfsummary__card--out .cfsummary__label i { color: var(--err-solid); }
+.cfsummary__card--out .cfsummary__label i::before { transform: rotate(135deg); top: 6px; }
+.cfsummary__card--out .cfsummary__label i::after { top: 5px; }
+.cfsummary__amount { display: block; margin-top: 10px; color: var(--fg-strong); font-size: 16px; font-weight: 800; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.cfsummary__card--in .cfsummary__amount { color: var(--ok-solid); }
+.cfsummary__card--out .cfsummary__amount { color: var(--err-solid); }
+
+.cfcats { padding: 15px; border-radius: 16px; background: var(--surface); box-shadow: var(--shadow-sm); }
+.cfcats__title { margin-bottom: 14px; color: var(--fg-strong); font-size: 14px; font-weight: 800; }
+.cfcats__group + .cfcats__group { margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--border); }
+.cfcats__group[hidden] { display: none; }
+.cfcats__group h4 { margin-bottom: 9px; color: var(--text-muted); font-size: 11px; font-weight: 700; }
+.cfcats__list { list-style: none; display: flex; flex-direction: column; gap: 7px; }
+.cfcats__item { display: flex; align-items: center; gap: 10px; min-width: 0; opacity: 0; transform: translateY(8px); animation: cfCatIn 0.42s var(--ease-out) forwards; }
+@keyframes cfCatIn { to { opacity: 1; transform: none; } }
+.cfcats__icon { display: grid; place-items: center; flex: 0 0 36px; width: 36px; height: 36px; border-radius: 50%; color: var(--cf-cat); background: var(--cf-cat-bg); }
+.cfcats__icon svg { width: 18px; height: 18px; }
+.cfcats__name { flex: 1; min-width: 0; color: var(--text); font-size: 12px; font-weight: 600; overflow-wrap: anywhere; }
+.cfcats__amt { flex: 0 0 auto; color: var(--fg-strong); font-size: 12px; font-weight: 800; font-variant-numeric: tabular-nums; }
+
+.cfempty { padding: 30px 10px; text-align: center; font-size: 12.5px; color: var(--text-muted); }
+.cfempty[hidden] { display: none; }
 /* SHIMMER — sapuan cahaya melintasi bagian yang SUDAH terisi: menyapu
    ±1,25 dtk lalu diam di luar frame sampai siklus 2,8 dtk berikutnya.
    Hanya `transform`, jadi dijalankan compositor (tanpa layout/paint ulang). */
@@ -704,35 +734,16 @@ body { overflow-x: hidden; }
 }
 .tfa-input:focus { border-color: var(--gold-500); }
 
-/* Loading DikaPay: 3 titik berdenyut (gaya DANA), bukan cincin berputar —
-   `.tfa-spinner` sendiri jadi titik tengah, `::before`/`::after` titik
-   kiri-kanan. `position:relative` supaya pseudo-elemen bisa diposisikan
-   terhadapnya tanpa mengganggu layout (masih `display:inline-block`). */
+/* Placeholder untuk tahap yang sedang menunggu respons. */
 .tfa-spinner {
-  position: relative;
-  display: inline-block;
-  width: 10px;
-  height: 10px;
-  margin: 0 12px 22px;
-  border-radius: 50%;
-  background: var(--fg-strong);
-  animation: dikaDot 0.9s ease-in-out infinite;
-}
-.tfa-spinner::before, .tfa-spinner::after {
-  content: "";
-  position: absolute;
-  top: 0;
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  background: var(--fg-strong);
-  animation: dikaDot 0.9s ease-in-out infinite;
-}
-.tfa-spinner::before { left: -18px; animation-delay: -0.3s; }
-.tfa-spinner::after  { left: 18px;  animation-delay: 0.3s; }
-@keyframes dikaDot {
-  0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; }
-  40%           { transform: scale(1);   opacity: 1; }
+  display: block;
+  width: min(100%, 220px);
+  height: 58px;
+  margin: 0 auto 22px;
+  border-radius: 14px;
+  background: linear-gradient(90deg, var(--surface-2) 25%, #fff 50%, var(--surface-2) 75%);
+  background-size: 200% 100%;
+  animation: skeletonShimmer 1.25s linear infinite;
 }
 
 .otp { display: flex; justify-content: center; gap: 7px; margin: 20px 0 10px; }
@@ -819,34 +830,24 @@ body { overflow-x: hidden; }
 }
 .apply-btn:active { transform: scale(0.97); }
 .apply-btn[disabled] { pointer-events: none; }
-/* Loading DikaPay: 3 titik berdenyut, bukan cincin berputar (lihat
-   `.tfa-spinner` di atas untuk penjelasan pola `::before`/`::after`). */
+/* Shimmer kapsul tunggal menggantikan label selama proses simpan. */
 .apply-btn__spin {
   position: absolute;
   left: 50%;
   top: 50%;
-  width: 6px;
-  height: 6px;
-  margin: -3px 0 0 -3px;
-  border-radius: 50%;
-  background: var(--fg-strong);
-  opacity: 0;
-  animation: dikaDot 0.9s ease-in-out infinite;
+  display: none;
+  width: 42px;
+  height: 8px;
+  margin: -4px 0 0 -21px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, rgba(11, 36, 71, 0.12) 25%, rgba(11, 36, 71, 0.36) 50%, rgba(11, 36, 71, 0.12) 75%);
+  background-size: 200% 100%;
 }
-.apply-btn__spin::before, .apply-btn__spin::after {
-  content: "";
-  position: absolute;
-  top: 0;
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--fg-strong);
-  animation: dikaDot 0.9s ease-in-out infinite;
-}
-.apply-btn__spin::before { left: -12px; animation-delay: -0.3s; }
-.apply-btn__spin::after  { left: 12px;  animation-delay: 0.3s; }
 .apply-btn.is-loading .apply-btn__label { opacity: 0; }
-.apply-btn.is-loading .apply-btn__spin { opacity: 1; }
+.apply-btn.is-loading .apply-btn__spin {
+  display: block;
+  animation: skeletonShimmer 1.2s linear infinite;
+}
 
 .check-anim { width: 82px; height: 82px; display: block; margin: 0 auto 4px; }
 .check-anim circle {
@@ -1858,110 +1859,7 @@ body { overflow-x: hidden; }
   to   { opacity: 1; transform: none; }
 }
 
-/* ===== Diagram Uang Masuk/Keluar (#cashflowFlow) =====================
-   Donut 2-segmen (Masuk/Keluar), pola SAMA dengan `.seg`/`.donut` di
-   statistik.css: <circle pathLength="100"> digambar lewat transition
-   `stroke-dasharray`, digerakkan dari akun.js. Warna pakai token status
-   yang sudah ada (--ok-solid/--err-solid) — bukan warna baru. */
-.cfchart {
-  position: relative;
-  width: 168px;
-  height: 168px;
-  margin: 6px auto 14px;
-}
-.cfchart__donut { width: 100%; height: 100%; transform: rotate(-90deg); }
-.cfchart__track { fill: none; stroke: var(--surface-2); stroke-width: 14; }
-.cfchart__seg {
-  fill: none;
-  stroke-width: 14;
-  stroke-linecap: round;
-  stroke-dasharray: 0 100;
-  transition: stroke-dasharray 0.7s var(--ease-out);
-}
-.cfchart__seg--in  { stroke: var(--ok-solid); }
-.cfchart__seg--out { stroke: var(--err-solid); transition-delay: 0.15s; }
-.cfchart__mid {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 2px;
-  animation: cfMidIn 0.5s var(--ease-out) 0.4s both;
-}
-.cfchart__mid-label { font-size: 10px; font-weight: 700; color: var(--text-muted); }
-.cfchart__mid-val {
-  font-size: 15px;
-  font-weight: 800;
-  color: var(--fg-strong);
-  font-variant-numeric: tabular-nums;
-}
-@keyframes cfMidIn {
-  from { opacity: 0; transform: scale(0.7); }
-  to   { opacity: 1; transform: none; }
-}
-
-.cflegend {
-  list-style: none;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  padding: 12px 14px;
-  margin-bottom: 6px;
-  background: var(--surface-2);
-  border-radius: 14px;
-}
-.cflegend__item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 12.5px;
-  opacity: 0;
-  transform: translateY(6px);
-  transition: opacity 0.35s ease, transform 0.35s var(--ease-out);
-}
-.cflegend__item--in  { transition-delay: 0.15s; }
-.cflegend__item--out { transition-delay: 0.3s; }
-.cfchart.is-in ~ .cflegend .cflegend__item,
-.cflegend.is-in .cflegend__item { opacity: 1; transform: none; }
-.cflegend__dot { flex-shrink: 0; width: 10px; height: 10px; border-radius: 50%; }
-.cflegend__item--in .cflegend__dot  { background: var(--ok-solid); }
-.cflegend__item--out .cflegend__dot { background: var(--err-solid); }
-.cflegend__label { flex: 1; color: var(--text); font-weight: 600; }
-.cflegend__val { font-weight: 800; color: var(--fg-strong); font-variant-numeric: tabular-nums; }
-.cflegend__pct { min-width: 34px; text-align: right; font-size: 11px; color: var(--text-muted); }
-
-.cfcats { margin-top: 4px; }
-.cfcats__title { font-size: 11.5px; font-weight: 700; color: var(--text-muted); margin: 0 0 8px; }
-.cfcats__list { list-style: none; display: flex; flex-direction: column; gap: 8px; }
-.cfcats__item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  opacity: 0;
-  transform: translateY(6px);
-  animation: cfCatIn 0.4s var(--ease-out) forwards;
-}
-@keyframes cfCatIn { to { opacity: 1; transform: none; } }
-.cfcats__dot { flex-shrink: 0; width: 9px; height: 9px; border-radius: 3px; }
-.cfcats__bar {
-  flex: 1;
-  height: 6px;
-  border-radius: 4px;
-  background: var(--surface-2);
-  overflow: hidden;
-}
-.cfcats__bar span {
-  display: block;
-  height: 100%;
-  width: 0;
-  border-radius: 4px;
-  transition: width 0.6s var(--ease-out);
-}
-.cfcats__name { font-size: 11.5px; color: var(--text); width: 92px; flex-shrink: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.cfcats__amt { font-size: 11.5px; font-weight: 700; color: var(--fg-strong); font-variant-numeric: tabular-nums; }
-
+/* Rincian per kategori */
 .cfempty { padding: 30px 10px; text-align: center; font-size: 12.5px; color: var(--text-muted); }
 .cfempty[hidden] { display: none; }
 
@@ -1973,9 +1871,10 @@ body { overflow-x: hidden; }
   .otpsim-kode { animation: none; opacity: 1; transform: none; }
   .otp.is-shake { animation: none; }
 
-  .cfchart__seg { transition: none; }
-  .cfchart__mid { animation: none; opacity: 1; transform: none; }
-  .cflegend__item { opacity: 1; transform: none; transition: none; }
+  .cfchart__line { transition: none; stroke-dashoffset: 0; }
+  .cfchart__area { opacity: 1; transition: none; }
+  .cfsummary__card { opacity: 1; transform: none; transition: none; }
+  .cf-loading__chart, .cf-loading__cards i, .cf-loading__line,
+  .cashflow__amount.is-loading { animation: none; }
   .cfcats__item { animation: none; opacity: 1; transform: none; }
-  .cfcats__bar span { transition: none; }
 }

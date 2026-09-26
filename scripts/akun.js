@@ -1952,6 +1952,7 @@ function fmtRpCf(v) {
 }
 
 let cfMonth = null; // ringkasan bulan berjalan, dari DikaTxRingkas.ringkas()
+let cfLoaded = false;
 
 function refreshCashflow() {
   try {
@@ -1963,6 +1964,11 @@ function refreshCashflow() {
     cfMonth = window.DikaTxRingkas.ringkas(src, window.DikaTxRingkas.kunciSekarang());
     $("cfIn").textContent = fmtRpCf(cfMonth.masuk);
     $("cfOut").textContent = fmtRpCf(cfMonth.keluar);
+    $("cfIn").classList.remove("is-loading");
+    $("cfOut").classList.remove("is-loading");
+    $("cashflowBtn").setAttribute("aria-busy", "false");
+    cfLoaded = true;
+    if ($("cashflowFlow").classList.contains("is-open")) buildCashflowDiagram();
   } catch (err) {
     console.error("[akun] refreshCashflow gagal:", err);
   }
@@ -1974,85 +1980,120 @@ function refreshCashflow() {
    sama dengan `.astep.is-in` di auth-flow.js (lepas-pasang class). */
 function buildCashflowDiagram() {
   try {
-    const chart = $("cfChart"), legend = $("cfLegend"),
-      catsWrap = $("cfCatsWrap"), catsList = $("cfCatsList"), empty = $("cfEmpty");
-    const m = cfMonth;
+    const chart = $("cfChart"), summary = $("cfSummary"),
+      catsWrap = $("cfCatsWrap"), empty = $("cfEmpty"), loading = $("cfLoading");
+    const ringkasanBulan = cfMonth;
 
-    if (!m || (m.masuk <= 0 && m.keluar <= 0)) {
-      chart.hidden = true; legend.hidden = true; catsWrap.hidden = true;
+    if (!cfLoaded) {
+      loading.hidden = false;
+      chart.hidden = true; summary.hidden = true; catsWrap.hidden = true; empty.hidden = true;
+      return;
+    }
+    loading.hidden = true;
+
+    if (!ringkasanBulan || (ringkasanBulan.masuk <= 0 && ringkasanBulan.keluar <= 0)) {
+      chart.hidden = true; summary.hidden = true; catsWrap.hidden = true;
       empty.hidden = false;
       return;
     }
-    chart.hidden = false; legend.hidden = false; empty.hidden = true;
+    chart.hidden = false; summary.hidden = false; empty.hidden = true;
+    const api = window.DikaTxRingkas;
+    const src = (window.DATA && Array.isArray(window.DATA.TX)) ? window.DATA.TX : [];
+    const hariData = api.perHari(src, ringkasanBulan.kunci);
+    const labelBulan = api.labelBulan(ringkasanBulan.kunci).split(" ")[0];
+    $("cfMonthLabel").textContent = api.labelBulan(ringkasanBulan.kunci);
+    $("cfDateRange").textContent = "1–" + hariData.length + " " + labelBulan;
 
-    $("cfMonthLabel").textContent = "Ringkasan " + window.DikaTxRingkas.labelBulan(window.DikaTxRingkas.kunciSekarang());
+    const plotLeft = 42, plotRight = 352, plotTop = 18, plotBottom = 174;
+    const maxHarian = Math.max(1, ...hariData.map((day) => Math.max(day.masuk, day.keluar)));
+    const posisiX = (index) => plotLeft + (hariData.length > 1 ? (index / (hariData.length - 1)) * (plotRight - plotLeft) : 0);
+    const posisiY = (value) => plotBottom - (value / maxHarian) * (plotBottom - plotTop);
+    const buatJalur = (key) => hariData.map((day, index) =>
+      (index ? "L" : "M") + posisiX(index).toFixed(2) + " " + posisiY(day[key]).toFixed(2)
+    ).join(" ");
+    const buatArea = (key) => buatJalur(key) + " L" + plotRight + " " + plotBottom + " L" + plotLeft + " " + plotBottom + " Z";
+    const compact = (value) => {
+      if (value >= 1000000) return "Rp" + (Math.round(value / 100000) / 10).toLocaleString("id-ID", { maximumFractionDigits: 1 }) + "jt";
+      if (value >= 1000) return "Rp" + (Math.round(value / 100) / 10).toLocaleString("id-ID", { maximumFractionDigits: 1 }) + "rb";
+      return "Rp" + Math.round(value).toLocaleString("id-ID");
+    };
+    const grid = [0, 0.5, 1].map((fraction) => {
+      const y = plotBottom - fraction * (plotBottom - plotTop);
+      return '<line x1="' + plotLeft + '" y1="' + y.toFixed(2) + '" x2="' + plotRight + '" y2="' + y.toFixed(2) + '" />' +
+        '<text x="36" y="' + (y + 3).toFixed(2) + '" text-anchor="end">' + compact(maxHarian * fraction) + "</text>";
+    }).join("");
+    const tickIndexes = Array.from(new Set([0, Math.round((hariData.length - 1) / 4), Math.round((hariData.length - 1) / 2), Math.round((hariData.length - 1) * 3 / 4), hariData.length - 1]));
+    const ticks = tickIndexes.map((dayIndex, tickIndex) => {
+      const x = posisiX(dayIndex);
+      const anchor = tickIndex === 0 ? "start" : (tickIndex === tickIndexes.length - 1 ? "end" : "middle");
+      return '<text x="' + x.toFixed(2) + '" y="202" text-anchor="' + anchor + '">' + hariData[dayIndex].tanggal + "</text>";
+    }).join("");
 
-    const total = m.masuk + m.keluar;
-    const pctIn = total ? (m.masuk / total) * 100 : 0;
-    const pctOut = total ? (m.keluar / total) * 100 : 0;
+    const chartSvg = $("cfChartSvg");
+    chart.classList.remove("is-in");
+    chartSvg.innerHTML = '<g class="cfchart__grid">' + grid + ticks + '</g>' +
+      '<path class="cfchart__area cfchart__area--out" d="' + buatArea("keluar") + '" />' +
+      '<path class="cfchart__area cfchart__area--in" d="' + buatArea("masuk") + '" />' +
+      '<path class="cfchart__line cfchart__line--out" pathLength="1" d="' + buatJalur("keluar") + '" />' +
+      '<path class="cfchart__line cfchart__line--in" pathLength="1" d="' + buatJalur("masuk") + '" />';
+    void chart.offsetWidth;
+    requestAnimationFrame(() => chart.classList.add("is-in"));
 
-    const segIn = $("cfSegIn"), segOut = $("cfSegOut");
-    // Reset ke 0 dulu tanpa transisi, lalu flush, supaya animasi "menggambar
-    // dari nol" benar-benar terpicu tiap kali flow ini dibuka (bukan cuma
-    // sekali di kunjungan pertama) — pola yang sama seperti buildDonut()/
-    // animateDonut() di statistik.js.
-    segIn.style.transition = "none"; segOut.style.transition = "none";
-    segIn.style.strokeDasharray = "0 100"; segOut.style.strokeDasharray = "0 100";
-    void chart.getBoundingClientRect();
-    segIn.style.transition = ""; segOut.style.transition = "";
+    summary.classList.remove("is-in");
+    summary.querySelectorAll(".cfsummary__card").forEach((card, cardIndex) => {
+      card.style.transitionDelay = (REDUCED_MOTION ? 0 : cardIndex * 120) + "ms";
+    });
+    animateCashflowValue($("cfLegIn"), ringkasanBulan.masuk);
+    animateCashflowValue($("cfLegOut"), ringkasanBulan.keluar);
+    void summary.offsetWidth;
+    summary.classList.add("is-in");
 
-    segIn.style.strokeDashoffset = "0";
-    segIn.style.strokeDasharray = Math.max(pctIn - (pctOut > 0 ? 1.6 : 0), pctIn > 0 ? 0.5 : 0) + " 100";
-    segOut.style.strokeDashoffset = String(-pctIn);
-    segOut.style.strokeDasharray = Math.max(pctOut - (pctIn > 0 ? 1.6 : 0), pctOut > 0 ? 0.5 : 0) + " 100";
-
-    $("cfMidVal").textContent = fmtRpCf(total);
-    $("cfLegIn").textContent = fmtRpCf(m.masuk);
-    $("cfLegOut").textContent = fmtRpCf(m.keluar);
-    $("cfPctIn").textContent = Math.round(pctIn) + "%";
-    $("cfPctOut").textContent = Math.round(pctOut) + "%";
-
-    legend.classList.remove("is-in");
-    void legend.offsetWidth;
-    legend.classList.add("is-in");
-
-    /* Rincian per kategori — sisi KELUAR saja (paling berguna buat member
-       menelusuri ke mana uang perginya). `m.kategori[slug]` bertanda
-       (negatif = keluar, lihat tx-ringkas.js), dibalik jadi positif. */
     const CATS = (window.DATA && window.DATA.CATS) || {};
-    const rows = Object.keys(m.kategori)
-      .map((slug) => ({ slug: slug, val: -m.kategori[slug] }))
-      .filter((r) => r.val > 0)
-      .sort((a, b) => b.val - a.val)
-      .slice(0, 6);
+    const categories = api.perKategori(src, ringkasanBulan.kunci);
+    const incomeRows = categories.filter((category) => category.masuk > 0).sort((first, second) => second.masuk - first.masuk);
+    const expenseRows = categories.filter((category) => category.keluar > 0).sort((first, second) => second.keluar - first.keluar);
+    const renderRows = (rows, type) => rows.map((category, index) => {
+      const categoryStyle = CATS[category.slug] || { label: "Transaksi", color: "#6B7488", bg: "#E9EBF1" };
+      const value = type === "masuk" ? category.masuk : category.keluar;
+      const path = type === "masuk"
+        ? '<path d="M12 19V5M5 12l7-7 7 7"/>'
+        : '<path d="M12 5v14M5 12l7 7 7-7"/>';
+      const delay = REDUCED_MOTION ? 0 : index * 55;
+      return '<li class="cfcats__item" style="animation-delay:' + delay + 'ms">' +
+        '<span class="cfcats__icon" style="--cf-cat:' + categoryStyle.color + ';--cf-cat-bg:' + categoryStyle.bg + '">' + svgIc(path) + '</span>' +
+        '<span class="cfcats__name">' + esc(categoryStyle.label) + '</span>' +
+        '<strong class="cfcats__amt">' + fmtRpCf(value) + '</strong></li>';
+    }).join("");
 
-    if (!rows.length) {
-      catsWrap.hidden = true;
-    } else {
-      catsWrap.hidden = false;
-      const maxVal = rows[0].val;
-      catsList.innerHTML = rows.map((r, i) => {
-        const c = CATS[r.slug] || { label: "Transaksi", color: "#6B7488" };
-        const w = maxVal ? Math.round((r.val / maxVal) * 100) : 0;
-        const delay = REDUCED_MOTION ? 0 : i * 70;
-        return '<li class="cfcats__item" style="animation-delay:' + delay + 'ms">' +
-          '<span class="cfcats__dot" style="background:' + c.color + '"></span>' +
-          '<span class="cfcats__name">' + esc(c.label) + '</span>' +
-          '<span class="cfcats__bar"><span data-w="' + w + '" style="background:' + c.color + '"></span></span>' +
-          '<span class="cfcats__amt">' + fmtRpCf(r.val) + '</span>' +
-          "</li>";
-      }).join("");
-      // Lebar bar disetel SETELAH elemen ada di DOM (bukan langsung di
-      // markup) supaya transisi CSS `width` benar-benar terpicu.
-      requestAnimationFrame(() => {
-        catsList.querySelectorAll(".cfcats__bar span").forEach((el) => {
-          el.style.width = el.dataset.w + "%";
-        });
-      });
-    }
+    $("cfIncomeList").innerHTML = renderRows(incomeRows, "masuk");
+    $("cfExpenseList").innerHTML = renderRows(expenseRows, "keluar");
+    $("cfIncomeGroup").hidden = !incomeRows.length;
+    $("cfExpenseGroup").hidden = !expenseRows.length;
+    catsWrap.hidden = !categories.length;
+
   } catch (err) {
     console.error("[akun] buildCashflowDiagram gagal:", err);
   }
+}
+
+function animateCashflowValue(el, target) {
+  if (el._cashflowFrame) cancelAnimationFrame(el._cashflowFrame);
+  el._cashflowFrame = 0;
+  if (REDUCED_MOTION) {
+    el.textContent = fmtRpCf(target);
+    return;
+  }
+  el.textContent = fmtRpCf(0);
+  const start = performance.now();
+  const durasi = 850;
+  const tick = (sekarang) => {
+    const progres = Math.min(1, (sekarang - start) / durasi);
+    const easing = 1 - Math.pow(1 - progres, 3);
+    el.textContent = fmtRpCf(target * easing);
+    if (progres < 1) el._cashflowFrame = requestAnimationFrame(tick);
+    else el._cashflowFrame = 0;
+  };
+  el._cashflowFrame = requestAnimationFrame(tick);
 }
 
 /* ===========================================================================

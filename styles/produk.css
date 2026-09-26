@@ -1230,38 +1230,25 @@ body { overflow-x: hidden; }
 }
 .cmodal__btn[disabled] { opacity: 0.7; pointer-events: none; }
 
-/* Loading DikaPay: 3 titik berdenyut naik-turun (gaya DANA), bukan lagi
-   cincin berputar — `.spinner` jadi titik tengah, `::before`/`::after`
-   titik kiri-kanan. Markup tidak berubah (masih satu `<span>` kosong). */
+/* Tombol menampilkan satu shimmer kapsul hanya selama proses. */
 .spinner {
   position: absolute;
   left: 50%;
   top: 50%;
-  width: 6px;
-  height: 6px;
-  margin: -3px 0 0 -3px;
-  border-radius: 50%;
-  background: var(--fg-strong);
-  opacity: 0;
-  animation: dikaDot 0.9s ease-in-out infinite;
+  display: none;
+  width: 42px;
+  height: 8px;
+  margin: -4px 0 0 -21px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, rgba(11, 36, 71, 0.12) 25%, rgba(11, 36, 71, 0.36) 50%, rgba(11, 36, 71, 0.12) 75%);
+  background-size: 200% 100%;
 }
-.spinner::before, .spinner::after {
-  content: "";
-  position: absolute;
-  top: 0;
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--fg-strong);
-  animation: dikaDot 0.9s ease-in-out infinite;
-}
-.spinner::before { left: -12px; animation-delay: -0.3s; }
-.spinner::after  { left: 12px;  animation-delay: 0.3s; }
 .cmodal__btn--gold.is-loading .cmodal__btn-label { opacity: 0; }
-.cmodal__btn--gold.is-loading .spinner { opacity: 1; }
-@keyframes dikaDot {
-  0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; }
-  40%           { transform: scale(1);   opacity: 1; }
+.cmodal__btn--gold.is-loading .spinner,
+.act-btn.is-loading .spinner,
+.cek-btn.is-loading .spinner {
+  display: block;
+  animation: skeletonShimmer 1.2s linear infinite;
 }
 
 /* Teks di atas gold — selalu navy */
@@ -1421,16 +1408,20 @@ body { overflow-x: hidden; }
   min-height: 76px;
   padding: 14px 12px;
   border-radius: var(--radius-md);
-  background: var(--surface-2);
-  animation: pskelPulse 1.3s ease-in-out infinite;
+  background: linear-gradient(90deg, var(--surface-2) 25%, #fff 50%, var(--surface-2) 75%);
+  background-size: 200% 100%;
+  animation: skeletonShimmer 1.3s linear infinite;
 }
-.pskel__line { display: block; height: 10px; border-radius: 6px; background: var(--border); }
+.pskel__line {
+  display: block;
+  height: 10px;
+  border-radius: 6px;
+  background: linear-gradient(90deg, var(--border) 25%, #fff 50%, var(--border) 75%);
+  background-size: 200% 100%;
+  animation: skeletonShimmer 1.3s linear infinite;
+}
 .pskel__line--nom { width: 72%; }
 .pskel__line--price { width: 46%; height: 13px; }
-@keyframes pskelPulse {
-  0%, 100% { opacity: 0.55; }
-  50%      { opacity: 1; }
-}
 
 /* ===== Atribut [hidden] ===========================================
    Aturan UA `[hidden] { display: none }` KALAH dari class rule author
@@ -1474,8 +1465,8 @@ body { overflow-x: hidden; }
   .prod__badge, .prod__badge::before { animation: none; opacity: 1; }
   /* Animasi pembayaran & field dimatikan, tapi WARNA keadaannya tetap —
      garis hijau/merah pada field itu informasi, bukan dekorasi. */
-  .payflow__ring, .payflow__ring--2, .payflow__core, .payflow__orb::before,
-  .payflow__bar span, .payflow__mark, .payflow__mark::before,
+  .payflow__ring, .payflow__ring--2, .payflow__core, .payflow__orb,
+  .payflow__bar, .payflow__bar span, .payflow__mark, .payflow__mark::before,
   .payflow__mark::after, .payflow__mark--pending::after,
   .saldo__ic, .pfield.is-invalid, .pfield__hint { animation: none; }
   .payflow__card { transform: none; }
@@ -1535,84 +1526,30 @@ body { overflow-x: hidden; }
   color: var(--text-muted);
 }
 
-/* ---- Animasi pemrosesan: 3 titik gold berdenyut + halo napas ----
-   GANTI dari dua cincin berputar (`payspin`) — member (lewat rekaman layar)
-   melaporkan animasi loading "bundar berjalan" terasa nyangkut/janggal, dan
-   pola cincin-berputar dipakai berulang di banyak tempat di app ini.
-   Gantinya: 3 titik gold memantul bergantian di atas halo lingkaran yang
-   NAPAS (scale+opacity, diam di tempat, bukan berputar) — pola yang sama
-   dengan "gaya DANA" yang diminta, dipakai ULANG (nama animasi sendiri,
-   `payDot`/`payHalo`) sebagai variasi lebih besar dari `.spinner`/`dikaDot`
-   di atas untuk konteks pemrosesan penuh-layar ini. */
+/* Shimmer berukuran tetap menandai proses transaksi tanpa dots atau ring. */
 .payflow__orb {
-  position: relative;
-  width: 84px;
-  height: 84px;
-  margin: 0 auto;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  width: min(100%, 176px);
+  height: 14px;
+  margin: 26px auto 44px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--surface-2) 25%, #fff 50%, var(--surface-2) 75%);
+  background-size: 200% 100%;
+  animation: skeletonShimmer 1.2s linear infinite;
 }
-.payflow__orb::before {
-  content: "";
-  position: absolute;
-  inset: 6px;
-  border-radius: 50%;
-  background: radial-gradient(circle, rgba(255, 201, 60, 0.28), rgba(255, 201, 60, 0) 70%);
-  animation: payHalo 1.6s ease-in-out infinite;
-}
-.payflow__ring,
-.payflow__ring--2 {
-  position: relative;
-  width: 13px;
-  height: 13px;
-  margin: 0 5px;
-  border-radius: 50%;
-  background: linear-gradient(150deg, var(--gold-500), #ffd873);
-  animation: payDot 1.05s ease-in-out infinite;
-}
-.payflow__ring { animation-delay: -0.21s; }
-.payflow__ring--2 { animation-delay: -0.07s; }
-.payflow__core {
-  position: relative;
-  width: 13px;
-  height: 13px;
-  margin: 0 5px;
-  border-radius: 50%;
-  background: linear-gradient(150deg, var(--gold-500), #ffd873);
-  animation: payDot 1.05s ease-in-out infinite;
-  animation-delay: 0.07s;
-}
-@keyframes payHalo {
-  0%, 100% { transform: scale(0.85); opacity: 0.6; }
-  50%      { transform: scale(1.08); opacity: 1; }
-}
-@keyframes payDot {
-  0%, 80%, 100% { transform: translateY(0) scale(0.7); opacity: 0.5; }
-  40%           { transform: translateY(-10px) scale(1); opacity: 1; }
-}
+.payflow__ring, .payflow__ring--2, .payflow__core { display: none; }
 
 .payflow__step { min-height: 2.6em; }
 
 .payflow__bar {
+  width: min(100%, 220px);
   margin-top: 4px;
-  height: 4px;
-  border-radius: 4px;
-  background: var(--surface-2);
-  overflow: hidden;
+  height: 10px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--surface-2) 25%, #fff 50%, var(--surface-2) 75%);
+  background-size: 200% 100%;
+  animation: skeletonShimmer 1.2s linear infinite;
 }
-.payflow__bar span {
-  display: block;
-  width: 38%;
-  height: 100%;
-  border-radius: 4px;
-  background: linear-gradient(90deg, transparent, var(--gold-500), transparent);
-  animation: payslide 1.25s ease-in-out infinite;
-}
-@keyframes payslide {
-  0%   { transform: translateX(-100%); }
-  100% { transform: translateX(320%); }
-}
+.payflow__bar span { display: none; }
 
 /* ---- Tanda hasil ---- */
 
@@ -1664,38 +1601,25 @@ body { overflow-x: hidden; }
 }
 .payflow__mark--gagal::before { transform: rotate(45deg); }
 .payflow__mark--gagal::after  { transform: rotate(-45deg); }
-/* PENDING — spinner melingkar.
-   Versi lama memakai "jarum jam" yang diputar 360° penuh dengan
-   ease-in-out + infinite: tiap putaran melambat di ujung lalu menyentak
-   lagi di awal, jadi terlihat goyang dan patah-patah. Spinner yang benar
-   HARUS linear — kecepatan konstan, tanpa titik jeda.
-
-   Bentuknya: satu cincin tipis netral + satu busur warna aksen yang
-   berputar. Hanya `transform` yang dianimasikan (bukan width/height atau
-   posisi), jadi ringan dan tidak memicu layout di tiap frame. */
+/* Status pending bersifat statis; animasi pemrosesan memakai skeleton. */
 .payflow__mark--pending {
   background: var(--info-bg, #e6edfb);
   color: var(--navy-700);
   animation: markPop 0.5s var(--ease-out);
 }
 .payflow__mark--pending::before {
-  /* cincin dasar — diam, sebagai "rel" spinner.
-     `inset` sudah menyetel keempat sisi; JANGAN menambahkan left/top:auto
-     setelahnya — itu membatalkan dua sisi dan kotaknya mengerut jadi titik. */
-  inset: 18px;
-  background: none;
-  border: 4px solid currentColor;
-  border-radius: 50%;
-  opacity: 0.18;
+  width: 26px;
+  height: 4px;
+  left: 24px;
+  top: 29px;
+  border-radius: 4px;
 }
 .payflow__mark--pending::after {
-  /* Titik gold di tengah, berdenyut — GANTI dari busur berputar
-     (`pendingSpin`), pola yang sama dengan `payDot`/`dikaDot` di atas:
-     tanpa rotasi, cuma scale+opacity. */
-  inset: 30px;
-  background: var(--gold-500);
-  border-radius: 50%;
-  animation: dikaDot 0.9s ease-in-out infinite;
+  width: 16px;
+  height: 4px;
+  left: 29px;
+  top: 39px;
+  border-radius: 4px;
 }
 @keyframes markPop {
   0%   { transform: scale(0.4); opacity: 0; }

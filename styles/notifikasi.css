@@ -82,6 +82,40 @@ body { overflow-x: hidden; }
   font-size: 13px;
 }
 .notif-list--error { color: var(--err-fg); }
+.notif-list--loading {
+  display: flex;
+  min-height: 0;
+  padding: 0;
+  place-items: initial;
+  text-align: left;
+}
+.notif-skeleton {
+  display: grid;
+  grid-template-columns: 38px minmax(0, 1fr) 24px;
+  align-items: center;
+  gap: 10px;
+  min-height: 78px;
+  padding: 12px;
+  border-radius: 14px;
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+}
+.notif-skeleton__ic, .notif-skeleton__lines i, .notif-skeleton__action {
+  display: block;
+  background: linear-gradient(90deg, var(--surface-2) 25%, #fff 50%, var(--surface-2) 75%);
+  background-size: 200% 100%;
+  animation: skeletonShimmer 1.2s linear infinite;
+}
+.notif-skeleton__ic { width: 36px; height: 36px; border-radius: 12px; }
+.notif-skeleton__lines { display: grid; gap: 7px; }
+.notif-skeleton__lines i { height: 8px; border-radius: 6px; }
+.notif-skeleton__lines i:first-child { width: 70%; height: 10px; }
+.notif-skeleton__lines i:last-child { width: 34%; }
+.notif-skeleton__action { width: 20px; height: 20px; border-radius: 50%; }
+.notif-skeleton__status { padding: 3px 0 8px; color: var(--text-muted); text-align: center; font-size: 12px; }
+@media (prefers-reduced-motion: reduce) {
+  .notif-skeleton__ic, .notif-skeleton__lines i, .notif-skeleton__action { animation: none; }
+}
 
 /* ===== Empty state berilustrasi (#notifList kosong) ====================
    Pola visualnya SALINAN `.empty` di riwayat.css (ilustrasi bulat 116px +
