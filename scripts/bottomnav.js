@@ -87,6 +87,10 @@
     moveIndicator(activeItem());
   }
 
+  function refreshAvatar() {
+    if (window.DikaProfilFoto) window.DikaProfilFoto.pasangSemua();
+  }
+
   function onClick(e) {
     var btn = e.target.closest(".bottom-nav__item");
     if (!btn || !nav.contains(btn)) return;
@@ -103,7 +107,7 @@
     indicator = document.getElementById("navIndicator");
     if (!nav) return; // halaman tanpa bottom nav (statistik, notifikasi)
 
-    if (window.DikaProfilFoto) window.DikaProfilFoto.pasangSemua();
+    refreshAvatar();
     currentTab = PAGE_TAB[pageFile()] || "home";
 
     nav.addEventListener("click", onClick);
@@ -122,7 +126,11 @@
        keduanya dipulihkan. */
     window.addEventListener("pageshow", function () {
       syncActive();
-      if (window.DikaProfilFoto) window.DikaProfilFoto.pasangSemua();
+      refreshAvatar();
+    });
+
+    document.addEventListener("visibilitychange", function () {
+      if (document.visibilityState === "visible") refreshAvatar();
     });
   }
 
