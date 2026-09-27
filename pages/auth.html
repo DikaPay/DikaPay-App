@@ -376,6 +376,20 @@
         <button class="auth-link" type="button" id="loginBackBtn">Ganti nomor HP</button>
       </section>
 
+      <!-- ===== CABANG B — STEP: verifikasi 2 langkah setelah PIN ===== -->
+      <section class="astep auth-card" data-step="login-2fa" id="stepLogin2FA" hidden>
+        <div class="auth-2fa__icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg>
+        </div>
+        <h2 class="auth-card__title" id="login2faTitle">Verifikasi 2 Langkah</h2>
+        <p class="auth-card__sub" id="login2faLead">Masukkan kode dari aplikasi authenticator kamu.</p>
+        <input class="auth-2fa__input" id="login2faCode" type="text" inputmode="numeric" maxlength="6" autocomplete="one-time-code" placeholder="000000" aria-label="Kode Verifikasi 2 Langkah" />
+        <p class="auth-err auth-2fa__error" id="login2faError" role="alert" hidden><span id="login2faErrorText"></span></p>
+        <button class="abtn auth-2fa__submit" type="button" id="login2faSubmit">Verifikasi</button>
+        <button class="auth-link" type="button" id="login2faToggle">Pakai kode cadangan</button>
+        <button class="auth-link" type="button" id="login2faBack">Kembali ke PIN</button>
+      </section>
+
       <!-- ===== STEP: sukses (dwifungsi — habis daftar ATAU habis masuk) ===== -->
       <section class="astep auth-success" data-step="success" id="stepSuccess" hidden>
         <svg class="auth-check" viewBox="0 0 80 80" aria-hidden="true">

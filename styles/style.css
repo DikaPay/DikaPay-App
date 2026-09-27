@@ -1583,6 +1583,84 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
   .pintx__keypad.is-loading .pintx__key { animation: none; }
 }
 
+.pintx2fa {
+  position: fixed;
+  inset: 0;
+  z-index: 155;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(11, 36, 71, 0.55);
+  backdrop-filter: blur(3px);
+  opacity: 0;
+  transition: opacity 0.24s ease;
+}
+.pintx2fa[hidden] { display: none; }
+.pintx2fa.is-open { opacity: 1; }
+.pintx2fa__card {
+  width: min(100%, 360px);
+  padding: 24px 22px 20px;
+  border-radius: 20px;
+  background: var(--surface);
+  box-shadow: var(--shadow-md);
+  transform: scale(0.92) translateY(10px);
+  opacity: 0;
+  transition: transform 0.26s var(--ease-out), opacity 0.26s ease;
+}
+.pintx2fa.is-open .pintx2fa__card { transform: none; opacity: 1; }
+.pintx2fa__ic {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  margin: 0 auto 12px;
+  border-radius: 50%;
+  background: var(--tint);
+  color: var(--navy-700);
+}
+.pintx2fa__ic svg { width: 24px; height: 24px; }
+.pintx2fa__title { color: var(--fg-strong); font-size: 16px; font-weight: 800; text-align: center; }
+.pintx2fa__message { margin: 8px 0 18px; color: var(--text); font-size: 12.5px; line-height: 1.55; text-align: center; }
+.pintx2fa__label { display: block; margin-bottom: 6px; color: var(--text-muted); font-size: 11.5px; font-weight: 700; }
+.pintx2fa__input {
+  width: 100%;
+  height: 50px;
+  border: 1.5px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface-2);
+  color: var(--fg-strong);
+  font: inherit;
+  font-size: 21px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-align: center;
+}
+.pintx2fa__input:focus { border-color: var(--navy-700); outline: none; }
+.pintx2fa__input.is-error { border-color: var(--err-fg); animation: pintxShake 0.4s ease; }
+.pintx2fa__input:disabled { opacity: 0.6; }
+.pintx2fa__error { margin-top: 7px; color: var(--err-fg); font-size: 11.5px; line-height: 1.4; }
+.pintx2fa__error[hidden] { display: none; }
+.pintx2fa__actions { display: flex; gap: 9px; margin-top: 16px; }
+.pintx2fa__btn {
+  flex: 1;
+  min-height: 44px;
+  padding: 11px;
+  border-radius: 12px;
+  background: var(--surface-2);
+  color: var(--fg-strong);
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 800;
+  transition: transform 0.12s var(--ease-out), opacity 0.12s ease;
+}
+.pintx2fa__btn--submit { background: var(--gold-500); color: var(--on-brand); }
+.pintx2fa__btn:active { transform: scale(0.97); }
+.pintx2fa__btn:disabled { opacity: 0.55; pointer-events: none; }
+@media (prefers-reduced-motion: reduce) {
+  .pintx2fa__card { transform: none; }
+  .pintx2fa__input.is-error { animation: none; }
+}
+
 /* ===========================================================================
    Popup "Akun Kamu Telah Dibanned" (pin-transaksi.js)
    Muncul di DUA konteks: saat PIN transaksi salah 3x (halaman produk/

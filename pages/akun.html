@@ -361,54 +361,72 @@
       </div>
       <div class="aflow__body">
 
-        <div class="tfa-step" data-step="method">
-          <p class="tfa-lead">Pilih metode untuk menerima kode verifikasi kamu.</p>
-          <button class="tfa-opt" type="button" data-method="sms">
-            <span class="tfa-opt__ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H8l-5 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></span>
-            <span class="tfa-opt__txt"><b>SMS</b><span>Kode dikirim ke nomor HP kamu</span></span>
-            <svg class="row__chev" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="m9 6 6 6-6 6"/></svg>
-          </button>
-          <button class="tfa-opt" type="button" data-method="email">
-            <span class="tfa-opt__ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg></span>
-            <span class="tfa-opt__txt"><b>Email</b><span>Kode dikirim ke email kamu</span></span>
-            <svg class="row__chev" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="m9 6 6 6-6 6"/></svg>
-          </button>
+        <div class="tfa-step" data-step="intro">
+          <span class="tfa-hero-ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12h6M12 9v6"/></svg></span>
+          <p class="tfa-lead">Verifikasi 2 Langkah menambahkan kode dari perangkatmu saat login dan mengonfirmasi transaksi tertentu. Jadi, PIN saja tidak cukup untuk melindungi akun.</p>
+          <p class="tfa-note">Siapkan Google Authenticator, Authy, atau aplikasi authenticator lain sebelum mulai.</p>
+          <button class="apply-btn" type="button" id="tfaStartBtn">Mulai Pengaturan</button>
         </div>
 
-        <div class="tfa-step" data-step="contact" hidden>
-          <p class="tfa-lead" id="tfaContactLead">Masukkan nomor HP kamu</p>
-          <input class="tfa-input" id="tfaContact" type="text" inputmode="tel" placeholder="08xxxxxxxxxx" autocomplete="off" />
-          <button class="apply-btn" type="button" id="tfaSendBtn">Kirim Kode</button>
-        </div>
-
-        <div class="tfa-step tfa-step--center" data-step="sending" hidden>
+        <div class="tfa-step tfa-step--center" data-step="loading" hidden>
           <span class="tfa-spinner" aria-hidden="true"></span>
-          <p class="tfa-lead">Mengirim kode verifikasi…</p>
+          <p class="tfa-lead">Menyiapkan kunci keamanan…</p>
         </div>
 
-        <div class="tfa-step" data-step="otp" hidden>
-          <p class="tfa-lead" id="tfaOtpLead">Masukkan 6 digit kode yang kami kirim</p>
-          <div class="otp" id="otpBoxes">
-            <input type="text" inputmode="numeric" maxlength="1" />
-            <input type="text" inputmode="numeric" maxlength="1" />
-            <input type="text" inputmode="numeric" maxlength="1" />
-            <input type="text" inputmode="numeric" maxlength="1" />
-            <input type="text" inputmode="numeric" maxlength="1" />
-            <input type="text" inputmode="numeric" maxlength="1" />
-          </div>
-          <p class="otp-hint" id="otpHint">Belum menerima kode? <b>Kirim ulang</b></p>
-          <button class="apply-btn" type="button" id="tfaVerifyBtn">Verifikasi</button>
+        <div class="tfa-step tfa-step--center" data-step="qr" hidden>
+          <p class="tfa-lead">Pindai QR ini dari aplikasi authenticator kamu.</p>
+          <div class="tfa-qr" id="tfaQr" aria-label="QR code untuk menyiapkan verifikasi dua langkah"></div>
+          <p class="tfa-note">Tidak bisa memindai? Masukkan secret ini secara manual.</p>
+          <code class="tfa-secret" id="tfaSecret"></code>
+          <button class="tfa-text-btn" type="button" id="tfaCopySecret">Salin secret</button>
+          <button class="apply-btn" type="button" id="tfaToVerifyBtn">Saya sudah menambahkan akun</button>
         </div>
 
-        <div class="tfa-step tfa-step--center" data-step="done" hidden>
+        <div class="tfa-step" data-step="verify" hidden>
+          <p class="tfa-lead">Masukkan kode 6 digit yang sedang tampil di aplikasi authenticator.</p>
+          <input class="tfa-input tfa-code" id="tfaCode" type="text" inputmode="numeric" maxlength="6" autocomplete="one-time-code" placeholder="000000" aria-label="Kode verifikasi 6 digit" />
+          <p class="tfa-error" id="tfaError" role="alert" hidden></p>
+          <button class="apply-btn" type="button" id="tfaVerifyBtn">Verifikasi dan Aktifkan</button>
+        </div>
+
+        <div class="tfa-step tfa-step--center" data-step="codes" hidden>
           <div class="confetti" id="confetti" aria-hidden="true"></div>
           <svg class="check-anim" viewBox="0 0 80 80" fill="none" aria-hidden="true">
             <circle cx="40" cy="40" r="36" stroke="#1E9C56" stroke-width="5" stroke-linecap="round"/>
             <path d="M24 41l11 11 21-23" stroke="#1E9C56" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
-          <p class="tfa-done-title">2FA Berhasil Diaktifkan!</p>
-          <p class="tfa-lead">Akun kamu sekarang lebih aman dengan verifikasi 2 langkah.</p>
+          <p class="tfa-done-title">Verifikasi 2 Langkah Aktif</p>
+          <p class="tfa-recovery-warning">Kode cadangan ini hanya ditampilkan sekali. Simpan di tempat aman dan jangan bagikan kepada siapa pun.</p>
+          <ul class="tfa-recovery-codes" id="tfaRecoveryCodes" aria-label="Kode cadangan"></ul>
+          <div class="tfa-recovery-actions">
+            <button class="tfa-secondary-btn" type="button" id="tfaCopyCodes">Salin Semua</button>
+            <button class="tfa-secondary-btn" type="button" id="tfaSaveCodes">Simpan Kode</button>
+          </div>
           <button class="apply-btn" type="button" data-flowdone>Selesai</button>
+        </div>
+
+        <div class="tfa-step tfa-step--center" data-step="active" hidden>
+          <svg class="check-anim check-anim--sm" viewBox="0 0 80 80" fill="none" aria-hidden="true">
+            <circle cx="40" cy="40" r="36" stroke="#1E9C56" stroke-width="5" stroke-linecap="round"/>
+            <path d="M24 41l11 11 21-23" stroke="#1E9C56" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <p class="tfa-done-title">Verifikasi 2 Langkah Aktif</p>
+          <p class="tfa-lead" id="tfaActiveDate"></p>
+          <button class="tfa-danger-btn" type="button" id="tfaDisableBtn">Nonaktifkan 2FA</button>
+          <button class="tfa-text-btn" type="button" data-flowdone>Selesai</button>
+        </div>
+
+        <div class="tfa-step" data-step="disable" hidden>
+          <p class="tfa-lead">Untuk menonaktifkan Verifikasi 2 Langkah, masukkan PIN Transaksi kamu.</p>
+          <input class="tfa-input" id="tfaDisablePin" type="password" inputmode="numeric" maxlength="6" autocomplete="current-password" placeholder="PIN 6 digit" aria-label="PIN Transaksi" />
+          <p class="tfa-error" id="tfaDisableError" role="alert" hidden></p>
+          <button class="tfa-danger-btn" type="button" id="tfaDisableConfirmBtn">Konfirmasi Nonaktifkan</button>
+        </div>
+
+        <div class="tfa-step tfa-step--center" data-step="status-error" hidden>
+          <span class="tfa-hero-ic tfa-hero-ic--warn" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg></span>
+          <p class="tfa-lead">Status Verifikasi 2 Langkah belum bisa dimuat. Coba periksa lagi sebelum mengubah pengaturan.</p>
+          <button class="apply-btn" type="button" id="tfaRetryStatusBtn">Coba Lagi</button>
         </div>
 
       </div>
@@ -1023,6 +1041,7 @@
        — WAJIB sebelum akun.js, yang memasang pemicunya. Boleh dihapus nanti
        kalau sudah tidak diperlukan; lihat catatan di dalam file itu. -->
   <script src="../scripts/debug-panel.js"></script>
+    <script src="../scripts/qrcode-generator.js"></script>
   <script src="../scripts/akun.js"></script>
     <!-- Kotak masuk notifikasi + pendengar ketukan notifikasi sistem. -->
     <script src="../scripts/notif-store.js"></script>

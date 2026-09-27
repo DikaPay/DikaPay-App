@@ -528,20 +528,22 @@
        sisi secara atomik di server. Keypad/animasi/popup banned dari
        pin-transaksi.js dipakai APA ADANYA, hanya sumber verifikasinya yang
        berpindah — lihat komentar di pin-transaksi.js (`periksa()`). */
-    function verifikasiPinBackend(pinMasuk) {
+    function verifikasiPinBackend(pinMasuk, kode2fa) {
       var pengirim = normPhone(getProfilePhone());
       var jaringan = window.DikaNetwork;
       var menungguKoneksi = jaringan && !jaringan.isOnline();
       if (menungguKoneksi && typeof jaringan.setTransactionWait === "function") {
         jaringan.setTransactionWait("transfer", true);
       }
-      return DikaApi.transfer({
+      var payload = {
         ref_id: refForCurrentTransfer(),
         nomor_hp_pengirim: pengirim,
         pin: pinMasuk,
         nomor_hp_tujuan: state.memberDigits,
         nominal: state.nominal,
-      }).then(function (res) {
+      };
+      if (kode2fa) payload.kode_2fa = kode2fa;
+      return DikaApi.transfer(payload).then(function (res) {
         return {
           ok: true,
           saldoBaru: res.saldoBaru,
@@ -554,6 +556,9 @@
           return { ok: false, banned: true, bannedSampai: err.bannedSampai, pesan: err.pesanMember };
         }
         var pesan = (err && err.pesanMember) || "Transfer gagal diproses. Coba lagi.";
+        if (err && (err.kode === "butuh-2fa" || err.kode === "2fa-salah")) {
+          return { ok: false, kode: err.kode, pesan: pesan };
+        }
         /* Backend membedakan alasan gagal lewat isi pesan: "PIN salah. Sisa
            N percobaan lagi." untuk PIN keliru (biarkan member coba lagi DI
            DALAM sheet PIN yang sama), selain itu (saldo tidak cukup, dll.)
@@ -662,6 +667,23 @@
         })
         .then(function (r) {
           if (r && r.ok) { prosesTransfer(r); return; }
+          if (r && r.alasan === "butuh-2fa") {
+            window.DikaPinTransaksi.mintaKode2FA({
+              pesan: r.pesan,
+              verifikasi: r.verifikasi2FA,
+            }).then(function (hasil2fa) {
+              if (hasil2fa && hasil2fa.ok) { prosesTransfer(hasil2fa); return; }
+              transferBusy = false;
+              els.cmPay.classList.remove("is-loading");
+              els.cmPay.disabled = false;
+            }).catch(function (e) {
+              console.error("transfer-member: verifikasi 2FA gagal:", e);
+              transferBusy = false;
+              els.cmPay.classList.remove("is-loading");
+              els.cmPay.disabled = false;
+            });
+            return;
+          }
           transferBusy = false;
           if (r && (r.alasan === "batal" || r.alasan === "tanpa-pin")) clearTransferRef();
           els.cmPay.classList.remove("is-loading");

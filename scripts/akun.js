@@ -67,10 +67,14 @@ function hideFlow(fromPop) {
     geoGen++;
     if (geoAbort) { try { geoAbort.abort(); } catch (e) {} geoAbort = null; }
   }
-  // Alur 2FA ditutup → batalkan timer "kirim" & "fokus" yang mungkin masih menunggu.
+  // Secret QR dan recovery codes hanya bertahan selama layar setup terbuka.
   if (f.id === "tfaFlow") {
-    if (tfa._sendTimer) { clearTimeout(tfa._sendTimer); tfa._sendTimer = null; }
-    if (tfa._focusTimer) { clearTimeout(tfa._focusTimer); tfa._focusTimer = null; }
+    tfa.secret = "";
+    tfa.otpauthUri = "";
+    tfa.recoveryCodes = [];
+    if ($("tfaQr")) $("tfaQr").replaceChildren();
+    if ($("tfaSecret")) $("tfaSecret").textContent = "";
+    if ($("tfaRecoveryCodes")) $("tfaRecoveryCodes").replaceChildren();
   }
   // Alur Lupa PIN ditutup di tengah jalan → batalkan semua timer tertunda
   // (kirim/fokus/transisi ke Buat PIN Baru), supaya tidak nyala sendiri
@@ -400,79 +404,200 @@ function lupaPinVerify() {
    Alur: Verifikasi 2 Langkah (2FA)
    =========================================================================== */
 
-const tfa = { method: null, active: false, _sendTimer: null, _focusTimer: null };
+const tfa = {
+  status: "loading", active: false, confirmedAt: null, secret: "", otpauthUri: "",
+  recoveryCodes: [], busy: false,
+};
 const tfaSteps = () => document.querySelectorAll("#tfaFlow .tfa-step");
 
 function tfaShow(step) {
   tfaSteps().forEach((s) => { s.hidden = s.dataset.step !== step; });
 }
+
+function tfaToken() {
+  return window.DikaMemberSync && typeof DikaMemberSync.getToken === "function"
+    ? DikaMemberSync.getToken() : "";
+}
+
+function syncTfaStatus() {
+  const el = $("tfaStatus");
+  if (el) {
+    const labels = { loading: "Memeriksa…", active: "Aktif", inactive: "Belum Aktif", error: "Belum dimuat" };
+    el.textContent = labels[tfa.status] || labels.error;
+    el.classList.toggle("row__trail--ok", tfa.status === "active");
+    el.classList.toggle("row__trail--muted", tfa.status !== "active");
+  }
+  if (typeof renderSecurityScore === "function") renderSecurityScore();
+}
+
+function refreshTfaStatus() {
+  tfa.status = "loading";
+  tfa.active = false;
+  tfa.confirmedAt = null;
+  syncTfaStatus();
+  if (!window.DikaApi || typeof DikaApi.status2FA !== "function" || !tfaToken()) {
+    tfa.status = "error";
+    syncTfaStatus();
+    return Promise.resolve(null);
+  }
+  return DikaApi.status2FA(tfaToken()).then((status) => {
+    tfa.active = status.totpEnabled === true;
+    tfa.confirmedAt = status.totpConfirmedAt || null;
+    tfa.status = tfa.active ? "active" : "inactive";
+    syncTfaStatus();
+    return status;
+  }).catch((err) => {
+    console.warn("[akun] status 2FA belum bisa dimuat:", err && (err.sebab || err.pesanMember));
+    tfa.status = "error";
+    syncTfaStatus();
+    return null;
+  });
+}
+
 function openTfaFlow() {
-  if (tfa.active) { toast("Verifikasi 2 langkah sudah aktif."); return; }
-  if (tfa._sendTimer) { clearTimeout(tfa._sendTimer); tfa._sendTimer = null; }
-  if (tfa._focusTimer) { clearTimeout(tfa._focusTimer); tfa._focusTimer = null; }
-  tfa.method = null;
-  tfaShow("method");
+  if (tfa.status === "active") {
+    const date = $("tfaActiveDate");
+    if (date) {
+      const parsed = tfa.confirmedAt ? new Date(tfa.confirmedAt) : null;
+      date.textContent = parsed && !Number.isNaN(parsed.getTime())
+        ? "Aktif sejak " + parsed.toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })
+        : "Kode authenticator diperlukan untuk login dan transaksi tertentu.";
+    }
+    tfaShow("active");
+  } else if (tfa.status === "inactive") {
+    tfaShow("intro");
+  } else {
+    tfaShow("status-error");
+  }
   showFlow("tfaFlow");
 }
 
-function tfaPickMethod(m) {
-  tfa.method = m;
-  const lead = $("tfaContactLead");
-  const input = $("tfaContact");
-  if (m === "sms") {
-    lead.textContent = "Masukkan nomor HP kamu";
-    input.placeholder = "08xxxxxxxxxx";
-    input.setAttribute("inputmode", "tel");
-    input.value = "0812" + "3456789";
-  } else {
-    lead.textContent = "Masukkan email kamu";
-    input.placeholder = "nama@gmail.com";
-    input.setAttribute("inputmode", "email");
-    input.value = "budi.santoso@email.com";
-  }
-  tfaShow("contact");
-}
-
-function tfaSend() {
-  const v = $("tfaContact").value.trim();
-  if (!v) { toast("Isi dulu nomor/email kamu, ya."); return; }
-  tfaShow("sending");
-  if (tfa._sendTimer) clearTimeout(tfa._sendTimer);
-  if (tfa._focusTimer) clearTimeout(tfa._focusTimer);
-  tfa._sendTimer = setTimeout(() => {
-    tfa._sendTimer = null;
-    $("tfaOtpLead").textContent = "Masukkan 6 digit kode yang kami kirim ke " + v;
-    otpBoxes.forEach((b) => (b.value = ""));
-    $("otpBoxes").classList.remove("is-error");
-    tfaShow("otp");
-    // Hanya fokus bila flow masih terbuka (mengambil alih fokus panel tertutup tidak diinginkan)
-    if (!REDUCED_MOTION && $("tfaFlow").classList.contains("is-open")) {
-      tfa._focusTimer = setTimeout(() => {
-        tfa._focusTimer = null;
-        otpBoxes[0].focus();
-      }, 60);
-    }
-  }, 1300);
-}
-
-const otpBoxes = Array.prototype.slice.call(document.querySelectorAll("#otpBoxes input"));
-
-function tfaVerify() {
-  const code = otpBoxes.map((b) => b.value).join("");
-  if (code.length < 6) {
-    $("otpBoxes").classList.add("is-error");
-    setTimeout(() => $("otpBoxes").classList.remove("is-error"), 420);
-    toast("Masukkan 6 digit kode dulu, ya.");
+function tfaMulai() {
+  if (tfa.busy || tfa.status !== "inactive") return;
+  if (!window.DikaApi || typeof DikaApi.mulai2FA !== "function") {
+    toast("Fitur Verifikasi 2 Langkah belum siap.");
     return;
   }
-  tfaShow("done");
-  burstConfetti();
-  tfa.active = true;
-  const st = $("tfaStatus");
-  st.textContent = "Aktif";
-  st.classList.remove("row__trail--muted");
-  st.classList.add("row__trail--ok");
-  renderSecurityScore();   // 2FA kini aktif → skor & checklist ikut naik
+  tfa.busy = true;
+  tfaShow("loading");
+  DikaApi.mulai2FA(tfaToken()).then((hasil) => {
+    if (!hasil.secret || !hasil.otpauthUri || typeof window.qrcode !== "function") {
+      throw new Error("Secret, otpauth_uri, atau pustaka QR tidak tersedia.");
+    }
+    tfa.secret = hasil.secret;
+    tfa.otpauthUri = hasil.otpauthUri;
+    const qr = window.qrcode(0, "M");
+    qr.addData(tfa.otpauthUri);
+    qr.make();
+    $("tfaQr").innerHTML = qr.createSvgTag(5, 2);
+    $("tfaSecret").textContent = tfa.secret;
+    tfaShow("qr");
+  }).catch((err) => {
+    console.error("[akun] mulai 2FA:", err);
+    const message = $("tfaStatusErrorMessage");
+    if (message) message.textContent = (err && err.pesanMember) || "Pengaturan belum bisa dimulai. Coba lagi, ya.";
+    tfaShow("status-error");
+  }).finally(() => { tfa.busy = false; });
+}
+
+function tfaGagal(input, pesan) {
+  const err = input.id === "tfaDisablePin" ? $("tfaDisableError") : $("tfaError");
+  err.textContent = pesan;
+  err.hidden = false;
+  input.classList.remove("is-error");
+  void input.offsetWidth;
+  input.classList.add("is-error");
+  input.focus();
+}
+
+function tfaCopy(text, message) {
+  const fallback = () => {
+    const area = document.createElement("textarea");
+    area.value = text;
+    area.setAttribute("readonly", "");
+    area.style.position = "fixed";
+    area.style.opacity = "0";
+    document.body.appendChild(area);
+    area.select();
+    const copied = document.execCommand("copy");
+    area.remove();
+    if (copied) toast(message);
+    else toast("Tidak bisa menyalin. Pilih dan salin teksnya secara manual.");
+  };
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(() => toast(message), fallback);
+  } else fallback();
+}
+
+function tfaVerify() {
+  const input = $("tfaCode");
+  const code = input.value.replace(/\D/g, "").slice(0, 6);
+  input.value = code;
+  $("tfaError").hidden = true;
+  if (code.length !== 6) {
+    tfaGagal(input, "Masukkan 6 digit kode authenticator.");
+    return;
+  }
+  if (tfa.busy || !window.DikaApi) return;
+  const btn = $("tfaVerifyBtn");
+  tfa.busy = true;
+  btn.disabled = true;
+  btn.textContent = "Memverifikasi…";
+  DikaApi.konfirmasi2FA(tfaToken(), code).then((hasil) => {
+    tfa.recoveryCodes = hasil.recoveryCodes.slice();
+    const list = $("tfaRecoveryCodes");
+    list.replaceChildren();
+    tfa.recoveryCodes.forEach((recoveryCode) => {
+      const li = document.createElement("li");
+      li.textContent = recoveryCode;
+      list.appendChild(li);
+    });
+    input.value = "";
+    $("tfaQr").replaceChildren();
+    $("tfaSecret").textContent = "";
+    tfa.secret = "";
+    tfa.otpauthUri = "";
+    tfaShow("codes");
+    burstConfetti();
+    refreshTfaStatus();
+  }).catch((err) => {
+    tfaGagal(input, (err && err.pesanMember) || "Kode belum cocok. Coba lagi, ya.");
+  }).finally(() => {
+    tfa.busy = false;
+    btn.disabled = false;
+    btn.textContent = "Verifikasi dan Aktifkan";
+  });
+}
+
+function tfaNonaktifkan() {
+  const input = $("tfaDisablePin");
+  const pin = input.value.replace(/\D/g, "").slice(0, 6);
+  input.value = pin;
+  $("tfaDisableError").hidden = true;
+  if (pin.length !== 6) {
+    tfaGagal(input, "Masukkan PIN Transaksi 6 digit.");
+    return;
+  }
+  if (tfa.busy || !window.DikaApi) return;
+  const btn = $("tfaDisableConfirmBtn");
+  tfa.busy = true;
+  btn.disabled = true;
+  btn.textContent = "Memproses…";
+  DikaApi.nonaktifkan2FA(tfaToken(), pin).then(() => refreshTfaStatus()).then((status) => {
+    input.value = "";
+    if (status && status.totpEnabled === false) {
+      tfaShow("intro");
+      toast("Verifikasi 2 Langkah berhasil dinonaktifkan.");
+    } else {
+      tfaShow("status-error");
+    }
+  }).catch((err) => {
+    tfaGagal(input, (err && err.pesanMember) || "2FA belum bisa dinonaktifkan. Coba lagi, ya.");
+  }).finally(() => {
+    tfa.busy = false;
+    btn.disabled = false;
+    btn.textContent = "Konfirmasi Nonaktifkan";
+  });
 }
 
 function burstConfetti() {
@@ -2130,6 +2255,7 @@ function init() {
     refreshDevices();
     renderPinLabel();
     renderSecurityScore();
+    refreshTfaStatus();
   } catch (err) {
     console.error("[akun] init/render gagal:", err);
   }
@@ -2544,23 +2670,57 @@ function init() {
     });
   });
 
-  /* 2FA */
-  document.querySelectorAll("#tfaFlow [data-method]").forEach((b) =>
-    b.addEventListener("click", () => tfaPickMethod(b.dataset.method))
-  );
-  $("tfaSendBtn").addEventListener("click", tfaSend);
-  $("tfaVerifyBtn").addEventListener("click", tfaVerify);
-  $("otpHint").addEventListener("click", (e) => {
-    if (e.target.closest("b")) toast("Kode verifikasi baru sudah dikirim.");
+  /* 2FA TOTP */
+  $("tfaStartBtn").addEventListener("click", tfaMulai);
+  $("tfaToVerifyBtn").addEventListener("click", () => {
+    if (!tfa.secret) return;
+    tfaShow("verify");
+    $("tfaCode").focus();
   });
-  otpBoxes.forEach((box, i) => {
-    box.addEventListener("input", () => {
-      box.value = box.value.replace(/\D/g, "").slice(0, 1);
-      if (box.value && i < otpBoxes.length - 1) otpBoxes[i + 1].focus();
+  $("tfaCopySecret").addEventListener("click", () => tfaCopy(tfa.secret, "Secret berhasil disalin."));
+  $("tfaCode").addEventListener("input", () => {
+    $("tfaCode").value = $("tfaCode").value.replace(/\D/g, "").slice(0, 6);
+    $("tfaError").hidden = true;
+  });
+  $("tfaCode").addEventListener("keydown", (e) => {
+    if (e.key === "Enter") { e.preventDefault(); tfaVerify(); }
+  });
+  $("tfaVerifyBtn").addEventListener("click", tfaVerify);
+  $("tfaDisableBtn").addEventListener("click", () => {
+    $("tfaDisablePin").value = "";
+    $("tfaDisableError").hidden = true;
+    tfaShow("disable");
+    $("tfaDisablePin").focus();
+  });
+  $("tfaDisablePin").addEventListener("input", () => {
+    $("tfaDisablePin").value = $("tfaDisablePin").value.replace(/\D/g, "").slice(0, 6);
+    $("tfaDisableError").hidden = true;
+  });
+  $("tfaDisableConfirmBtn").addEventListener("click", tfaNonaktifkan);
+  $("tfaRetryStatusBtn").addEventListener("click", () => {
+    refreshTfaStatus().then((status) => {
+      if (!status) return;
+      tfaShow(status.totpEnabled ? "active" : "intro");
     });
-    box.addEventListener("keydown", (e) => {
-      if (e.key === "Backspace" && !box.value && i > 0) otpBoxes[i - 1].focus();
-    });
+  });
+  $("tfaCopyCodes").addEventListener("click", () => {
+    if (tfa.recoveryCodes.length) tfaCopy(tfa.recoveryCodes.join("\n"), "Kode cadangan berhasil disalin.");
+  });
+  $("tfaSaveCodes").addEventListener("click", () => {
+    if (!tfa.recoveryCodes.length) return;
+    try {
+      const blob = new Blob(["Kode cadangan DikaPay\nSimpan di tempat aman dan jangan bagikan.\n\n" + tfa.recoveryCodes.join("\n")], { type: "text/plain;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "dikapay-kode-cadangan.txt";
+      link.click();
+      URL.revokeObjectURL(url);
+      toast("Unduhan kode cadangan dimulai.");
+    } catch (err) {
+      console.error("[akun] gagal menyimpan kode cadangan:", err);
+      toast("Tidak bisa menyimpan otomatis. Gunakan tombol Salin Semua.");
+    }
   });
 
   /* Devices logout */
@@ -2596,9 +2756,10 @@ function init() {
      member kembali ke sini lewat bfcache — <script> tidak dijalankan ulang,
      jadi avatarnya harus disegarkan di `pageshow`. Alasan yang sama dengan
      penyegar margin di produk-ui.js. */
-  window.addEventListener("pageshow", function () {
+  window.addEventListener("pageshow", function (event) {
     try {
       if (window.DikaProfilFoto) window.DikaProfilFoto.pasangSemua(profile.name);
+      if (event.persisted) refreshTfaStatus();
     } catch (err) { console.error("[akun] gagal menyegarkan avatar:", err); }
   });
 
