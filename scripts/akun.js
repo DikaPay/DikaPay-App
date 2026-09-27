@@ -406,7 +406,7 @@ function lupaPinVerify() {
 
 const tfa = {
   status: "loading", active: false, confirmedAt: null, secret: "", otpauthUri: "",
-  recoveryCodes: [], busy: false,
+  recoveryCodes: [], busy: false, statusRequestId: 0, statusPromise: null, statusToken: "",
 };
 const tfaSteps = () => document.querySelectorAll("#tfaFlow .tfa-step");
 
@@ -417,6 +417,20 @@ function tfaShow(step) {
 function tfaToken() {
   return window.DikaMemberSync && typeof DikaMemberSync.getToken === "function"
     ? DikaMemberSync.getToken() : "";
+}
+
+function logTfaFailure(action, err, extra) {
+  console.error("[akun][2fa] " + action + " failed", Object.assign({
+    endpoint: err && err.endpoint || null,
+    requestId: err && err.requestId || null,
+    stage: err && err.tahap || (err && err.httpStatus != null ? "http-response" : "client-or-transport"),
+    httpStatus: err && err.httpStatus != null ? err.httpStatus : null,
+    errorName: err && err.name || "Error",
+    originalError: err && (err.errorAsli || err.sebab || err.message) || String(err),
+    memberMessage: err && err.pesanMember || null,
+    online: navigator.onLine !== false,
+    authorizationPresent: !!tfaToken(),
+  }, extra || {}));
 }
 
 function syncTfaStatus() {
@@ -430,28 +444,49 @@ function syncTfaStatus() {
   if (typeof renderSecurityScore === "function") renderSecurityScore();
 }
 
-function refreshTfaStatus() {
+function refreshTfaStatus(force) {
+  const token = tfaToken();
+  if (!force && tfa.statusPromise && token && token === tfa.statusToken) return tfa.statusPromise;
+  const requestId = ++tfa.statusRequestId;
   tfa.status = "loading";
   tfa.active = false;
   tfa.confirmedAt = null;
   syncTfaStatus();
-  if (!window.DikaApi || typeof DikaApi.status2FA !== "function" || !tfaToken()) {
+  if (!window.DikaApi || typeof DikaApi.status2FA !== "function" || !token) {
     tfa.status = "error";
     syncTfaStatus();
+    logTfaFailure("api-2fa-status.php", null, {
+      endpoint: "api-2fa-status.php",
+      requestId: requestId,
+      stage: !token ? "token-unavailable" : "api-method-unavailable",
+      authorizationPresent: !!token,
+    });
     return Promise.resolve(null);
   }
-  return DikaApi.status2FA(tfaToken()).then((status) => {
+  const request = DikaApi.status2FA(token).then((status) => {
+    if (requestId !== tfa.statusRequestId) return null;
     tfa.active = status.totpEnabled === true;
     tfa.confirmedAt = status.totpConfirmedAt || null;
     tfa.status = tfa.active ? "active" : "inactive";
     syncTfaStatus();
     return status;
   }).catch((err) => {
+    if (requestId !== tfa.statusRequestId) return null;
+    logTfaFailure("api-2fa-status.php", err, { requestId: requestId });
     console.warn("[akun] status 2FA belum bisa dimuat:", err && (err.sebab || err.pesanMember));
     tfa.status = "error";
     syncTfaStatus();
     return null;
   });
+  const tracked = request.finally(() => {
+    if (tfa.statusPromise === tracked) {
+      tfa.statusPromise = null;
+      tfa.statusToken = "";
+    }
+  });
+  tfa.statusPromise = tracked;
+  tfa.statusToken = token;
+  return tracked;
 }
 
 function openTfaFlow() {
@@ -493,7 +528,15 @@ function tfaMulai() {
     $("tfaSecret").textContent = tfa.secret;
     tfaShow("qr");
   }).catch((err) => {
-    console.error("[akun] mulai 2FA:", err);
+    if (err && (err.requestId || err.sebab)) {
+      logTfaFailure("api-2fa-mulai.php", err, { endpoint: "api-2fa-mulai.php" });
+    } else {
+      console.error("[akun][2fa] QR rendering failed", {
+        endpoint: "client-qrcode-render",
+        errorName: err && err.name || "Error",
+        originalError: err && err.message || String(err),
+      });
+    }
     const message = $("tfaStatusErrorMessage");
     if (message) message.textContent = (err && err.pesanMember) || "Pengaturan belum bisa dimulai. Coba lagi, ya.";
     tfaShow("status-error");
@@ -559,8 +602,9 @@ function tfaVerify() {
     tfa.otpauthUri = "";
     tfaShow("codes");
     burstConfetti();
-    refreshTfaStatus();
+    refreshTfaStatus(true);
   }).catch((err) => {
+    logTfaFailure("api-2fa-konfirmasi.php", err, { endpoint: "api-2fa-konfirmasi.php" });
     tfaGagal(input, (err && err.pesanMember) || "Kode belum cocok. Coba lagi, ya.");
   }).finally(() => {
     tfa.busy = false;
@@ -583,7 +627,7 @@ function tfaNonaktifkan() {
   tfa.busy = true;
   btn.disabled = true;
   btn.textContent = "Memproses…";
-  DikaApi.nonaktifkan2FA(tfaToken(), pin).then(() => refreshTfaStatus()).then((status) => {
+  DikaApi.nonaktifkan2FA(tfaToken(), pin).then(() => refreshTfaStatus(true)).then((status) => {
     input.value = "";
     if (status && status.totpEnabled === false) {
       tfaShow("intro");
@@ -592,6 +636,7 @@ function tfaNonaktifkan() {
       tfaShow("status-error");
     }
   }).catch((err) => {
+    logTfaFailure("api-2fa-nonaktifkan.php", err, { endpoint: "api-2fa-nonaktifkan.php" });
     tfaGagal(input, (err && err.pesanMember) || "2FA belum bisa dinonaktifkan. Coba lagi, ya.");
   }).finally(() => {
     tfa.busy = false;
@@ -2698,7 +2743,7 @@ function init() {
   });
   $("tfaDisableConfirmBtn").addEventListener("click", tfaNonaktifkan);
   $("tfaRetryStatusBtn").addEventListener("click", () => {
-    refreshTfaStatus().then((status) => {
+    refreshTfaStatus(true).then((status) => {
       if (!status) return;
       tfaShow(status.totpEnabled ? "active" : "intro");
     });
@@ -2759,7 +2804,7 @@ function init() {
   window.addEventListener("pageshow", function (event) {
     try {
       if (window.DikaProfilFoto) window.DikaProfilFoto.pasangSemua(profile.name);
-      if (event.persisted) refreshTfaStatus();
+      if (event.persisted) refreshTfaStatus(true);
     } catch (err) { console.error("[akun] gagal menyegarkan avatar:", err); }
   });
 
