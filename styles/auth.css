@@ -452,6 +452,40 @@ body { overflow-x: hidden; }
 }
 .auth-link:active { opacity: 0.6; }
 
+.auth-2fa__icon {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  margin: 2px auto 12px;
+  border-radius: 50%;
+  background: var(--tint);
+  color: var(--navy-700);
+}
+.auth-2fa__icon svg { width: 27px; height: 27px; }
+.auth-2fa__input {
+  width: 100%;
+  height: 52px;
+  margin-top: 16px;
+  border: 1.5px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface-2);
+  color: var(--fg-strong);
+  font: inherit;
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-align: center;
+}
+.auth-2fa__input:focus { border-color: var(--navy-700); outline: none; }
+.auth-2fa__input.is-error { border-color: var(--err-fg); animation: authShake 0.4s ease; }
+.auth-2fa__input:disabled { opacity: 0.6; }
+.auth-2fa__error { margin-top: 9px; text-align: center; }
+.auth-2fa__submit { margin-top: 16px; }
+@media (prefers-reduced-motion: reduce) {
+  .auth-2fa__input.is-error { animation: none; }
+}
+
 /* ===== Toast sukses (slide dari atas, pola .topmsg) ===================== */
 
 .auth-toast {

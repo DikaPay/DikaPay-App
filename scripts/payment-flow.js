@@ -752,18 +752,20 @@
     o.refId = refId;
     penentuHasil = penentuHasilServer;
 
-    return function (pinMasuk) {
+    return function (pinMasuk, kode2fa) {
       var jaringan = window.DikaNetwork;
       var menungguKoneksi = jaringan && !jaringan.isOnline();
       if (menungguKoneksi && typeof jaringan.setTransactionWait === "function") {
         jaringan.setTransactionWait("produk", true);
       }
-      return DikaApi.transaksiProduk(token, {
+      var payload = {
         ref_id: refId,
         kode_produk: kode,
         tujuan: o.tujuan || "",
         pin: pinMasuk,
-      }).then(function (res) {
+      };
+      if (kode2fa) payload.kode_2fa = kode2fa;
+      return DikaApi.transaksiProduk(token, payload).then(function (res) {
         /* `status` dari server dipetakan ke bentuk hasil yang SUDAH dipakai
            layar hasil & riwayat — tidak ada bentuk baru yang perlu
            dipelajari alur di bawahnya. */
@@ -784,6 +786,9 @@
           return { ok: false, banned: true, bannedSampai: err.bannedSampai, pesan: err.pesanMember };
         }
         var pesan = (err && err.pesanMember) || "Transaksi gagal diproses. Coba lagi.";
+        if (err && (err.kode === "butuh-2fa" || err.kode === "2fa-salah")) {
+          return { ok: false, kode: err.kode, pesan: pesan };
+        }
         /* Sama seperti transfer: PIN keliru -> biarkan member mengulang di
            sheet yang sama; alasan lain (saldo kurang, produk gangguan) ->
            mengulang PIN tidak menolong, sheet ditutup. */
@@ -841,6 +846,19 @@
       })
         .then(function (r) {
           if (r && r.ok) { mulaiProses(o); return; }
+          if (r && r.alasan === "butuh-2fa") {
+            window.DikaPinTransaksi.mintaKode2FA({
+              pesan: r.pesan,
+              verifikasi: r.verifikasi2FA,
+            }).then(function (hasil2fa) {
+              if (hasil2fa && hasil2fa.ok) { mulaiProses(o); return; }
+              pembayaranAktif = false;
+            }).catch(function (e) {
+              console.error("payment-flow: verifikasi 2FA gagal:", e);
+              pembayaranAktif = false;
+            });
+            return;
+          }
           pembayaranAktif = false;
           /* Dibatalkan sendiri = diam saja, member tahu apa yang dia lakukan.
              "banned" (salah 3x) TIDAK ditangani di sini sama sekali —

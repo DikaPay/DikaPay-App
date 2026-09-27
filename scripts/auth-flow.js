@@ -230,8 +230,16 @@
     var stepRegisterOtp = $("stepRegisterOtp");
     var stepRegisterPin = $("stepRegisterPin");
     var stepLogin = $("stepLogin");
+    var stepLogin2FA = $("stepLogin2FA");
     var stepSuccess = $("stepSuccess");
-    var steps = [stepPhone, stepGooglePhone, stepRegister, stepRegisterMore, stepRegisterOtp, stepRegisterPin, stepLogin, stepSuccess];
+    var steps = [stepPhone, stepGooglePhone, stepRegister, stepRegisterMore, stepRegisterOtp, stepRegisterPin, stepLogin, stepLogin2FA, stepSuccess];
+
+    var login2faCode = $("login2faCode");
+    var login2faError = $("login2faError");
+    var login2faErrorText = $("login2faErrorText");
+    var login2faSubmit = $("login2faSubmit");
+    var login2faToggle = $("login2faToggle");
+    var login2faLead = $("login2faLead");
 
     var phoneForm = $("phoneForm");
     var phoneInput = $("phoneInput");
@@ -284,6 +292,7 @@
 
     var state = {
       phoneDigits: "", account: null, googleIdToken: "", googleProfile: null,
+      pendingLogin: null, login2faRecovery: false,
       /* null | "login" (Langkah B: Google sudah terhubung, PIN wajib) |
          "link" (Langkah C.b/C.c: nomor sudah member, tautkan google_email
          setelah PIN cocok) — dibaca loginPin.onComplete untuk memutuskan
@@ -1717,6 +1726,8 @@
     /* ===== CABANG B: member ditemukan → biometrik / PIN ================== */
 
     function enterLoginBranch(account, opts) {
+      state.pendingLogin = null;
+      state.login2faRecovery = false;
       $("loginAvatar").textContent = initials(account.name);
       $("loginName").textContent = account.name;
       $("loginPhone").textContent = account.phone;
@@ -1775,6 +1786,9 @@
 
     $("loginBackBtn").addEventListener("click", function () {
       clearPhoneErr();
+      state.pendingLogin = null;
+      state.login2faRecovery = false;
+      loginPin.setBusy(false);
       state.googleFlow = null; // batal cabang Google (kalau sedang di situ) -- jangan bocor ke percobaan berikutnya
       goTo(stepPhone);
       try { phoneInput.focus(); } catch (e) {}
@@ -1810,20 +1824,16 @@
               pakaiPin(r.kode === "userCancel" ? "Masuk dengan PIN kamu" : r.pesan);
               return;
             }
-            activateSession(state.account);
-            /* Penyegaran latar belakang yang sama seperti jalur PIN cepat
-               lokal di atas (lihat catatan di sana) — tapi TANPA fallback
-               "ambil token pertama kali lewat PIN", karena biometrik tidak
-               pernah memberi PIN ke tangan kita. Kalau akun ini belum
-               pernah punya device_token, cek() ini no-op diam-diam (best-
-               effort) — token barunya menyusul saat member membuka layar
-               kunci dengan PIN di kesempatan berikutnya. */
-            try { if (window.DikaMemberSync) DikaMemberSync.cek(); }
-            catch (e) { console.error("auth-flow: gagal memicu sinkronisasi status:", e); }
-            showSuccess({
-              title: "Selamat datang kembali, " + firstName(state.account.name) + "!",
-              desc: "Masuk dengan biometrik berhasil.",
-            });
+            if (!/^\d{6}$/.test(String(state.account.pin || ""))) {
+              pakaiPin("Masukkan PIN untuk melanjutkan.");
+              return;
+            }
+            bioBlock.hidden = true;
+            pinBlock.hidden = false;
+            loginPin.reset();
+            loginPin.setBusy(true);
+            loginPin.setHint("Memeriksa PIN…");
+            submitBackendLogin(state.account.pin, null, false);
           })
           .catch(function (e) {
             bioBtn.classList.remove("is-scanning");
@@ -1852,120 +1862,196 @@
       hintEl: $("loginPinHint"),
       onComplete: function (buf) {
         if (!state.account) return;
+        submitBackendLogin(buf, null, false);
+      },
+    });
 
-        /* JALUR CEPAT LOKAL — proses masuknya sendiri TIDAK berubah (tetap
-           instan, tanpa menunggu jaringan): akun yang sudah tersimpan di
-           perangkat ini (termasuk member existing) langsung cocok tanpa
-           jaringan. YANG DITAMBAHKAN: penyegaran device_token & saldo akun
-           ini di LATAR BELAKANG (best-effort, tidak menahan showSuccess()
-           di bawah sama sekali) — dulu TIDAK ADA sama sekali di jalur ini,
-           itulah bug "saldo akun lain nyasar ke layar" saat satu perangkat
-           dipakai bergantian oleh banyak akun tes: device_token & saldo
-           akun yang BARU aktif tetap membawa nilai akun SEBELUMNYA sampai
-           polling latar (member-sync.js, tiap 60 dtk) kebetulan berjalan
-           memakai token yang SALAH. Pola pemanggilannya SAMA PERSIS dengan
-           auto-lock.js setelah PIN layar kunci cocok — PIN sudah di tangan,
-           jadi tidak perlu minta ulang ke member. Lihat catatan besar
-           "TOKEN & SALDO HARUS PER-AKUN" di member-sync.js. */
-        if (state.account.pin && buf === state.account.pin) {
-          activateSession(state.account);
-          try {
-            if (window.DikaMemberSync) DikaMemberSync.cekSaatBukaKunci(state.phoneDigits, buf);
-          } catch (e) { console.error("auth-flow: gagal memicu sinkronisasi status:", e); }
-          showSuccess({
-            title: "Selamat datang kembali, " + firstName(state.account.name) + "!",
-            desc: "PIN benar. Menuju Beranda...",
-          });
+    function clearLogin2FA() {
+      state.pendingLogin = null;
+      state.login2faRecovery = false;
+      if (login2faCode) login2faCode.value = "";
+      if (login2faError) login2faError.hidden = true;
+      if (login2faCode) login2faCode.classList.remove("is-error");
+      if (login2faSubmit) {
+        login2faSubmit.disabled = false;
+        login2faSubmit.textContent = "Verifikasi";
+      }
+      if (login2faToggle) login2faToggle.textContent = "Pakai kode cadangan";
+    }
+
+    function showLogin2FA(err, phone, pin, googleFlow) {
+      state.pendingLogin = { phone: phone, pin: pin, googleFlow: googleFlow };
+      state.login2faRecovery = false;
+      login2faCode.maxLength = 6;
+      login2faCode.inputMode = "numeric";
+      login2faCode.placeholder = "000000";
+      login2faCode.value = "";
+      login2faLead.textContent = "Masukkan kode dari aplikasi authenticator kamu.";
+      login2faToggle.textContent = "Pakai kode cadangan";
+      login2faError.hidden = true;
+      login2faSubmit.disabled = false;
+      login2faSubmit.textContent = "Verifikasi";
+      loginPin.setBusy(false);
+      goTo(stepLogin2FA);
+      requestAnimationFrame(function () { login2faCode.focus(); });
+    }
+
+    function showLogin2FAError(pesan) {
+      login2faErrorText.textContent = pesan;
+      login2faError.hidden = false;
+      login2faCode.classList.remove("is-error");
+      void login2faCode.offsetWidth;
+      login2faCode.classList.add("is-error");
+      login2faCode.value = "";
+      login2faCode.focus();
+    }
+
+    function failLogin(pin, pesan, from2FA) {
+      if (from2FA) {
+        login2faSubmit.disabled = false;
+        login2faSubmit.textContent = "Verifikasi";
+        showLogin2FAError(pesan);
+        return;
+      }
+      loginPin.setBusy(false);
+      loginPin.shake(pesan || "PIN salah. Coba lagi, ya.");
+    }
+
+    function finishBackendLogin(member, pin, phone, googleFlow, from2FA) {
+      var account = {
+        name: (member && member.nama) || (state.account && state.account.name) || "Member DikaPay",
+        phone: prettyPhone(phone),
+        pin: pin,
+        email: (member && member.email) || "",
+        alamat: "", tanggalLahir: "", jenisKelamin: "",
+        idDikapay: (member && member.id_dikapay) || phone,
+      };
+
+      function selesaiMasuk(pesanSukses) {
+        saveAccount(phone, account);
+        state.account = account;
+        setBalanceDari(member);
+        simpanTokenDari(member, phone);
+        state.googleFlow = null;
+        clearLogin2FA();
+        activateSession(account);
+        showSuccess({
+          title: "Selamat datang kembali, " + firstName(account.name) + "!",
+          desc: pesanSukses,
+        });
+      }
+
+      if (googleFlow === "link") {
+        if (!state.googleIdToken || !(member && member.device_token) ||
+            !window.DikaApi || typeof DikaApi.hubungkanGoogle !== "function") {
+          clearLogin2FA();
+          loginPin.setBusy(false);
+          goTo(stepLogin);
+          loginPin.shake("Tidak bisa menghubungkan akun Google sekarang. Coba lagi, ya.");
           return;
         }
+        if (from2FA) login2faLead.textContent = "Kode benar. Menghubungkan akun Google kamu…";
+        else loginPin.setHint("Menghubungkan akun Google…");
+        DikaApi.hubungkanGoogle(member.device_token, state.googleIdToken).then(
+          function () { selesaiMasuk("Akun Google kamu berhasil dihubungkan ke DikaPay."); },
+          function (linkErr) {
+            clearLogin2FA();
+            loginPin.setBusy(false);
+            goTo(stepLogin);
+            console.warn("auth-flow: hubungkanGoogle gagal:", linkErr && (linkErr.sebab || linkErr.pesanMember));
+            loginPin.shake((linkErr && linkErr.pesanMember) || "Gagal menghubungkan akun Google. Coba lagi, ya.");
+          }
+        );
+        return;
+      }
 
-        /* JALUR BACKEND (additive) — verifikasi PIN ke api-login.php.
-           Dijalankan kalau jalur lokal di atas TIDAK cocok:
-           - akun-stub backendOnly (didaftarkan di perangkat lain, ATAU
-             cabang Google "login"/"link" — account.pin SELALU null di
-             situ, lihat googleBtn/gpForm handler), atau
-           - PIN diganti di perangkat lain sehingga salinan lokal basi. */
-        if (!window.DikaApi || typeof DikaApi.masuk !== "function") {
-          loginPin.shake("Masukkan PIN kamu");
-          return;
-        }
-        /* Disalin ke variabel lokal SEBELUM panggilan async — state.googleFlow
-           bisa saja berubah (mis. member sempat mengetik ulang) sebelum
-           respons datang, dan keputusan "perlu hubungkanGoogle atau tidak"
-           harus konsisten dengan PIN yang baru saja diverifikasi. */
-        var googleFlowSaatIni = state.googleFlow;
+      selesaiMasuk("Kamu berhasil masuk ke akun DikaPay.");
+    }
+
+    function submitBackendLogin(pin, faktor, from2FA) {
+      if (!window.DikaApi || typeof DikaApi.masuk !== "function") {
+        failLogin(pin, "Login belum bisa terhubung. Coba lagi sebentar, ya.", from2FA);
+        return;
+      }
+      var phone = from2FA && state.pendingLogin ? state.pendingLogin.phone : state.phoneDigits;
+      var googleFlow = from2FA && state.pendingLogin ? state.pendingLogin.googleFlow : state.googleFlow;
+      if (from2FA) {
+        login2faSubmit.disabled = true;
+        login2faSubmit.textContent = "Memeriksa…";
+        login2faError.hidden = true;
+      } else {
         loginPin.setBusy(true);
         loginPin.setHint("Memeriksa PIN…");
-        DikaApi.masuk(state.phoneDigits, buf)
-          .then(function (member) {
-            var account = {
-              name: (member && member.nama) || state.account.name || "Member DikaPay",
-              phone: prettyPhone(state.phoneDigits),
-              pin: buf,
-              email: (member && member.email) || "",
-              alamat: "", tanggalLahir: "", jenisKelamin: "",
-              idDikapay: (member && member.id_dikapay) || state.phoneDigits,
-            };
+      }
+      DikaApi.masuk(phone, pin, faktor).then(function (member) {
+        if (state.phoneDigits !== phone ||
+            (from2FA && (!state.pendingLogin || state.pendingLogin.pin !== pin || stepLogin2FA.hidden)) ||
+            (!from2FA && stepLogin.hidden)) return;
+        finishBackendLogin(member, pin, phone, googleFlow, from2FA);
+      }).catch(function (err) {
+        if (state.phoneDigits !== phone ||
+            (from2FA && (!state.pendingLogin || state.pendingLogin.pin !== pin || stepLogin2FA.hidden)) ||
+            (!from2FA && stepLogin.hidden)) return;
+        console.warn("auth-flow: login backend gagal:", err && (err.sebab || err.pesanMember));
+        if (!from2FA && err && err.kode === "butuh-2fa") {
+          showLogin2FA(err, phone, pin, googleFlow);
+          return;
+        }
+        if (from2FA) {
+          failLogin(pin, (err && err.pesanMember) || "Kode belum cocok. Coba lagi, ya.", true);
+          return;
+        }
+        failLogin(pin, (err && err.pesanMember) || "PIN salah. Coba lagi, ya.", false);
+      });
+    }
 
-            /* BARU disimpan/diaktifkan setelah SELESAI (termasuk tautan
-               Google kalau cabang "link") -- lihat catatan di bawah kenapa
-               ini TIDAK boleh dipindah ke awal .then(). */
-            function selesaiMasuk(pesanSukses) {
-              saveAccount(state.phoneDigits, account);
-              state.account = account;
-              setBalanceDari(member);
-              simpanTokenDari(member, state.phoneDigits);
-              state.googleFlow = null;
-              activateSession(account);
-              showSuccess({
-                title: "Selamat datang kembali, " + firstName(account.name) + "!",
-                desc: pesanSukses,
-              });
-            }
-
-            /* Cabang Google "link" (C.b/C.c): PIN sudah terbukti benar --
-               tautkan google_email ke member ini SEBELUM membuka sesi. Kalau
-               backend menolak (mis. nomor ini sudah tertaut akun Google LAIN
-               -- C.c), sesi TIDAK PERNAH dibuka.
-
-               PENTING: `account` (dgn pin:buf) SENGAJA belum disimpan ke
-               state.account/localStorage di titik ini. Kalau disimpan lebih
-               dulu lalu hubungkanGoogle() gagal, percobaan PIN BERIKUTNYA
-               akan cocok dengan "jalur cepat lokal" di atas (state.account.pin
-               === buf) dan langsung activateSession() TANPA pernah mencoba
-               menautkan lagi -- bug diam-diam yang bikin member merasa sudah
-               "terhubung" padahal tidak. Menunda penyimpanan sampai
-               selesaiMasuk() memastikan retry SELALU lewat jalur backend +
-               hubungkanGoogle() lagi sampai benar-benar berhasil. */
-            if (googleFlowSaatIni === "link") {
-              if (!state.googleIdToken || !(member && member.device_token) ||
-                  !window.DikaApi || typeof DikaApi.hubungkanGoogle !== "function") {
-                loginPin.setBusy(false);
-                loginPin.shake("Tidak bisa menghubungkan akun Google sekarang. Coba lagi, ya.");
-                return;
-              }
-              loginPin.setHint("Menghubungkan akun Google…");
-              DikaApi.hubungkanGoogle(member.device_token, state.googleIdToken).then(
-                function () { selesaiMasuk("Akun Google kamu berhasil dihubungkan ke DikaPay."); },
-                function (linkErr) {
-                  loginPin.setBusy(false);
-                  console.warn("auth-flow: hubungkanGoogle gagal:",
-                    linkErr && (linkErr.sebab || linkErr.pesanMember));
-                  loginPin.shake((linkErr && linkErr.pesanMember) ||
-                    "Gagal menghubungkan akun Google. Coba lagi, ya.");
-                }
-              );
-              return;
-            }
-
-            selesaiMasuk("Kamu berhasil masuk ke akun DikaPay.");
-          })
-          .catch(function (err) {
-            loginPin.setBusy(false);
-            console.warn("auth-flow: login backend gagal:", err && (err.sebab || err.pesanMember));
-            loginPin.shake("PIN salah. Coba lagi, ya");
-          });
-      },
+    login2faCode.addEventListener("input", function () {
+      if (state.login2faRecovery) {
+        var code = login2faCode.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 8);
+        login2faCode.value = code.length > 4 ? code.slice(0, 4) + "-" + code.slice(4) : code;
+      } else {
+        login2faCode.value = login2faCode.value.replace(/\D/g, "").slice(0, 6);
+      }
+      login2faError.hidden = true;
+      login2faCode.classList.remove("is-error");
+    });
+    login2faCode.addEventListener("keydown", function (e) {
+      if (e.key === "Enter") { e.preventDefault(); login2faSubmit.click(); }
+    });
+    login2faToggle.addEventListener("click", function () {
+      state.login2faRecovery = !state.login2faRecovery;
+      login2faCode.value = "";
+      login2faCode.maxLength = state.login2faRecovery ? 9 : 6;
+      login2faCode.inputMode = state.login2faRecovery ? "text" : "numeric";
+      login2faCode.placeholder = state.login2faRecovery ? "XXXX-XXXX" : "000000";
+      login2faCode.setAttribute("aria-label", state.login2faRecovery ? "Kode Cadangan" : "Kode Verifikasi 2 Langkah");
+      login2faLead.textContent = state.login2faRecovery
+        ? "Masukkan salah satu kode cadangan yang kamu simpan."
+        : "Masukkan kode dari aplikasi authenticator kamu.";
+      login2faToggle.textContent = state.login2faRecovery ? "Pakai kode authenticator" : "Pakai kode cadangan";
+      login2faError.hidden = true;
+      login2faCode.focus();
+    });
+    login2faSubmit.addEventListener("click", function () {
+      if (!state.pendingLogin || login2faSubmit.disabled) return;
+      var code = login2faCode.value.trim();
+      var factor;
+      if (state.login2faRecovery) {
+        code = code.toUpperCase().replace(/[^A-Z0-9]/g, "");
+        if (code.length !== 8) { showLogin2FAError("Masukkan kode cadangan 8 karakter."); return; }
+        factor = { recovery_code: code.slice(0, 4) + "-" + code.slice(4) };
+      } else {
+        code = code.replace(/\D/g, "");
+        if (code.length !== 6) { showLogin2FAError("Masukkan 6 digit kode authenticator."); return; }
+        factor = { kode_2fa: code };
+      }
+      submitBackendLogin(state.pendingLogin.pin, factor, true);
+    });
+    $("login2faBack").addEventListener("click", function () {
+      clearLogin2FA();
+      loginPin.reset();
+      loginPin.setHint("Masukkan PIN kamu");
+      goTo(stepLogin);
     });
 
     /* ===== STEP: sukses → suara + checkmark → Beranda ==================== */

@@ -682,6 +682,124 @@ body { overflow-x: hidden; }
 .tfa-step--center { position: relative; text-align: center; padding-top: 24px; }
 @keyframes stepIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
 
+.tfa-hero-ic {
+  display: grid;
+  place-items: center;
+  width: 58px;
+  height: 58px;
+  margin: 4px auto 16px;
+  border-radius: 50%;
+  background: var(--tint);
+  color: var(--fg-strong);
+}
+.tfa-hero-ic svg { width: 30px; height: 30px; }
+.tfa-hero-ic--warn { background: var(--cream-bg); color: var(--cream-fg); }
+.tfa-note {
+  margin-top: 12px;
+  padding: 11px 12px;
+  border-radius: 12px;
+  background: var(--surface-2);
+  color: var(--text-muted);
+  font-size: 11.5px;
+  line-height: 1.55;
+}
+.tfa-qr {
+  display: grid;
+  place-items: center;
+  width: min(100%, 244px);
+  aspect-ratio: 1;
+  margin: 14px auto;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: #fff;
+}
+.tfa-qr svg { display: block; width: 100%; height: 100%; }
+.tfa-secret {
+  display: block;
+  margin: 8px 0 2px;
+  padding: 10px;
+  border-radius: 10px;
+  background: var(--surface-2);
+  color: var(--fg-strong);
+  font-size: 12px;
+  font-weight: 800;
+  overflow-wrap: anywhere;
+  user-select: all;
+}
+.tfa-text-btn {
+  display: block;
+  margin: 10px auto 0;
+  padding: 7px 10px;
+  color: var(--navy-700);
+  font-size: 12px;
+  font-weight: 800;
+}
+.tfa-code { text-align: center; font-size: 22px; font-variant-numeric: tabular-nums; }
+.tfa-input.is-error { border-color: var(--err-fg); animation: shake 0.4s ease; }
+.tfa-error {
+  margin: -10px 0 12px;
+  color: var(--err-fg);
+  font-size: 12px;
+  font-weight: 700;
+  text-align: center;
+}
+.tfa-error[hidden] { display: none; }
+.tfa-recovery-warning {
+  margin: 10px 0 12px;
+  padding: 10px 12px;
+  border-left: 3px solid var(--gold-500);
+  border-radius: 8px;
+  background: var(--cream-bg);
+  color: var(--cream-fg);
+  font-size: 11.5px;
+  line-height: 1.5;
+  text-align: left;
+}
+.tfa-recovery-codes {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.tfa-recovery-codes li {
+  padding: 8px 5px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface-2);
+  color: var(--fg-strong);
+  font-family: monospace;
+  font-size: 12px;
+  font-weight: 800;
+  text-align: center;
+  user-select: all;
+}
+.tfa-recovery-actions { display: flex; gap: 8px; margin-top: 10px; }
+.tfa-secondary-btn {
+  flex: 1;
+  min-width: 0;
+  padding: 10px 7px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--fg-strong);
+  font-size: 11.5px;
+  font-weight: 800;
+}
+.tfa-danger-btn {
+  width: 100%;
+  margin-top: 18px;
+  padding: 13px;
+  border: 1px solid var(--err-fg);
+  border-radius: 12px;
+  background: var(--err-bg);
+  color: var(--err-fg);
+  font-size: 13px;
+  font-weight: 800;
+}
+
 .tfa-opt {
   display: flex;
   align-items: center;

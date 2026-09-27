@@ -70,6 +70,8 @@
 
   var el = null;
   var aktif = null;          /* { resolve, salah } saat sheet terbuka */
+  var tfaEl = null;
+  var tfaOpen = false;
   var buf = "";
   var terkunci = false;      /* sedang menganimasikan salah -> abaikan ketukan */
 
@@ -243,6 +245,144 @@
 
   function q(sel) { return el.querySelector(sel); }
 
+  function buildTfa() {
+    if (tfaEl) return tfaEl;
+    var ov = document.createElement("div");
+    ov.className = "pintx2fa";
+    ov.hidden = true;
+    ov.innerHTML =
+      '<section class="pintx2fa__card" role="dialog" aria-modal="true" aria-labelledby="pintx2faTitle">' +
+      '<span class="pintx2fa__ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg></span>' +
+      '<h3 class="pintx2fa__title" id="pintx2faTitle">Verifikasi 2 Langkah</h3>' +
+      '<p class="pintx2fa__message"></p>' +
+      '<label class="pintx2fa__label" for="pintx2faCode">Kode authenticator</label>' +
+      '<input class="pintx2fa__input" id="pintx2faCode" type="text" inputmode="numeric" maxlength="6" autocomplete="one-time-code" placeholder="000000" />' +
+      '<p class="pintx2fa__error" role="alert" hidden></p>' +
+      '<div class="pintx2fa__actions"><button class="pintx2fa__btn pintx2fa__btn--cancel" type="button">Batal</button><button class="pintx2fa__btn pintx2fa__btn--submit" type="button">Lanjutkan</button></div>' +
+      '</section>';
+    document.body.appendChild(ov);
+    tfaEl = ov;
+
+    var cancel = ov.querySelector(".pintx2fa__btn--cancel");
+    var submit = ov.querySelector(".pintx2fa__btn--submit");
+    cancel.addEventListener("click", function () {
+      if (!tfaBusy) tutupTfa({ ok: false, alasan: "batal" });
+    });
+    ov.addEventListener("click", function (e) {
+      if (e.target === ov && !tfaBusy) tutupTfa({ ok: false, alasan: "batal" });
+    });
+    submit.addEventListener("click", kirimTfa);
+    ov.querySelector("#pintx2faCode").addEventListener("keydown", function (e) {
+      if (e.key === "Enter") { e.preventDefault(); kirimTfa(); }
+    });
+    if (window.DikaProdukUI && window.DikaProdukUI.registerOverlay) {
+      window.DikaProdukUI.registerOverlay(function () { return tfaOpen; });
+    }
+    return ov;
+  }
+
+  var tfaResolve = null;
+  var tfaVerifier = null;
+  var tfaBusy = false;
+
+  function tutupTfa(hasil) {
+    if (!tfaOpen) return;
+    tfaOpen = false;
+    var resolve = tfaResolve;
+    tfaResolve = null;
+    tfaVerifier = null;
+    tfaBusy = false;
+    tfaEl.classList.remove("is-open");
+    document.documentElement.style.overflow = "";
+    window.removeEventListener("keydown", onTfaKeydown, true);
+    window.setTimeout(function () {
+      tfaEl.hidden = true;
+      if (resolve) resolve(hasil || { ok: false, alasan: "batal" });
+    }, RM ? 0 : 240);
+  }
+
+  function onTfaKeydown(e) {
+    if (e.key === "Escape" && tfaOpen && !tfaBusy) tutupTfa({ ok: false, alasan: "batal" });
+  }
+
+  function mintaKode2FA(opts) {
+    if (tfaOpen) return Promise.resolve({ ok: false, alasan: "sibuk" });
+    var o = opts || {};
+    var ov = buildTfa();
+    var input = ov.querySelector("#pintx2faCode");
+    var error = ov.querySelector(".pintx2fa__error");
+    var submit = ov.querySelector(".pintx2fa__btn--submit");
+    var cancel = ov.querySelector(".pintx2fa__btn--cancel");
+    ov.querySelector(".pintx2fa__message").textContent = String(o.pesan || "Transaksi ini memerlukan Verifikasi 2 Langkah. Masukkan kode untuk melanjutkan.");
+    input.value = "";
+    input.disabled = false;
+    submit.disabled = false;
+    submit.textContent = "Lanjutkan";
+    cancel.disabled = false;
+    error.textContent = "";
+    error.hidden = true;
+    tfaVerifier = typeof o.verifikasi === "function" ? o.verifikasi : null;
+    tfaOpen = true;
+    ov.hidden = false;
+    document.documentElement.style.overflow = "hidden";
+    window.addEventListener("keydown", onTfaKeydown, true);
+    requestAnimationFrame(function () {
+      ov.classList.add("is-open");
+      input.focus();
+    });
+    return new Promise(function (resolve) { tfaResolve = resolve; });
+  }
+
+  function kirimTfa() {
+    if (!tfaOpen || tfaBusy) return;
+    var input = tfaEl.querySelector("#pintx2faCode");
+    var error = tfaEl.querySelector(".pintx2fa__error");
+    var code = input.value.replace(/\D/g, "").slice(0, 6);
+    input.value = code;
+    if (code.length !== 6) {
+      tampilkanGalatTfa(input, error, "Masukkan 6 digit kode authenticator.");
+      return;
+    }
+    if (!tfaVerifier) {
+      tampilkanGalatTfa(input, error, "Verifikasi belum siap. Tutup lalu coba lagi, ya.");
+      return;
+    }
+    tfaBusy = true;
+    input.disabled = true;
+    var btn = tfaEl.querySelector(".pintx2fa__btn--submit");
+    tfaEl.querySelector(".pintx2fa__btn--cancel").disabled = true;
+    btn.disabled = true;
+    btn.textContent = "Memeriksa…";
+    Promise.resolve().then(function () { return tfaVerifier(code); }).then(function (hasil) {
+      if (!tfaOpen) return;
+      if (hasil && hasil.ok) { tutupTfa(hasil); return; }
+      tfaBusy = false;
+      input.disabled = false;
+      tfaEl.querySelector(".pintx2fa__btn--cancel").disabled = false;
+      btn.disabled = false;
+      btn.textContent = "Lanjutkan";
+      tampilkanGalatTfa(input, error, (hasil && hasil.pesan) || "Kode belum cocok. Coba lagi, ya.");
+    }).catch(function (err) {
+      if (!tfaOpen) return;
+      tfaBusy = false;
+      input.disabled = false;
+      tfaEl.querySelector(".pintx2fa__btn--cancel").disabled = false;
+      btn.disabled = false;
+      btn.textContent = "Lanjutkan";
+      tampilkanGalatTfa(input, error, (err && err.pesanMember) || "Verifikasi gagal. Coba lagi, ya.");
+    });
+  }
+
+  function tampilkanGalatTfa(input, error, pesan) {
+    error.textContent = pesan;
+    error.hidden = false;
+    input.classList.remove("is-error");
+    void input.offsetWidth;
+    input.classList.add("is-error");
+    input.value = "";
+    input.focus();
+  }
+
   /* ---- Tampilan ------------------------------------------------------- */
 
   function renderDots() {
@@ -309,6 +449,14 @@
           keypad.removeAttribute("aria-busy");
           tombolTutup.disabled = false;
           hasil = hasil || {};
+          if (hasil.kode === "butuh-2fa") {
+            tutup("butuh-2fa", {
+              kode: hasil.kode,
+              pesan: hasil.pesan,
+              verifikasi2FA: function (kode2fa) { return verif(masuk, kode2fa); },
+            });
+            return;
+          }
           if (hasil.ok) { tutup("ok", hasil); return; }
 
           if (hasil.banned) {
@@ -401,7 +549,7 @@
 
   function onKeydown(e) {
     if (!aktif) return;
-    if (e.key === "Escape") { tutup("batal"); return; }
+    if (e.key === "Escape") { if (!terkunci) tutup("batal"); return; }
     if (e.key === "Backspace") { e.preventDefault(); tekan("hapus"); return; }
     if (/^[0-9]$/.test(e.key)) { e.preventDefault(); tekan(e.key); }
   }
@@ -730,6 +878,7 @@
 
   window.DikaPinTransaksi = {
     minta: minta,
+    mintaKode2FA: mintaKode2FA,
     punyaPin: punyaPin,
     cekBanned: cekBanned,
     tampilkanBanned: tampilkanBanned,

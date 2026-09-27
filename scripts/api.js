@@ -691,11 +691,15 @@
     });
   }
 
-  function masuk(nomorHp, pin) {
-    return postAuthJson("api-login.php", {
+  function masuk(nomorHp, pin, faktorTambahan) {
+    var payload = {
       nomor_hp: String(nomorHp == null ? "" : nomorHp),
       pin: String(pin == null ? "" : pin),
-    }).then(function (res) {
+    };
+    var faktor = faktorTambahan || {};
+    if (faktor.kode_2fa) payload.kode_2fa = String(faktor.kode_2fa);
+    if (faktor.recovery_code) payload.recovery_code = String(faktor.recovery_code);
+    return postAuthJson("api-login.php", payload).then(function (res) {
       var j = res.json;
       if (j && j.ok === true && j.member) {
         /* api-login.php SEKARANG ikut mengirim "device_token" di level atas
@@ -708,9 +712,60 @@
         return j.member;
       }
       var e = galat((j && j.error) || PESAN.server, "api-login http " + res.status);
-      e.kode = "gagal-login";
+      e.kode = j && j.kode ? String(j.kode) : "gagal-login";
       throw e;
     });
+  }
+
+  function mintaEndpoint2FA(path, deviceToken, method, payload) {
+    var token = String(deviceToken == null ? "" : deviceToken).trim();
+    if (!token) return Promise.reject(galat(
+      "Sesi kamu belum siap. Coba keluar lalu masuk lagi, ya.", "device_token kosong"));
+    var opsi = {
+      method: method,
+      headers: { Authorization: "Bearer " + token },
+    };
+    if (method === "POST") opsi.body = JSON.stringify(payload || {});
+    return fetchJsonStatus(BASE + "/" + path, opsi).then(function (res) {
+      var j = res.json;
+      if (res.status >= 200 && res.status < 300 && j && j.ok === true) return j;
+      var e = galat((j && j.error) || PESAN.server, path + " http " + res.status);
+      if (res.status === 401) e.kode = "sesi-tidak-valid";
+      else if (j && j.kode) e.kode = String(j.kode);
+      throw e;
+    });
+  }
+
+  function status2FA(deviceToken) {
+    return mintaEndpoint2FA("api-2fa-status.php", deviceToken, "GET").then(function (j) {
+      return {
+        totpEnabled: j.totp_enabled === true,
+        totpConfirmedAt: j.totp_confirmed_at || null,
+      };
+    });
+  }
+
+  function mulai2FA(deviceToken) {
+    return mintaEndpoint2FA("api-2fa-mulai.php", deviceToken, "POST", {}).then(function (j) {
+      return { secret: String(j.secret || ""), otpauthUri: String(j.otpauth_uri || "") };
+    });
+  }
+
+  function konfirmasi2FA(deviceToken, kode) {
+    return mintaEndpoint2FA("api-2fa-konfirmasi.php", deviceToken, "POST", {
+      kode_2fa: String(kode == null ? "" : kode),
+    }).then(function (j) {
+      return {
+        message: String(j.message || "Verifikasi dua langkah berhasil diaktifkan."),
+        recoveryCodes: Array.isArray(j.recovery_codes) ? j.recovery_codes.map(String) : [],
+      };
+    });
+  }
+
+  function nonaktifkan2FA(deviceToken, pin) {
+    return mintaEndpoint2FA("api-2fa-nonaktifkan.php", deviceToken, "POST", {
+      pin: String(pin == null ? "" : pin),
+    }).then(function (j) { return { message: String(j.message || "Verifikasi dua langkah dinonaktifkan.") }; });
   }
 
   /* ======================= AUTH — masuk/daftar lewat Google ================
@@ -1030,15 +1085,17 @@
         "Data transaksi belum lengkap. Coba ulangi dari awal, ya.",
         "ref_id / kode_produk kosong"));
     }
+    var request = {
+      ref_id: String(body.ref_id),
+      kode_produk: String(body.kode_produk),
+      tujuan: String(body.tujuan == null ? "" : body.tujuan),
+      pin: String(body.pin == null ? "" : body.pin),
+    };
+    if (body.kode_2fa) request.kode_2fa = String(body.kode_2fa);
     return fetchJsonStatus(BASE + "/api-transaksi-produk.php", {
       method: "POST",
       headers: { Authorization: "Bearer " + token },
-      body: JSON.stringify({
-        ref_id: String(body.ref_id),
-        kode_produk: String(body.kode_produk),
-        tujuan: String(body.tujuan == null ? "" : body.tujuan),
-        pin: String(body.pin == null ? "" : body.pin),
-      }),
+      body: JSON.stringify(request),
     }).then(function (res) {
       var j = res.json;
       if (res.status === 200 && j && (j.ok === true || j.duplikat === true)) {
@@ -1054,6 +1111,7 @@
       }
       var e = galat((j && j.error) || PESAN.server,
         "api-transaksi-produk http " + res.status);
+      if (j && j.kode) e.kode = String(j.kode);
       /* Penanda yang dipakai payment-flow untuk memilih perlakuan:
          banned -> popup banned + logout; PIN salah -> biarkan member
          mengulang di sheet PIN yang sama; sisanya -> tutup sheet. */
@@ -1106,16 +1164,18 @@
         "Transfer belum bisa diproses. Coba mulai ulang transfernya, ya.",
         "ref_id transfer kosong"));
     }
+    var request = {
+      ref_id: String(body.ref_id),
+      nomor_hp_pengirim: String(body.nomor_hp_pengirim || ""),
+      pin: String(body.pin || ""),
+      nomor_hp_tujuan: String(body.nomor_hp_tujuan || ""),
+      nominal: body.nominal,
+    };
+    if (body.kode_2fa) request.kode_2fa = String(body.kode_2fa);
     return fetchJsonStatus(url, {
       method: "POST",
       headers: { Authorization: "Bearer " + token },
-      body: JSON.stringify({
-        ref_id: String(body.ref_id),
-        nomor_hp_pengirim: String(body.nomor_hp_pengirim || ""),
-        pin: String(body.pin || ""),
-        nomor_hp_tujuan: String(body.nomor_hp_tujuan || ""),
-        nominal: body.nominal,
-      }),
+      body: JSON.stringify(request),
     }).then(function (res) {
       var j = res.json;
       if (j && (j.ok === true || j.duplikat === true)) {
@@ -1128,6 +1188,7 @@
       }
       var e = galat((j && j.error) || PESAN.server, "api-transfer POST http " + res.status);
       if (res.status === 401) e.kode = "sesi-tidak-valid";
+      else if (j && j.kode) e.kode = String(j.kode);
       if (j && j.banned) { e.banned = true; e.bannedSampai = j.banned_sampai; }
       throw e;
     });
@@ -1147,6 +1208,10 @@
     catatDebugFotoUjiMuat: catatDebugFotoUjiMuat,
     daftar: daftar,
     masuk: masuk,
+    status2FA: status2FA,
+    mulai2FA: mulai2FA,
+    konfirmasi2FA: konfirmasi2FA,
+    nonaktifkan2FA: nonaktifkan2FA,
     masukGoogle: masukGoogle,
     kirimOtpEmail: kirimOtpEmail,
     daftarGoogle: daftarGoogle,
