@@ -799,6 +799,38 @@ body { overflow-x: hidden; }
   font-size: 13px;
   font-weight: 800;
 }
+.tfa-diagnostic { margin-top: 12px; text-align: center; }
+.tfa-diagnostic[hidden],
+.tfa-diagnostic__details[hidden] { display: none; }
+.tfa-diagnostic__toggle,
+.tfa-diagnostic__copy {
+  padding: 7px 10px;
+  color: var(--navy-700);
+  font-size: 11.5px;
+  font-weight: 800;
+}
+.tfa-diagnostic__details {
+  margin-top: 7px;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface-2);
+  text-align: left;
+}
+.tfa-diagnostic__note { color: var(--text-muted); font-size: 10.5px; line-height: 1.4; }
+.tfa-diagnostic__text {
+  max-height: 132px;
+  margin: 7px 0 2px;
+  overflow: auto;
+  color: var(--fg-strong);
+  font-family: monospace;
+  font-size: 10.5px;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  user-select: text;
+}
+.tfa-diagnostic__copy { display: block; margin: 4px auto 0; }
 
 .tfa-opt {
   display: flex;

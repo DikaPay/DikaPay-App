@@ -419,18 +419,61 @@ function tfaToken() {
     ? DikaMemberSync.getToken() : "";
 }
 
+function sanitizeTfaDiagnostic(value) {
+  let text = String(value || "Tidak ada pesan error asli.");
+  const rahasia = [
+    tfaToken(), tfa.secret, $("tfaDisablePin") && $("tfaDisablePin").value,
+    $("tfaCode") && $("tfaCode").value,
+  ].concat(tfa.recoveryCodes || []).filter((v) => typeof v === "string" && v.length >= 4);
+  rahasia.forEach((v) => { text = text.split(v).join("[DISEMBUNYIKAN]"); });
+  return text
+    .replace(/Bearer\s+[^\s,;]+/gi, "Bearer [DISEMBUNYIKAN]")
+    .replace(/(["']?(?:authorization|token|device[_-]?token|access[_-]?token|secret|pin|kode_2fa|recovery_code)["']?\s*[:=]\s*["']?)[^\s,"'};]+/gi, "$1[DISEMBUNYIKAN]");
+}
+
+function hideTfaDiagnostic() {
+  const panel = $("tfaDiagnostic");
+  if (panel) panel.hidden = true;
+  const details = $("tfaDiagnosticDetails");
+  if (details) details.hidden = true;
+  const toggle = $("tfaDiagnosticToggle");
+  if (toggle) toggle.setAttribute("aria-expanded", "false");
+}
+
+function showTfaDiagnostic(data) {
+  const panel = $("tfaDiagnostic");
+  const details = $("tfaDiagnosticDetails");
+  const toggle = $("tfaDiagnosticToggle");
+  const output = $("tfaDiagnosticText");
+  if (!panel || !details || !toggle || !output) return;
+  const status = Number.isFinite(Number(data.httpStatus)) && data.httpStatus !== null
+    ? String(data.httpStatus) : "tidak tersedia";
+  output.textContent = [
+    "Endpoint: " + String(data.endpoint || "tidak diketahui"),
+    "Tahap: " + String(data.stage || "tidak diketahui"),
+    "HTTP: " + status,
+    "Error asli: " + sanitizeTfaDiagnostic(data.originalError),
+  ].join("\n");
+  details.hidden = true;
+  toggle.setAttribute("aria-expanded", "false");
+  toggle.textContent = "Lihat detail teknis";
+  panel.hidden = false;
+}
+
 function logTfaFailure(action, err, extra) {
-  console.error("[akun][2fa] " + action + " failed", Object.assign({
+  const detail = Object.assign({
     endpoint: err && err.endpoint || null,
     requestId: err && err.requestId || null,
     stage: err && err.tahap || (err && err.httpStatus != null ? "http-response" : "client-or-transport"),
     httpStatus: err && err.httpStatus != null ? err.httpStatus : null,
     errorName: err && err.name || "Error",
-    originalError: err && (err.errorAsli || err.sebab || err.message) || String(err),
+    originalError: err && (err.errorAsli || err.sebab || err.message) || "Tidak ada pesan error asli.",
     memberMessage: err && err.pesanMember || null,
     online: navigator.onLine !== false,
     authorizationPresent: !!tfaToken(),
-  }, extra || {}));
+  }, extra || {});
+  console.error("[akun][2fa] " + action + " failed", detail);
+  showTfaDiagnostic(detail);
 }
 
 function syncTfaStatus() {
@@ -445,6 +488,7 @@ function syncTfaStatus() {
 }
 
 function refreshTfaStatus(force) {
+  hideTfaDiagnostic();
   const token = tfaToken();
   if (!force && tfa.statusPromise && token && token === tfa.statusToken) return tfa.statusPromise;
   const requestId = ++tfa.statusRequestId;
@@ -509,6 +553,7 @@ function openTfaFlow() {
 
 function tfaMulai() {
   if (tfa.busy || tfa.status !== "inactive") return;
+  hideTfaDiagnostic();
   if (!window.DikaApi || typeof DikaApi.mulai2FA !== "function") {
     toast("Fitur Verifikasi 2 Langkah belum siap.");
     return;
@@ -531,9 +576,8 @@ function tfaMulai() {
     if (err && (err.requestId || err.sebab)) {
       logTfaFailure("api-2fa-mulai.php", err, { endpoint: "api-2fa-mulai.php" });
     } else {
-      console.error("[akun][2fa] QR rendering failed", {
-        endpoint: "client-qrcode-render",
-        errorName: err && err.name || "Error",
+      logTfaFailure("QR rendering", err, {
+        endpoint: "client-qrcode-render", stage: "client-render",
         originalError: err && err.message || String(err),
       });
     }
@@ -573,6 +617,7 @@ function tfaCopy(text, message) {
 }
 
 function tfaVerify() {
+  hideTfaDiagnostic();
   const input = $("tfaCode");
   const code = input.value.replace(/\D/g, "").slice(0, 6);
   input.value = code;
@@ -614,6 +659,7 @@ function tfaVerify() {
 }
 
 function tfaNonaktifkan() {
+  hideTfaDiagnostic();
   const input = $("tfaDisablePin");
   const pin = input.value.replace(/\D/g, "").slice(0, 6);
   input.value = pin;
@@ -2747,6 +2793,16 @@ function init() {
       if (!status) return;
       tfaShow(status.totpEnabled ? "active" : "intro");
     });
+  });
+  $("tfaDiagnosticToggle").addEventListener("click", () => {
+    const details = $("tfaDiagnosticDetails");
+    details.hidden = !details.hidden;
+    $("tfaDiagnosticToggle").setAttribute("aria-expanded", String(!details.hidden));
+    $("tfaDiagnosticToggle").textContent = details.hidden ? "Lihat detail teknis" : "Sembunyikan detail";
+  });
+  $("tfaDiagnosticCopy").addEventListener("click", () => {
+    const text = $("tfaDiagnosticText").textContent;
+    if (text) tfaCopy(text, "Detail diagnostik disalin.");
   });
   $("tfaCopyCodes").addEventListener("click", () => {
     if (tfa.recoveryCodes.length) tfaCopy(tfa.recoveryCodes.join("\n"), "Kode cadangan berhasil disalin.");
