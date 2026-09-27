@@ -51,7 +51,9 @@
   var BASE = "https://dikapayofficial.my.id";
   var TTL_MS = 5 * 60 * 1000;          /* 5 menit */
   var TIMEOUT_MS = 20000;              /* jaringan seluler lambat tetap kebagian waktu */
+  var TIMEOUT_2FA_MS = 45000;          /* shared hosting: beri waktu hingga body JSON selesai */
   var CACHE_PREFIX = "dikapay:katalog:";
+  var nomorRequest2FA = 0;
 
   var memori = {};                      /* jenis -> { ts, data } */
   var inflight = {};                    /* jenis -> Promise */
@@ -721,17 +723,42 @@
     var token = String(deviceToken == null ? "" : deviceToken).trim();
     if (!token) return Promise.reject(galat(
       "Sesi kamu belum siap. Coba keluar lalu masuk lagi, ya.", "device_token kosong"));
+    var requestId = ++nomorRequest2FA;
+    var diagnostic = { endpoint: path, requestId: requestId, timeoutMs: TIMEOUT_2FA_MS };
     var opsi = {
       method: method,
       headers: { Authorization: "Bearer " + token },
     };
     if (method === "POST") opsi.body = JSON.stringify(payload || {});
-    return fetchJsonStatus(BASE + "/" + path, opsi).then(function (res) {
+    console.info("[api][2fa] request start", {
+      requestId: requestId, endpoint: path, method: method,
+      timeoutMs: TIMEOUT_2FA_MS, authorizationPresent: true,
+    });
+    return fetchJsonStatus(BASE + "/" + path, opsi, diagnostic).then(function (res) {
       var j = res.json;
       if (res.status >= 200 && res.status < 300 && j && j.ok === true) return j;
       var e = galat((j && j.error) || PESAN.server, path + " http " + res.status);
+      e.endpoint = path;
+      e.tahap = res.parseError ? "json-parse" : (res.bodyReadError ? "body-read" : "http-response");
+      e.httpStatus = res.status;
+      e.requestId = requestId;
+      e.errorAsli = res.parseError || res.bodyReadError || (j && j.error) || "Respons tidak berisi ok:true.";
       if (res.status === 401) e.kode = "sesi-tidak-valid";
       else if (j && j.kode) e.kode = String(j.kode);
+      console.error("[api][2fa] response rejected", {
+        requestId: requestId,
+        endpoint: path,
+        stage: e.tahap,
+        httpStatus: res.status,
+        backendOk: j && j.ok,
+        backendCode: j && j.kode || null,
+        backendError: j && j.error || null,
+        parseError: res.parseError || null,
+        bodyReadError: res.bodyReadError || null,
+        contentType: res.contentType || "",
+        responseBytes: res.responseBytes,
+        originalError: e.errorAsli,
+      });
       throw e;
     });
   }
@@ -1017,34 +1044,141 @@
      dengan postAuthJson/inquiryPasca) — text/plain CORS-safelisted, tanpa
      preflight OPTIONS. */
 
-  function fetchJsonStatus(url, opts) {
+  function fetchJsonStatus(url, opts, debug2FA) {
     var tunggu = window.DikaNetwork && typeof window.DikaNetwork.waitUntilOnline === "function"
       ? window.DikaNetwork.waitUntilOnline()
       : Promise.resolve();
+    var waitTimer = 0;
+    var waitTimedOut = false;
+    if (debug2FA) {
+      tunggu = Promise.race([tunggu, new Promise(function (_, reject) {
+        waitTimer = window.setTimeout(function () {
+          waitTimedOut = true;
+          var e = new Error("Timed out waiting for online state");
+          e.name = "TimeoutError";
+          reject(e);
+        }, debug2FA.timeoutMs || TIMEOUT_2FA_MS);
+      })]);
+    }
     return tunggu.then(function () {
+      if (waitTimer) { window.clearTimeout(waitTimer); waitTimer = 0; }
       var o = Object.assign({}, opts || {});
       var ctrl = null, timer = 0, timeout = false;
+      var mulai = Date.now();
+      var timeoutMs = debug2FA && debug2FA.timeoutMs || TIMEOUT_MS;
+      var tahap = "fetch";
+      var httpStatus = null;
+      var contentType = "";
       try {
         ctrl = new AbortController();
         timer = window.setTimeout(function () {
           timeout = true;
           try { ctrl.abort(); } catch (e) {}
-        }, TIMEOUT_MS);
+        }, timeoutMs);
       } catch (e) { ctrl = null; }
       o.headers = Object.assign({}, o.headers || {}, { Accept: "application/json" });
       if (ctrl) o.signal = ctrl.signal;
       return fetch(url, o)
         .then(function (r) {
-          if (timer) { window.clearTimeout(timer); timer = 0; }
-          return r.json().then(
-            function (json) { return { status: r.status, json: json }; },
-            function () { return { status: r.status, json: null }; }
-          );
+          httpStatus = r.status;
+          contentType = r.headers && r.headers.get ? (r.headers.get("content-type") || "") : "";
+          tahap = "response-body";
+          return r.text().then(function (text) {
+            if (timer) { window.clearTimeout(timer); timer = 0; }
+            var json = null;
+            var parseError = null;
+            try { json = text ? JSON.parse(text) : null; }
+            catch (e) { parseError = e; }
+            if (parseError && debug2FA) {
+              console.error("[api][2fa] response JSON parse failed", {
+                requestId: debug2FA.requestId,
+                endpoint: debug2FA.endpoint,
+                stage: "json-parse",
+                httpStatus: httpStatus,
+                contentType: contentType,
+                responseBytes: text.length,
+                errorName: parseError.name || "SyntaxError",
+                originalError: parseError.message || String(parseError),
+                elapsedMs: Date.now() - mulai,
+              });
+            }
+            return {
+              status: r.status,
+              json: json,
+              parseError: parseError ? (parseError.message || String(parseError)) : null,
+              contentType: contentType,
+              responseBytes: text.length,
+            };
+          }, function (err) {
+            if (timeout) throw err;
+            if (timer) { window.clearTimeout(timer); timer = 0; }
+            if (debug2FA) {
+              console.error("[api][2fa] response body read failed", {
+                requestId: debug2FA.requestId,
+                endpoint: debug2FA.endpoint,
+                stage: "body-read",
+                httpStatus: httpStatus,
+                contentType: contentType,
+                errorName: err && err.name || "Error",
+                originalError: err && err.message || String(err),
+                elapsedMs: Date.now() - mulai,
+              });
+            }
+            return {
+              status: r.status,
+              json: null,
+              bodyReadError: err && err.message || String(err),
+              contentType: contentType,
+              responseBytes: null,
+            };
+          });
         })
         .catch(function (err) {
           if (timer) { window.clearTimeout(timer); timer = 0; }
-          throw galatTransport(err, timeout, url);
+          var gagal = galatTransport(err, timeout, url);
+          if (debug2FA) {
+            tahap = timeout ? "timeout" : tahap;
+            gagal.tahap = tahap;
+            gagal.endpoint = debug2FA.endpoint;
+            gagal.httpStatus = httpStatus;
+            gagal.requestId = debug2FA.requestId;
+            gagal.errorAsli = err && err.message || String(err);
+            console.error("[api][2fa] request failed", {
+              requestId: debug2FA.requestId,
+              endpoint: debug2FA.endpoint,
+              method: o.method || "GET",
+              stage: tahap,
+              failureType: timeout ? "timeout" : (httpStatus === null ? "fetch/network/CORS" : "response-body"),
+              httpStatus: httpStatus,
+              timeoutMs: timeoutMs,
+              elapsedMs: Date.now() - mulai,
+              errorName: err && err.name || "Error",
+              originalError: err && err.message || String(err),
+              contentType: contentType,
+            });
+          }
+          throw gagal;
         });
+    }, function (err) {
+      if (waitTimer) { window.clearTimeout(waitTimer); waitTimer = 0; }
+      if (!debug2FA) throw err;
+      var gagal = galatTransport(err, waitTimedOut, url);
+      gagal.tahap = waitTimedOut ? "online-wait-timeout" : "online-wait";
+      gagal.endpoint = debug2FA.endpoint;
+      gagal.httpStatus = null;
+      gagal.requestId = debug2FA.requestId;
+      gagal.errorAsli = err && err.message || String(err);
+      console.error("[api][2fa] request did not reach fetch", {
+        requestId: debug2FA.requestId,
+        endpoint: debug2FA.endpoint,
+        stage: gagal.tahap,
+        failureType: "online-gate",
+        httpStatus: null,
+        timeoutMs: debug2FA.timeoutMs || TIMEOUT_2FA_MS,
+        errorName: err && err.name || "Error",
+        originalError: err && err.message || String(err),
+      });
+      throw gagal;
     });
   }
 
