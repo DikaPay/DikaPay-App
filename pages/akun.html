@@ -425,9 +425,18 @@
 
         <div class="tfa-step tfa-step--center" data-step="status-error" hidden>
           <span class="tfa-hero-ic tfa-hero-ic--warn" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg></span>
-          <p class="tfa-lead">Status Verifikasi 2 Langkah belum bisa dimuat. Coba periksa lagi sebelum mengubah pengaturan.</p>
+          <p class="tfa-lead" id="tfaStatusErrorMessage">Status Verifikasi 2 Langkah belum bisa dimuat. Coba periksa lagi sebelum mengubah pengaturan.</p>
           <button class="apply-btn" type="button" id="tfaRetryStatusBtn">Coba Lagi</button>
         </div>
+
+        <section class="tfa-diagnostic" id="tfaDiagnostic" hidden aria-live="polite">
+          <button class="tfa-diagnostic__toggle" id="tfaDiagnosticToggle" type="button" aria-expanded="false" aria-controls="tfaDiagnosticDetails">Lihat detail teknis</button>
+          <div class="tfa-diagnostic__details" id="tfaDiagnosticDetails" hidden>
+            <p class="tfa-diagnostic__note">Detail ini tidak memuat token, PIN, atau secret.</p>
+            <pre class="tfa-diagnostic__text" id="tfaDiagnosticText"></pre>
+            <button class="tfa-diagnostic__copy" id="tfaDiagnosticCopy" type="button">Salin detail</button>
+          </div>
+        </section>
 
       </div>
     </div>
