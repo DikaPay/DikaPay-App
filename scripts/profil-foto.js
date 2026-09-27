@@ -86,8 +86,8 @@
     var d = nomorAktif();
     if (!d || !fotoUrl) return false;
     try {
-      localStorage.setItem(PREFIX + d, String(fotoUrl));
-      pasangSemua(namaAktif(), true);
+      localStorage.setItem(PREFIX + d, versiUrl(fotoUrl));
+      pasangSemua(namaAktif());
       return true;
     }
     catch (e) { console.warn("profil-foto: URL foto tidak tersimpan:", e); return false; }
@@ -107,6 +107,7 @@
     var fragPos = urlFoto.indexOf("#");
     var frag = fragPos < 0 ? "" : urlFoto.slice(fragPos);
     var dasar = fragPos < 0 ? urlFoto : urlFoto.slice(0, fragPos);
+    if (/[?&]_dika=/.test(dasar)) return urlFoto;
     var pemisah = dasar.indexOf("?") < 0 ? "?" : "&";
     return dasar + pemisah + "_dika=" + Date.now() + frag;
   }
@@ -205,6 +206,7 @@
   }
 
   function pasangSemua(nama, paksaMuatBaru) {
+    if (!nama) nama = namaAktif();
     var daftar = document.querySelectorAll("[data-avatar]");
     for (var i = 0; i < daftar.length; i++) pasang(daftar[i], nama, paksaMuatBaru);
   }

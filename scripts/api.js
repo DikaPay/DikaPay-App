@@ -1041,13 +1041,14 @@
       }),
     }).then(function (res) {
       var j = res.json;
-      if (res.status === 200 && j && j.ok === true) {
+      if (res.status === 200 && j && (j.ok === true || j.duplikat === true)) {
         return {
-          status: String(j.status || "pending"),
+          status: j.duplikat === true ? "berhasil" : String(j.status || "pending"),
           transaksiId: j.transaksi_id,
           kategori: j.kategori,
           nominal: j.nominal,
           saldoBaru: j.saldo_baru,
+          duplikat: j.duplikat === true,
           raw: j,
         };
       }
@@ -1100,14 +1101,30 @@
     }
     var url = BASE + "/api-transfer.php";
     var body = payload || {};
+    if (!body.ref_id) {
+      return Promise.reject(galat(
+        "Transfer belum bisa diproses. Coba mulai ulang transfernya, ya.",
+        "ref_id transfer kosong"));
+    }
     return fetchJsonStatus(url, {
       method: "POST",
       headers: { Authorization: "Bearer " + token },
-      body: JSON.stringify(body),
+      body: JSON.stringify({
+        ref_id: String(body.ref_id),
+        nomor_hp_pengirim: String(body.nomor_hp_pengirim || ""),
+        pin: String(body.pin || ""),
+        nomor_hp_tujuan: String(body.nomor_hp_tujuan || ""),
+        nominal: body.nominal,
+      }),
     }).then(function (res) {
       var j = res.json;
-      if (j && j.ok === true) {
-        return { saldoBaru: j.saldo_baru, namaTujuan: j.nama_tujuan, message: j.message };
+      if (j && (j.ok === true || j.duplikat === true)) {
+        return {
+          saldoBaru: j.saldo_baru,
+          namaTujuan: j.nama_tujuan,
+          message: j.message,
+          duplikat: j.duplikat === true,
+        };
       }
       var e = galat((j && j.error) || PESAN.server, "api-transfer POST http " + res.status);
       if (res.status === 401) e.kode = "sesi-tidak-valid";

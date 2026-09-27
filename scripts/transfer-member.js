@@ -250,6 +250,8 @@
       member: null,       // { name, phone (pretty) } — dari respons backend
       memberDigits: "",    // nomor tujuan, digit saja
       nominal: 0,
+      transferRefId: "",
+      transferIntentKey: "",
     };
     var lookupTimer = null;
     var lookupToken = 0;   // buang hasil pencarian basi (nomor sudah berubah lagi)
@@ -287,7 +289,32 @@
       els.phoneField.classList.remove("is-valid");
       state.member = null;
       state.memberDigits = "";
+      clearTransferRef();
       updateContinueState();
+    }
+
+    function clearTransferRef() {
+      state.transferRefId = "";
+      state.transferIntentKey = "";
+    }
+
+    function newTransferRefId() {
+      try {
+        if (window.crypto && typeof window.crypto.randomUUID === "function") {
+          return window.crypto.randomUUID();
+        }
+      } catch (e) {}
+      return "DP-" + Date.now().toString(36) + "-" +
+        Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2);
+    }
+
+    function refForCurrentTransfer() {
+      var key = state.memberDigits + "|" + String(Math.round(state.nominal));
+      if (!state.transferRefId || state.transferIntentKey !== key) {
+        state.transferIntentKey = key;
+        state.transferRefId = newTransferRefId();
+      }
+      return state.transferRefId;
     }
 
     function showFound(member, digits) {
@@ -400,7 +427,9 @@
     els.amountInput.addEventListener("input", function () {
       try {
         clearAmountErr();
+        var nominalSebelumnya = state.nominal;
         state.nominal = parseAngka(els.amountInput);
+        if (state.nominal !== nominalSebelumnya) clearTransferRef();
         var saldo = readBalance();
         var over = state.nominal > saldo;
         els.balanceHint.textContent = over
@@ -507,12 +536,19 @@
         jaringan.setTransactionWait("transfer", true);
       }
       return DikaApi.transfer({
+        ref_id: refForCurrentTransfer(),
         nomor_hp_pengirim: pengirim,
         pin: pinMasuk,
         nomor_hp_tujuan: state.memberDigits,
         nominal: state.nominal,
       }).then(function (res) {
-        return { ok: true, saldoBaru: res.saldoBaru, namaTujuan: res.namaTujuan, message: res.message };
+        return {
+          ok: true,
+          saldoBaru: res.saldoBaru,
+          namaTujuan: res.namaTujuan,
+          message: res.message,
+          duplikat: res.duplikat === true,
+        };
       }).catch(function (err) {
         if (err && err.banned) {
           return { ok: false, banned: true, bannedSampai: err.bannedSampai, pesan: err.pesanMember };
@@ -589,7 +625,7 @@
           nama: "Transfer ke " + namaTujuan, nominal: nominal });
       }
 
-      return { tx: tx, detail: detail, note: note };
+      return { tx: tx, detail: detail, note: note, message: hasilPin && hasilPin.message };
     }
 
     els.cmPay.addEventListener("click", function () {
@@ -614,6 +650,7 @@
       }
 
       transferBusy = true;
+      refForCurrentTransfer();
       els.cmPay.classList.add("is-loading");
       els.cmPay.disabled = true;
 
@@ -626,6 +663,7 @@
         .then(function (r) {
           if (r && r.ok) { prosesTransfer(r); return; }
           transferBusy = false;
+          if (r && (r.alasan === "batal" || r.alasan === "tanpa-pin")) clearTransferRef();
           els.cmPay.classList.remove("is-loading");
           els.cmPay.disabled = false;
           /* Dibatalkan sendiri ("batal") / belum punya PIN ("tanpa-pin") =
@@ -673,6 +711,7 @@
         }
         closeConfirm();
         transferBusy = false;
+        clearTransferRef();
         window.setTimeout(function () { showSuccess(result); }, RM ? 0 : 240);
       }, RM ? 0 : 850);
     }
@@ -690,7 +729,7 @@
         if (window.playSuccessSound) window.playSuccessSound();
 
         els.successDesc.textContent =
-          fmtRupiah(Math.abs(result.tx.amount)) + " berhasil dikirim ke " + result.detail.recipient + ".";
+          result.message || (fmtRupiah(Math.abs(result.tx.amount)) + " berhasil dikirim ke " + result.detail.recipient + ".");
 
         var rows = [
           ["Nama Tujuan", esc(result.detail.recipient)],
@@ -708,6 +747,7 @@
     }
 
     function resetForm() {
+      clearTransferRef();
       els.phoneInput.value = "";
       els.amountInput.value = "";
       els.noteInput.value = "";
